@@ -1,0 +1,120 @@
+/* GameRoom.css */
+.game-room-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-color: #1e1e2f;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.join-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.name-input {
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+}
+
+.join-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    background-color: #4caf50;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.join-button:hover {
+    background-color: #45a049;
+}
+
+.game-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.game-button:hover {
+    background-color: #0056b3;
+}
+
+.messages-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.message-item {
+    background-color: #282845;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+}
+
+.game-title {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+
+.game-room-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #282845;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.game-room-container.wide {
+    width: 80%;
+    max-width: 1000px;
+}
+
+@media (max-width: 768px) {
+    .game-room-container.wide {
+        width: 90%;
+    }
+}
+
+.game-room-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100vw;
+    background-color: #1e1e2f;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.game-title {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    margin-bottom: 2vh;
+}
+
+.messages-list {
+    max-height: 50vh;
+    overflow-y: auto;
+    width: 100%;
+}
