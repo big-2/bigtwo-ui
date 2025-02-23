@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
-import "./GameRoom.css";
+import { createRoom, getRooms, deleteRoom, Room } from "../services/api";
 import "./Lobby.css";
-import { createRoom, getRooms, Room } from "../services/api";
 
 interface LobbyProps {
-    onJoinRoom: (roomId: number) => void;
+    onJoinRoom: (roomId: string) => void;
 }
 
 const Lobby: React.FC<LobbyProps> = ({ onJoinRoom }) => {
@@ -21,20 +20,32 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom }) => {
         const newRoom = await createRoom(1); // Assuming user ID is 1 for now
         if (newRoom) {
             setRooms([...rooms, newRoom]);
+            console.log("Rooms:", rooms);
+            onJoinRoom(newRoom.id);
+        };
+    }
+
+    const handleDeleteRoom = async (roomId: string) => {
+        const success = await deleteRoom(roomId);
+        if (success) {
+            setRooms((prevRooms) => prevRooms.filter((room) => room.id !== roomId));
         }
     };
 
     return (
         <div className="lobby-wrapper">
             <h1 className="game-title">Big Two Game</h1>
-            <div className="lobby-container">
+            <div className="lobby-container wide">
                 <h2 className="lobby-title">Available Rooms</h2>
                 <button className="create-room-button" onClick={handleCreateRoom}>Create Room</button>
                 <ul className="room-list">
                     {rooms.map((room) => (
                         <li key={room.id} className="room-item">
-                            <span>Room {room.id} - {room.status}</span>
+                            <span>{room.id} - {room.status}</span>
                             <button className="join-room-button" onClick={() => onJoinRoom(room.id)}>Join</button>
+                            <button className="delete-room-button" onClick={() => handleDeleteRoom(room.id)}>
+                                ❌ Delete
+                            </button>
                         </li>
                     ))}
                 </ul>

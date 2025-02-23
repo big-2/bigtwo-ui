@@ -1,0 +1,82 @@
+.chat-box {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 320px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #fafafa;
+    border: none;
+}
+
+.chat-header {
+    background-color: #4a76a8;
+    color: white;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.toggle-button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.chat-content {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.messages-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.message-text {
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.current-user {
+    color: #2979ff;
+    margin-left: auto;
+    text-align: right;
+}
+
+.other-user {
+    color: #e91e63;
+    margin-right: auto;
+    text-align: left;
+}
+
+.chat-input {
+    width: calc(100% - 20px);
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.chat-button {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.minimized .chat-content {
+    display: none;
+}
+
+.minimized .toggle-button::before {
+    content: "▲";
+}

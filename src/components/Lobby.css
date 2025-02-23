@@ -88,3 +88,19 @@
 .join-room-button:hover {
     background-color: #0056b3;
 }
+
+.delete-room-button {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    border: none;
+    background-color: #ff4c4c;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.delete-room-button:hover {
+    background-color: #cc0000;
+}
+
