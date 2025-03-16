@@ -1,0 +1,28 @@
+.user-info {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  background-color: rgba(40, 40, 69, 0.8);
+  padding: 8px 15px;
+  border-radius: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  color: white;
+  font-size: 0.9rem;
+  z-index: 100;
+}
+
+.username-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.username-label {
+  font-weight: bold;
+  color: #aaa;
+}
+
+.username-value {
+  font-weight: bold;
+  color: #4caf50;
+}
