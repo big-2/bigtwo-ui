@@ -3,9 +3,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    height: 100vh;
-    background-color: #1e1e2f;
+    justify-content: flex-start;
     color: white;
     font-family: Arial, sans-serif;
 }
@@ -69,16 +67,11 @@
     border-radius: 5px;
 }
 
-.game-title {
-    font-size: 2.5rem;
-    margin-bottom: 20px;
-}
-
 .game-room-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     background: #282845;
     padding: 20px;
     border-radius: 10px;
@@ -88,6 +81,7 @@
 .game-room-container.wide {
     width: 80%;
     max-width: 1000px;
+    margin: 20px auto;
 }
 
 @media (max-width: 768px) {
@@ -100,17 +94,17 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    height: 100vh;
-    width: 100vw;
-    background-color: #1e1e2f;
-    color: white;
-    font-family: Arial, sans-serif;
+    justify-content: flex-start;
+    width: 100%;
+    min-height: calc(100vh - 60px); /* Account for header height */
+    padding-top: 20px;
 }
 
-.game-title {
-    font-size: clamp(1.5rem, 4vw, 2.5rem);
-    margin-bottom: 2vh;
+.game-room-title {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    color: #4CAF50;
 }
 
 .messages-list {

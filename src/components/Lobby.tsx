@@ -4,9 +4,10 @@ import "./Lobby.css";
 
 interface LobbyProps {
     onJoinRoom: (roomId: string) => void;
+    username: string;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onJoinRoom }) => {
+const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
     const [rooms, setRooms] = useState<Room[]>([]);
 
     useEffect(() => {
@@ -21,7 +22,7 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom }) => {
     }, []);
 
     const handleCreateRoom = async () => {
-        const newRoom = await createRoom("jellyfish"); // TODO use an actual user id
+        const newRoom = await createRoom(username);
         if (newRoom) {
             setRooms([...rooms, newRoom]);
             console.log("Rooms:", rooms);
@@ -30,7 +31,7 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom }) => {
     }
 
     const handleDeleteRoom = async (roomId: string) => {
-        const success = await deleteRoom(roomId, "jellyfish");
+        const success = await deleteRoom(roomId, username);
         if (success) {
             setRooms((prevRooms) => prevRooms.filter((room) => room.id !== roomId));
         }
@@ -38,7 +39,6 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom }) => {
 
     return (
         <div className="lobby-wrapper">
-            <h1 className="game-title">Big Two Game</h1>
             <div className="lobby-container wide">
                 <h2 className="lobby-title">Available Rooms</h2>
                 <button className="create-room-button" onClick={handleCreateRoom}>Create Room</button>

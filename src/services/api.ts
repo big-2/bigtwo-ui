@@ -9,7 +9,7 @@ export interface User {
 
 export interface Room {
     id: string;
-    host_id: string;
+    host_name: string;
     status: string;
     player_count: number; // Add player count to track room capacity
 }
@@ -26,7 +26,7 @@ export const createUser = async (username: string, password: string): Promise<Us
 export const createRoom = async (hostId: string): Promise<Room | null> => {
     try {
         console.log("Create room request", hostId);
-        const response = await axios.post(`${API_URL}/rooms/`, { host_id: hostId });
+        const response = await axios.post(`${API_URL}/rooms/`, { host_name: hostId });
         console.log("Create room response", response.data);
         return response.data;
     } catch (error) {
@@ -61,5 +61,15 @@ export const joinRoom = async (roomId: string): Promise<JoinRoomResponse> => {
     } catch (error) {
         console.error("Error joining room:", error);
         throw new Error("Failed to join room.");
+    }
+};
+
+export const getRandomUsername = async (): Promise<string> => {
+    try {
+        const response = await axios.get(`${API_URL}/username/`);
+        return response.data.username;
+    } catch (error) {
+        console.error("Error fetching random username:", error);
+        return "jellyfish"; // Fallback if API call fails
     }
 };

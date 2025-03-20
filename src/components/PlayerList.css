@@ -24,11 +24,36 @@
   margin: 5px 0;
   border-radius: 4px;
   background-color: rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
 }
 
 .players-list li.current-player {
   background-color: rgba(76, 175, 80, 0.3);
   font-weight: bold;
+}
+
+.player-name {
+  flex-grow: 1;
+}
+
+.you-indicator {
+  background-color: #4CAF50;
+  color: white;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.host-indicator {
+  background-color: #FF9800;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
 }
 
 .player-count {

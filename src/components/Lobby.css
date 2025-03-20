@@ -3,10 +3,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    height: 100vh;
-    width: 100vw;
-    background-color: #1e1e2f;
+    justify-content: flex-start;
+    padding-top: 40px;
+    width: 100%;
+    min-height: calc(100vh - 60px); /* Account for header height */
     color: white;
     font-family: Arial, sans-serif;
 }
@@ -71,6 +71,13 @@
     padding: 1vh 2vw;
     border-radius: 5px;
     font-size: clamp(0.9rem, 2vw, 1.2rem);
+}
+
+.empty-message {
+    justify-content: center;
+    padding: 20px;
+    font-style: italic;
+    color: #aaa;
 }
 
 /* Join Room button with dynamic size */

@@ -4,10 +4,10 @@ import GameRoom from "./GameRoom";
 import { getRooms, Room } from "../services/api";
 
 interface RoomContainerProps {
-    playerId: number;
+    username: string;
 }
 
-const RoomContainer: React.FC<RoomContainerProps> = ({ playerId }) => {
+const RoomContainer: React.FC<RoomContainerProps> = ({ username }) => {
     const { roomId } = useParams<{ roomId: string }>();
     const [isValidRoom, setIsValidRoom] = useState<boolean | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -73,7 +73,7 @@ const RoomContainer: React.FC<RoomContainerProps> = ({ playerId }) => {
     return roomId ? (
         <GameRoom
             roomId={roomId}
-            playerId={playerId}
+            username={username}
             roomDetails={roomDetails}
         />
     ) : null;
