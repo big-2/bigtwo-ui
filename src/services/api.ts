@@ -9,10 +9,9 @@ export interface User {
 
 export interface Room {
     id: string;
-    host_id: number;
-    host_username: string;
+    host_id: string;
     status: string;
-    message: string;
+    player_count: number; // Add player count to track room capacity
 }
 
 export interface JoinRoomResponse {
@@ -24,7 +23,7 @@ export const createUser = async (username: string, password: string): Promise<Us
     return response.data;
 };
 
-export const createRoom = async (hostId: number): Promise<Room | null> => {
+export const createRoom = async (hostId: string): Promise<Room | null> => {
     try {
         console.log("Create room request", hostId);
         const response = await axios.post(`${API_URL}/rooms/`, { host_id: hostId });
@@ -36,9 +35,9 @@ export const createRoom = async (hostId: number): Promise<Room | null> => {
     }
 };
 
-export const deleteRoom = async (roomId: string): Promise<boolean> => {
+export const deleteRoom = async (roomId: string, ownerId: string): Promise<boolean> => {
     try {
-        const response = await axios.delete(`${API_URL}/rooms/${roomId}`);
+        const response = await axios.delete(`${API_URL}/rooms/${roomId}?owner_id=${ownerId}`);
         console.log(response.data.message);
         return true;
     } catch (error) {
@@ -49,7 +48,8 @@ export const deleteRoom = async (roomId: string): Promise<boolean> => {
 
 export const getRooms = async (): Promise<Room[]> => {
     const response = await axios.get(`${API_URL}/rooms/`);
-    return response.data;
+    // Filter out rooms that are full (4 players)
+    return response.data.filter((room: Room) => room.player_count < 4);
 };
 
 export const joinRoom = async (roomId: string): Promise<JoinRoomResponse> => {
