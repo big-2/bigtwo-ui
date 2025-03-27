@@ -1,35 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import Lobby from "./components/Lobby";
-import GameRoom from "./components/GameRoom";
 import RoomContainer from "./components/RoomContainer";
 import Header from "./components/Header";
-import { getRandomUsername } from "./services/api";
+import { useSessionContext } from "./contexts/SessionContext";
 import "./index.css"; // Ensure global styles are included
 
 const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
-    const [username, setUsername] = useState<string>("");
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const { username, isLoading } = useSessionContext();
     const navigate = useNavigate();
     const location = useLocation();
-
-    // Fetch random username on initial load
-    useEffect(() => {
-        const fetchUsername = async () => {
-            try {
-                const name = await getRandomUsername();
-                setUsername(name);
-            } catch (err) {
-                console.error("Error fetching username:", err);
-                setUsername("jellyfish"); // Fallback
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchUsername();
-    }, []);
 
     // Function to handle joining a room and redirecting
     const handleJoinRoom = async (roomId: string) => {
