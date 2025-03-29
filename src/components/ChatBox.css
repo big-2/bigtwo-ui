@@ -3,15 +3,14 @@
     bottom: 20px;
     right: 20px;
     width: 320px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px var(--shadow-color);
     border-radius: 8px;
     overflow: hidden;
-    background-color: #fafafa;
-    border: none;
+    background-color: var(--container-bg);
 }
 
 .chat-header {
-    background-color: #4a76a8;
+    background-color: var(--primary-btn-bg);
     color: white;
     padding: 10px;
     cursor: pointer;
@@ -44,13 +43,13 @@
 }
 
 .current-user {
-    color: #2979ff;
+    color: var(--link-color);
     margin-left: auto;
     text-align: right;
 }
 
 .other-user {
-    color: #e91e63;
+    color: var(--delete-btn-bg);
     margin-right: auto;
     text-align: left;
 }
@@ -58,19 +57,25 @@
 .chat-input {
     width: calc(100% - 20px);
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--container-light-bg);
     border-radius: 4px;
     margin-top: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
 }
 
 .chat-button {
     margin-top: 10px;
     padding: 10px 15px;
-    background-color: #4a76a8;
+    background-color: var(--primary-btn-bg);
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+}
+
+.chat-button:hover {
+    background-color: var(--primary-btn-hover);
 }
 
 .minimized .chat-content {

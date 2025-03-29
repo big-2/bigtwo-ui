@@ -7,7 +7,7 @@
     padding-top: 40px;
     width: 100%;
     min-height: calc(100vh - 60px); /* Account for header height */
-    color: white;
+    color: var(--text-color);
     font-family: Arial, sans-serif;
 }
 
@@ -22,10 +22,10 @@
     width: 90%;
     max-width: 60rem; /* Maximum width for large screens */
     min-width: 20rem; /* Prevents it from being too small */
-    background: #282845;
+    background: var(--container-bg);
     padding: 2vh 2vw;
     border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 4px 10px var(--shadow-color);
 }
 
 /* Responsive heading */
@@ -39,7 +39,7 @@
     padding: 1vh 2vw;
     font-size: 1rem;
     border: none;
-    background-color: #4caf50;
+    background-color: var(--success-btn-bg);
     color: white;
     border-radius: 5px;
     cursor: pointer;
@@ -47,7 +47,7 @@
 }
 
 .create-room-button:hover {
-    background-color: #45a049;
+    background-color: var(--success-btn-hover);
 }
 
 /* Adaptive room list */
@@ -67,7 +67,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #38385a;
+    background: var(--container-light-bg);
     padding: 1vh 2vw;
     border-radius: 5px;
     font-size: clamp(0.9rem, 2vw, 1.2rem);
@@ -85,7 +85,7 @@
     padding: 1vh 1.5vw;
     font-size: 1rem;
     border: none;
-    background-color: #007bff;
+    background-color: var(--primary-btn-bg);
     color: white;
     border-radius: 5px;
     cursor: pointer;
@@ -93,14 +93,14 @@
 }
 
 .join-room-button:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-btn-hover);
 }
 
 .delete-room-button {
     padding: 8px 12px;
     font-size: 0.9rem;
     border: none;
-    background-color: #ff4c4c;
+    background-color: var(--delete-btn-bg);
     color: white;
     border-radius: 5px;
     cursor: pointer;
@@ -108,6 +108,6 @@
 }
 
 .delete-room-button:hover {
-    background-color: #cc0000;
+    background-color: var(--delete-btn-hover);
 }
 

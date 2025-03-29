@@ -4,6 +4,7 @@ import Lobby from "./components/Lobby";
 import RoomContainer from "./components/RoomContainer";
 import Header from "./components/Header";
 import { useSessionContext } from "./contexts/SessionContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import "./index.css"; // Ensure global styles are included
 
 const App: React.FC = () => {
@@ -31,17 +32,19 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="app-wrapper">
-            <Header username={username} showBackButton={showBackButton} />
-            {error && <div className="error-message">{error}</div>}
-            <main className="app-content">
-                <Routes>
-                    <Route path="/" element={<Lobby onJoinRoom={handleJoinRoom} username={username} />} />
-                    <Route path="/room/:roomId" element={<RoomContainer username={username} />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-            </main>
-        </div>
+        <ThemeProvider>
+            <div className="app-wrapper">
+                <Header username={username} showBackButton={showBackButton} />
+                {error && <div className="error-message">{error}</div>}
+                <main className="app-content">
+                    <Routes>
+                        <Route path="/" element={<Lobby onJoinRoom={handleJoinRoom} username={username} />} />
+                        <Route path="/room/:roomId" element={<RoomContainer username={username} />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </main>
+            </div>
+        </ThemeProvider>
     );
 };
 

@@ -4,7 +4,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    color: white;
+    color: var(--text-color);
     font-family: Arial, sans-serif;
 }
 
@@ -26,7 +26,7 @@
     padding: 10px 20px;
     font-size: 1rem;
     border: none;
-    background-color: #4caf50;
+    background-color: var(--success-btn-bg);
     color: white;
     border-radius: 5px;
     cursor: pointer;
@@ -34,14 +34,14 @@
 }
 
 .join-button:hover {
-    background-color: #45a049;
+    background-color: var(--success-btn-hover);
 }
 
 .game-button {
     padding: 10px 20px;
     font-size: 1rem;
     border: none;
-    background-color: #007bff;
+    background-color: var(--primary-btn-bg);
     color: white;
     border-radius: 5px;
     cursor: pointer;
@@ -49,7 +49,7 @@
 }
 
 .game-button:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-btn-hover);
 }
 
 .messages-list {
@@ -61,7 +61,7 @@
 }
 
 .message-item {
-    background-color: #282845;
+    background-color: var(--container-bg);
     padding: 10px;
     margin: 5px 0;
     border-radius: 5px;
@@ -72,10 +72,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    background: #282845;
+    background: var(--container-bg);
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 4px 10px var(--shadow-color);
 }
 
 .game-room-container.wide {
@@ -104,7 +104,7 @@
     margin-top: 0;
     margin-bottom: 20px;
     font-size: 1.5rem;
-    color: #4CAF50;
+    color: var(--accent-color);
 }
 
 .messages-list {
@@ -117,7 +117,7 @@
     position: absolute;
     top: 15px;
     left: 15px;
-    background-color: #f44336;
+    background-color: var(--danger-btn-bg);
     color: white;
     border: none;
     border-radius: 4px;
@@ -128,5 +128,5 @@
 }
 
 .leave-game-btn:hover {
-    background-color: #d32f2f;
+    background-color: var(--danger-btn-hover);
 }
