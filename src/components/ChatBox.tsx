@@ -1,8 +1,13 @@
 import React, { useState } from "react";
 import "./ChatBox.css";
 
+interface DisplayMessage {
+    text: string;
+    isCurrentUser: boolean;
+}
+
 interface ChatBoxProps {
-    messages: { text: string, isCurrentUser: boolean }[];
+    messages: DisplayMessage[];
     onSendMessage: (message: string) => void;
 }
 

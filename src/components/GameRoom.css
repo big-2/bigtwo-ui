@@ -130,3 +130,48 @@
 .leave-game-btn:hover {
     background-color: var(--danger-btn-hover);
 }
+
+.game-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.start-game-button {
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    width: 200px;
+    text-align: center;
+}
+
+.start-game-button.enabled {
+    background-color: var(--success-btn-bg);
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.start-game-button.disabled {
+    background-color: #e0e0e0;
+    color: #888;
+    cursor: not-allowed;
+}
+
+.start-game-button.enabled:hover {
+    background-color: var(--success-btn-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.player-count-info {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #888;
+    font-style: italic;
+}
