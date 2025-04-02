@@ -1,6 +1,11 @@
 import axios from "axios";
+import { components } from "../types";
 
 const API_URL = "https://127.0.0.1:8000";
+
+type RoomResponse = components["schemas"]["RoomResponse"];
+type UsernameResponse = components["schemas"]["UsernameResponse"];
+type SessionResponse = components["schemas"]["SessionResponse"];
 
 // Configure axios to include session ID from localStorage in headers
 axios.interceptors.request.use((config) => {
@@ -11,28 +16,12 @@ axios.interceptors.request.use((config) => {
     return config;
 });
 
-export interface User {
-    id: number;
-    username: string;
-}
-
-export interface Room {
-    id: string;
-    host_name: string;
-    status: string;
-    player_count: number; // Add player count to track room capacity
-}
-
-export interface JoinRoomResponse {
-    username: string;
-}
-
-export const createUser = async (username: string, password: string): Promise<User> => {
+export const createUser = async (username: string, password: string): Promise<UsernameResponse> => {
     const response = await axios.post(`${API_URL}/users/`, { username, password });
     return response.data;
 };
 
-export const createRoom = async (hostName: string): Promise<Room | null> => {
+export const createRoom = async (hostName: string): Promise<RoomResponse | null> => {
     try {
         console.log("Create room request with host name:", hostName);
         const response = await axios.post(`${API_URL}/rooms/`, { host_name: hostName });
@@ -55,30 +44,14 @@ export const deleteRoom = async (roomId: string, hostName: string): Promise<bool
     }
 };
 
-export const getRooms = async (): Promise<Room[]> => {
+export const getRooms = async (): Promise<RoomResponse[]> => {
     try {
         const response = await axios.get(`${API_URL}/rooms/`);
         // Filter out rooms that are full (4 players)
-        return response.data.filter((room: Room) => room.player_count < 4);
+        return response.data.filter((room: RoomResponse) => room.player_count < 4);
     } catch (error) {
         console.error("Error fetching rooms:", error);
         return [];
-    }
-};
-
-export const joinRoom = async (roomId: string): Promise<JoinRoomResponse> => {
-    try {
-        console.log("Join room request", roomId);
-        const response = await axios.post(`${API_URL}/rooms/${roomId}/join`);
-        // Store session ID from response if provided
-        if (response.data.session_id) {
-            localStorage.setItem('sessionId', response.data.session_id);
-        }
-        console.log("Join room response", response.data);
-        return response.data;
-    } catch (error) {
-        console.error("Error joining room:", error);
-        throw new Error("Failed to join room.");
     }
 };
 
