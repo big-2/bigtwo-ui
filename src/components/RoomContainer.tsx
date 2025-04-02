@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import GameRoom from "./GameRoom";
-import { getRooms, Room } from "../services/api";
+import { getRooms, RoomResponse } from "../services/api";
 
 interface RoomContainerProps {
     username: string;
@@ -11,7 +11,7 @@ const RoomContainer: React.FC<RoomContainerProps> = ({ username }) => {
     const { roomId } = useParams<{ roomId: string }>();
     const [isValidRoom, setIsValidRoom] = useState<boolean | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [roomDetails, setRoomDetails] = useState<Room | null>(null);
+    const [roomDetails, setRoomDetails] = useState<RoomResponse | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {

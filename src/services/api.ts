@@ -3,9 +3,7 @@ import { components } from "../types";
 
 const API_URL = "https://127.0.0.1:8000";
 
-type RoomResponse = components["schemas"]["RoomResponse"];
-type UsernameResponse = components["schemas"]["UsernameResponse"];
-type SessionResponse = components["schemas"]["SessionResponse"];
+export type RoomResponse = components["schemas"]["RoomResponse"];
 
 // Configure axios to include session ID from localStorage in headers
 axios.interceptors.request.use((config) => {
@@ -15,11 +13,6 @@ axios.interceptors.request.use((config) => {
     }
     return config;
 });
-
-export const createUser = async (username: string, password: string): Promise<UsernameResponse> => {
-    const response = await axios.post(`${API_URL}/users/`, { username, password });
-    return response.data;
-};
 
 export const createRoom = async (hostName: string): Promise<RoomResponse | null> => {
     try {

@@ -4,7 +4,6 @@ import {
     getSession,
     UserSession
 } from '../services/session';
-import { getRandomUsername } from '../services/api';
 
 interface UseSessionReturn {
     session: UserSession | null;
@@ -50,7 +49,7 @@ export const useSession = (): UseSessionReturn => {
             setError(null);
 
             // First check if we have a valid session already
-            let existingSession = await getSession();
+            const existingSession = await getSession();
 
             if (existingSession) {
                 console.log('Found existing session:', existingSession.username);
@@ -59,8 +58,7 @@ export const useSession = (): UseSessionReturn => {
             } else {
                 console.log('No existing session found, creating a new one');
                 // If no session exists, generate a random username and create one
-                const randomName = await getRandomUsername();
-                const newSession = await createSession(randomName);
+                const newSession = await createSession();
                 setSession(newSession);
                 setUsername(newSession.username);
             }

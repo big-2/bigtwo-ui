@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { connectToRoom } from "../services/socket";
-import { Room } from '../services/api';
+import { RoomResponse } from '../services/api';
 import "./GameRoom.css";
 import ChatBox from "./ChatBox";
 import PlayerList from "./PlayerList";
@@ -9,7 +9,7 @@ import PlayerList from "./PlayerList";
 interface GameRoomProps {
     roomId: string;
     username: string;
-    roomDetails: Room | null;
+    roomDetails: RoomResponse | null;
 }
 
 
@@ -76,7 +76,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             // Clear raw messages once they've been processed
             setRawMessages([]);
         }
-    }, [rawMessages]); // Trigger processing when messages or the name change
+    }, [rawMessages, username]); // Trigger processing when messages or the name change
 
     const sendChatMessage = (message: string) => {
         socketRef.current?.send(`CHAT: ${message}`);

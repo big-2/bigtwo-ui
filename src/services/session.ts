@@ -13,13 +13,9 @@ export interface UserSession {
 /**
  * Creates a new user session with the provided username or uses a randomly generated one
  */
-export const createSession = async (username?: string): Promise<UserSession> => {
+export const createSession = async (): Promise<UserSession> => {
     try {
-        const url = username
-            ? `${API_URL}/session/?username=${encodeURIComponent(username)}`
-            : `${API_URL}/session/`;
-
-        const response = await axios.post(url);
+        const response = await axios.post(`${API_URL}/session/`);
         const session = response.data;
 
         // Store the session ID in localStorage

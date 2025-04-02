@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { createRoom, getRooms, deleteRoom, Room } from "../services/api";
+import { createRoom, getRooms, deleteRoom, RoomResponse } from "../services/api";
 import "./Lobby.css";
 
 interface LobbyProps {
@@ -8,7 +8,7 @@ interface LobbyProps {
 }
 
 const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
-    const [rooms, setRooms] = useState<Room[]>([]);
+    const [rooms, setRooms] = useState<RoomResponse[]>([]);
 
     useEffect(() => {
         const fetchRooms = async () => {
