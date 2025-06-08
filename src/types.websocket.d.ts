@@ -16,7 +16,9 @@ export type MessageType =
   | "HOST_CHANGE"
   | "MOVE_PLAYED"
   | "TURN_CHANGE"
-  | "ERROR";
+  | "ERROR"
+  | "START_GAME"
+  | "GAME_STARTED";
 
 /**
  * Model for chat messages.

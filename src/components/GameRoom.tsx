@@ -22,6 +22,8 @@ interface GameRoomProps {
     roomDetails: RoomResponse | null;
 }
 
+// Define the type for message handlers
+type MessageHandler = (message: WebSocketMessage) => void;
 
 const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) => {
     const socketRef = useRef<WebSocket | null>(null);
@@ -30,84 +32,99 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [players, setPlayers] = useState<string[]>([username]);  // Default to have self, update when players_list message received
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
 
-    useEffect(() => {
-        socketRef.current = connectToRoom(roomId, username, (msg: string) => {
-            try {
-                // JSON decode the message
-                const message = JSON.parse(msg) as WebSocketMessage;
+    // Message handler registry - each handler is responsible for processing one message type
+    const messageHandlers = useRef<Record<string, MessageHandler>>({
+        CHAT: (message) => {
+            const sender = message.payload.sender as string;
+            const content = message.payload.content as string;
 
-                switch (message.type) {
-                    case "CHAT": {
-                        // Safe to access sender and content properties on a CHAT message
-                        const sender = message.payload.sender as string;
-                        const content = message.payload.content as string;
-
-                        setRawMessages((prevMessages) => [
-                            ...prevMessages,
-                            {
-                                username: sender,
-                                message: content
-                            }
-                        ]);
-                        break;
-                    }
-                    case "PLAYERS_LIST": {
-                        // Safe to access players array on a PLAYERS_LIST message
-                        const players = message.payload.players as string[];
-                        setPlayers(players);
-                        break;
-                    }
-                    case "LEAVE": {
-                        // Safe to access player on a LEAVE message
-                        const leftPlayerName = message.payload.player as string;
-                        console.log(`Player left: ${leftPlayerName}`);
-
-                        setPlayers(currentPlayers =>
-                            currentPlayers.filter(player => player !== leftPlayerName)
-                        );
-                        break;
-                    }
-                    case "HOST_CHANGE": {
-                        // Safe to access host on a HOST_CHANGE message
-                        const newHost = message.payload.host as string;
-                        console.log(`New host: ${newHost}`);
-                        setHostName(newHost);
-
-                        // Add a message to the chat
-                        if (newHost === username) {
-                            setRawMessages(prevMessages => [
-                                ...prevMessages,
-                                {
-                                    username: "SYSTEM",
-                                    message: "You are now the host of this room."
-                                }
-                            ]);
-                        } else {
-                            setRawMessages(prevMessages => [
-                                ...prevMessages,
-                                {
-                                    username: "SYSTEM",
-                                    message: `${newHost} is now the host of this room.`
-                                }
-                            ]);
-                        }
-                        break;
-                    }
-                    default:
-                        console.log(`Unhandled message type: ${message.type}`);
+            setRawMessages((prevMessages) => [
+                ...prevMessages,
+                {
+                    username: sender,
+                    message: content
                 }
-            } catch (error) {
-                console.error("Error processing WebSocket message:", error);
+            ]);
+        },
+
+        PLAYERS_LIST: (message) => {
+            const players = message.payload.players as string[];
+            setPlayers(players);
+        },
+
+        LEAVE: (message) => {
+            const leftPlayerName = message.payload.player as string;
+            console.log(`Player left: ${leftPlayerName}`);
+
+            setPlayers(currentPlayers =>
+                currentPlayers.filter(player => player !== leftPlayerName)
+            );
+        },
+
+        HOST_CHANGE: (message) => {
+            const newHost = message.payload.host as string;
+            console.log(`New host: ${newHost}`);
+            setHostName(newHost);
+
+            // Add a message to the chat
+            if (newHost === username) {
+                setRawMessages(prevMessages => [
+                    ...prevMessages,
+                    {
+                        username: "SYSTEM",
+                        message: "You are now the host of this room."
+                    }
+                ]);
+            } else {
+                setRawMessages(prevMessages => [
+                    ...prevMessages,
+                    {
+                        username: "SYSTEM",
+                        message: `${newHost} is now the host of this room.`
+                    }
+                ]);
             }
-        });
+        },
+
+        // Add stubs for other message types for future implementation
+        MOVE: () => console.log("MOVE message received"),
+        MOVE_PLAYED: () => console.log("MOVE_PLAYED message received"),
+        TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
+        ERROR: (message) => console.error("Error from server:", message.payload.message),
+        START_GAME: () => console.log("START_GAME message received"),
+        GAME_STARTED: () => console.log("GAME_STARTED message received"),
+    });
+
+    // Process incoming WebSocket messages
+    const processMessage = (msg: string) => {
+        try {
+            // JSON decode the message
+            const message = JSON.parse(msg) as WebSocketMessage;
+
+            // Get the handler for this message type
+            const handler = messageHandlers.current[message.type];
+
+            if (handler) {
+                // Execute the handler if it exists
+                handler(message);
+            } else {
+                console.log(`Unhandled message type: ${message.type}`);
+            }
+        } catch (error) {
+            console.error("Error processing WebSocket message:", error);
+        }
+    };
+
+    useEffect(() => {
+        socketRef.current = connectToRoom(roomId, username, processMessage);
 
         return () => {
             socketRef.current?.close();
         };
     }, [username, roomId]);
 
+    // Process raw messages once playerName is set and/or messages arrive
     useEffect(() => {
-        // Process raw messages once playerName is set and/or messages arrive
         if (username && rawMessages.length > 0) {
             setMessages(prevMessages => [
                 ...prevMessages,
@@ -140,8 +157,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
     // Placeholder for start game handler (will be implemented by the user)
     const handleStartGame = () => {
-        // This will be implemented by the user
         console.log("Start game button clicked");
+        socketRef.current?.send(JSON.stringify({
+            type: "START_GAME",
+            payload: {}
+        }));
     };
 
     // Determine if the current user is the host
