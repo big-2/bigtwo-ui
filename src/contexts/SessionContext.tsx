@@ -8,7 +8,8 @@ interface SessionContextType {
     isLoading: boolean;
     error: string | null;
     username: string;
-    refreshSession: () => Promise<void>;
+    createNewSession: () => Promise<void>;
+    logout: () => void;
 }
 
 // Create the context with a default value

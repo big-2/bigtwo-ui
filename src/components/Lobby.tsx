@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { createRoom, getRooms, deleteRoom, RoomResponse } from "../services/api";
+import { createRoom, getRooms, RoomResponse } from "../services/api";
 import "./Lobby.css";
 
 interface LobbyProps {
@@ -30,13 +30,6 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
         };
     }
 
-    const handleDeleteRoom = async (roomId: string) => {
-        const success = await deleteRoom(roomId, username);
-        if (success) {
-            setRooms((prevRooms) => prevRooms.filter((room) => room.id !== roomId));
-        }
-    };
-
     return (
         <div className="lobby-wrapper">
             <div className="lobby-container wide">
@@ -47,9 +40,6 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
                         <li key={room.id} className="room-item">
                             <span>{room.id} - {room.status} ({room.player_count}/4 Players)</span>
                             <button className="join-room-button" onClick={() => onJoinRoom(room.id)}>Join</button>
-                            <button className="delete-room-button" onClick={() => handleDeleteRoom(room.id)}>
-                                ❌ Delete
-                            </button>
                         </li>
                     ))}
                     {rooms.length === 0 && (

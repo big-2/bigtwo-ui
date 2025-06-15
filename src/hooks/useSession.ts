@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     createSession,
-    getSession,
+    hasStoredSession,
+    getStoredSession,
+    clearSession,
     UserSession
 } from '../services/session';
 
@@ -10,11 +12,13 @@ interface UseSessionReturn {
     isLoading: boolean;
     error: string | null;
     username: string;
-    refreshSession: () => Promise<void>;
+    createNewSession: () => Promise<void>;
+    logout: () => void;
 }
 
 /**
- * Custom hook for session management
+ * Custom hook for JWT-based session management
+ * Since JWT tokens are stateless, we only store them locally and let the server validate them
  */
 export const useSession = (): UseSessionReturn => {
     const [session, setSession] = useState<UserSession | null>(null);
@@ -22,45 +26,49 @@ export const useSession = (): UseSessionReturn => {
     const [error, setError] = useState<string | null>(null);
     const [username, setUsername] = useState<string>('');
 
-    const refreshSession = useCallback(async () => {
-        console.log('Refreshing session');
+    const createNewSession = useCallback(async () => {
         try {
             setIsLoading(true);
             setError(null);
 
-            const currentSession = await getSession();
+            const newSession = await createSession();
+            setSession(newSession);
+            setUsername(newSession.username);
 
-            if (currentSession) {
-                setSession(currentSession);
-                setUsername(currentSession.username);
-            }
+            console.log('New session created:', newSession.username);
         } catch (err) {
-            setError('Failed to load user session.');
-            console.error('Error refreshing session:', err);
+            setError('Failed to create user session.');
+            console.error('Error creating session:', err);
         } finally {
             setIsLoading(false);
         }
     }, []);
 
+    const logout = useCallback(() => {
+        clearSession();
+        setSession(null);
+        setUsername('');
+        console.log('Session cleared');
+    }, []);
+
     const initializeSession = useCallback(async () => {
-        console.log('Initializing session');
         try {
             setIsLoading(true);
             setError(null);
 
-            // First check if we have a valid session already
-            const existingSession = await getSession();
-
-            if (existingSession) {
-                console.log('Found existing session:', existingSession.username);
-                setSession(existingSession);
-                setUsername(existingSession.username);
+            if (hasStoredSession()) {
+                const storedSession = getStoredSession();
+                if (storedSession) {
+                    setSession(storedSession);
+                    setUsername(storedSession.username);
+                    console.log('Found existing session for:', storedSession.username);
+                } else {
+                    console.log('Invalid stored session, creating a new one');
+                    await createNewSession();
+                }
             } else {
                 console.log('No existing session found, creating a new one');
-                // If no session exists, generate a random username and create one
-                const newSession = await createSession();
-                setSession(newSession);
-                setUsername(newSession.username);
+                await createNewSession();
             }
         } catch (err) {
             setError('Failed to initialize user session.');
@@ -68,8 +76,7 @@ export const useSession = (): UseSessionReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
-
+    }, [createNewSession]);
 
     // Initialize session on mount
     useEffect(() => {
@@ -81,6 +88,7 @@ export const useSession = (): UseSessionReturn => {
         isLoading,
         error,
         username,
-        refreshSession,
+        createNewSession,
+        logout,
     };
 }; 

@@ -1,82 +1,53 @@
 import axios from 'axios';
 
-const API_URL = "https://127.0.0.1:8000";
+const API_URL = "http://localhost:3000";
 const SESSION_STORAGE_KEY = 'session_id';
 
 export interface UserSession {
-    id: string;
+    session_id: string;
     username: string;
-    created_at: string;
-    expires_at: string;
 }
+
+interface JWTPayload {
+    session_id: string;
+    username: string;
+    exp: number;
+    iat: number;
+}
+
+/**
+ * Safely decode JWT payload without signature verification
+ * This is only for extracting username - server will validate the token
+ */
+const decodeJWTPayload = (token: string): JWTPayload | null => {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+
+        const payload = parts[1];
+        const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+        return JSON.parse(decoded) as JWTPayload;
+    } catch (error) {
+        console.error('Error decoding JWT payload:', error);
+        return null;
+    }
+};
 
 /**
  * Creates a new user session with the provided username or uses a randomly generated one
  */
 export const createSession = async (): Promise<UserSession> => {
     try {
-        const response = await axios.post(`${API_URL}/session/`);
+        const response = await axios.post(`${API_URL}/session`);
         const session = response.data;
 
         // Store the session ID in localStorage
-        localStorage.setItem(SESSION_STORAGE_KEY, session.id);
+        localStorage.setItem(SESSION_STORAGE_KEY, session.session_id);
 
         return session;
     } catch (error) {
         console.error('Error creating session:', error);
         throw new Error('Failed to create user session');
-    }
-};
-
-/**
- * Gets the current user session if it exists
- */
-export const getSession = async (): Promise<UserSession | null> => {
-    try {
-        const sessionId = getSessionId();
-        if (!sessionId) {
-            return null;
-        }
-
-        const response = await axios.get(`${API_URL}/session/`, {
-            headers: {
-                'X-Session-ID': sessionId
-            }
-        });
-        return response.data;
-    } catch (error) {
-        // If 401 Unauthorized, the session is invalid or expired - expected flow
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-            // Clear invalid session from localStorage
-            localStorage.removeItem(SESSION_STORAGE_KEY);
-            return null;
-        }
-
-        // Other errors are actual problems
-        console.error('Error getting session:', error);
-        throw new Error('Failed to get user session');
-    }
-};
-
-/**
- * Deletes the current user session
- */
-export const deleteSession = async (): Promise<void> => {
-    try {
-        const sessionId = getSessionId();
-        if (sessionId) {
-            await axios.delete(`${API_URL}/session/`, {
-                headers: {
-                    'X-Session-ID': sessionId
-                }
-            });
-        }
-
-        // Clear session from localStorage
-        localStorage.removeItem(SESSION_STORAGE_KEY);
-    } catch (error) {
-        console.error('Error deleting session:', error);
-        throw new Error('Failed to delete user session');
     }
 };
 
@@ -87,11 +58,34 @@ export const getSessionId = (): string | null => {
     return localStorage.getItem(SESSION_STORAGE_KEY);
 };
 
-// Convenience function for setting axios defaults
-export const configureAxiosDefaults = (): void => {
-    axios.defaults.withCredentials = true;
-    console.log('Configuring axios defaults');
+/**
+ * Gets stored session with username extracted from JWT token
+ */
+export const getStoredSession = (): UserSession | null => {
+    const sessionId = getSessionId();
+    if (!sessionId) return null;
 
-    // No need for manually setting cookies in interceptors 
-    // as withCredentials:true will automatically send cookies
+    const payload = decodeJWTPayload(sessionId);
+    if (!payload || !payload.username) return null;
+
+    return {
+        session_id: sessionId,
+        username: payload.username
+    };
+};
+
+/**
+ * Clears session from localStorage
+ */
+export const clearSession = (): void => {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+};
+
+/**
+ * Checks if we have a valid session token stored locally
+ * Note: This doesn't validate the JWT - the server will do that
+ */
+export const hasStoredSession = (): boolean => {
+    const sessionId = getSessionId();
+    return sessionId !== null && sessionId.length > 0;
 }; 
