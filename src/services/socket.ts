@@ -1,17 +1,20 @@
 import { getSessionId } from './session';
 
-const URL = `wss://127.0.0.1:8000/ws/`;
-
-export const connectToRoom = (roomId: string, playerName: string, onMessage: (msg: string) => void): WebSocket => {
-    // Include the session_id in the WebSocket connection to maintain identity
+export const connectToRoomWebSocket = (roomId: string, playerName: string, onMessage: (msg: string) => void): WebSocket => {
     const sessionId = getSessionId();
-    const queryParams = `player_name=${encodeURIComponent(playerName)}${sessionId ? `&session_id=${sessionId}` : ''}`;
 
-    console.log(`Connecting to WebSocket with params: player_name=${playerName}, session_id=${sessionId || 'none'}`);
+    if (!sessionId) {
+        throw new Error('No session available. Please refresh the page.');
+    }
 
-    const socket = new WebSocket(`${URL}${roomId}?${queryParams}`);
+    console.log(`Connecting to WebSocket: room=${roomId}, player=${playerName}`);
 
-    socket.onopen = () => console.log(`Connected to room ${roomId} as ${playerName} with session ${sessionId || 'none'}`);
+    // Connect to the dedicated WebSocket endpoint
+    const wsUrl = `ws://127.0.0.1:3000/ws/${roomId}?token=${sessionId}&player=${encodeURIComponent(playerName)}`;
+
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => console.log(`WebSocket connected to room ${roomId} as ${playerName}`);
     socket.onmessage = (event) => onMessage(event.data);
     socket.onclose = () => console.warn(`Disconnected from room ${roomId}`);
     socket.onerror = (event) => console.error("WebSocket error:", event);

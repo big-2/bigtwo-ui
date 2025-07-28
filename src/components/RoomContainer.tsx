@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import GameRoom from "./GameRoom";
-import { getRooms, RoomResponse } from "../services/api";
+import { joinRoom, RoomResponse } from "../services/api";
 
 interface RoomContainerProps {
     username: string;
@@ -9,62 +9,58 @@ interface RoomContainerProps {
 
 const RoomContainer: React.FC<RoomContainerProps> = ({ username }) => {
     const { roomId } = useParams<{ roomId: string }>();
-    const [isValidRoom, setIsValidRoom] = useState<boolean | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [joinStatus, setJoinStatus] = useState<'loading' | 'success' | 'failed'>('loading');
     const [roomDetails, setRoomDetails] = useState<RoomResponse | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const validateRoom = async () => {
+        const handleJoinRoom = async () => {
             if (!roomId) {
-                setIsValidRoom(false);
-                setIsLoading(false);
+                setJoinStatus('failed');
                 return;
             }
 
             try {
-                const rooms = await getRooms();
-                const room = rooms.find(room => room.id === roomId);
+                console.log(`Attempting to join room ${roomId} as ${username}`);
+                const joinedRoom = await joinRoom(roomId);
 
-                if (room) {
-                    setRoomDetails(room);
-                    setIsValidRoom(true);
+                if (joinedRoom) {
+                    setRoomDetails(joinedRoom);
+                    setJoinStatus('success');
+                    console.log(`Successfully joined room ${roomId}:`, joinedRoom);
                 } else {
-                    setIsValidRoom(false);
-                    console.error(`Room ${roomId} does not exist`);
+                    setJoinStatus('failed');
+                    console.error(`Failed to join room ${roomId}`);
                 }
-
-                setIsLoading(false);
             } catch (error) {
-                console.error("Error validating room:", error);
-                setIsValidRoom(false);
-                setIsLoading(false);
+                console.error("Error joining room:", error);
+                setJoinStatus('failed');
             }
         };
 
-        validateRoom();
-    }, [roomId]);
+        handleJoinRoom();
+    }, [roomId, username]);
 
-    // Handle redirect if room is invalid
+    // Redirect to lobby if join failed
     useEffect(() => {
-        if (isValidRoom === false && !isLoading) {
+        if (joinStatus === 'failed') {
             const timer = setTimeout(() => {
                 navigate("/");
             }, 1500);
 
             return () => clearTimeout(timer);
         }
-    }, [isValidRoom, isLoading, navigate]);
+    }, [joinStatus, navigate]);
 
-    if (isLoading) {
-        return <div className="loading">Loading room...</div>;
+    if (joinStatus === 'loading') {
+        return <div className="loading">Joining room...</div>;
     }
 
-    if (isValidRoom === false) {
+    if (joinStatus === 'failed') {
         return (
             <div className="error-container">
-                <h2>Room Not Found</h2>
-                <p>The room "{roomId}" does not exist. Redirecting to lobby...</p>
+                <h2>Unable to Join Room</h2>
+                <p>Could not join room "{roomId}". Redirecting to lobby...</p>
                 <button onClick={() => navigate("/")}>Return to Lobby</button>
             </div>
         );

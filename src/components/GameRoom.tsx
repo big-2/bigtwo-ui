@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { connectToRoom } from "../services/socket";
+import { connectToRoomWebSocket } from "../services/socket";
 import { RoomResponse } from '../services/api';
 import "./GameRoom.css";
 import ChatBox from "./ChatBox";
@@ -22,17 +22,16 @@ interface GameRoomProps {
     roomDetails: RoomResponse | null;
 }
 
-// Define the type for message handlers
 type MessageHandler = (message: WebSocketMessage) => void;
 
 const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) => {
     const socketRef = useRef<WebSocket | null>(null);
     const [messages, setMessages] = useState<DisplayMessage[]>([]);
     const [rawMessages, setRawMessages] = useState<UserChatMessage[]>([]);
-    const [players, setPlayers] = useState<string[]>([username]);  // Default to have self, update when players_list message received
+    const [players, setPlayers] = useState<string[]>([username]);
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
 
-    // Message handler registry - each handler is responsible for processing one message type
+    // WebSocket message handlers
     const messageHandlers = useRef<Record<string, MessageHandler>>({
         CHAT: (message) => {
             const sender = message.payload.sender as string;
@@ -66,27 +65,21 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             console.log(`New host: ${newHost}`);
             setHostName(newHost);
 
-            // Add a message to the chat
-            if (newHost === username) {
-                setRawMessages(prevMessages => [
-                    ...prevMessages,
-                    {
-                        username: "SYSTEM",
-                        message: "You are now the host of this room."
-                    }
-                ]);
-            } else {
-                setRawMessages(prevMessages => [
-                    ...prevMessages,
-                    {
-                        username: "SYSTEM",
-                        message: `${newHost} is now the host of this room.`
-                    }
-                ]);
-            }
+            // Add system message to chat
+            const systemMessage = newHost === username
+                ? "You are now the host of this room."
+                : `${newHost} is now the host of this room.`;
+
+            setRawMessages(prevMessages => [
+                ...prevMessages,
+                {
+                    username: "SYSTEM",
+                    message: systemMessage
+                }
+            ]);
         },
 
-        // Add stubs for other message types for future implementation
+        // Game message handlers (stubs for future implementation)
         MOVE: () => console.log("MOVE message received"),
         MOVE_PLAYED: () => console.log("MOVE_PLAYED message received"),
         TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
@@ -95,17 +88,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         GAME_STARTED: () => console.log("GAME_STARTED message received"),
     });
 
-    // Process incoming WebSocket messages
     const processMessage = (msg: string) => {
         try {
-            // JSON decode the message
             const message = JSON.parse(msg) as WebSocketMessage;
-
-            // Get the handler for this message type
             const handler = messageHandlers.current[message.type];
 
             if (handler) {
-                // Execute the handler if it exists
                 handler(message);
             } else {
                 console.log(`Unhandled message type: ${message.type}`);
@@ -115,15 +103,18 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }
     };
 
+    // Establish WebSocket connection
     useEffect(() => {
-        socketRef.current = connectToRoom(roomId, username, processMessage);
+        console.log(`Establishing WebSocket connection to room ${roomId}...`);
+        socketRef.current = connectToRoomWebSocket(roomId, username, processMessage);
 
         return () => {
+            console.log(`Closing WebSocket connection to room ${roomId}`);
             socketRef.current?.close();
         };
     }, [username, roomId]);
 
-    // Process raw messages once playerName is set and/or messages arrive
+    // Process chat messages
     useEffect(() => {
         if (username && rawMessages.length > 0) {
             setMessages(prevMessages => [
@@ -133,10 +124,16 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     isCurrentUser: msg.username === username
                 }))
             ]);
-            // Clear raw messages once they've been processed
             setRawMessages([]);
         }
-    }, [rawMessages, username]); // Trigger processing when messages or the name change
+    }, [rawMessages, username]);
+
+    // Update host name from room details
+    useEffect(() => {
+        if (roomDetails?.host_name) {
+            setHostName(roomDetails.host_name);
+        }
+    }, [roomDetails]);
 
     const sendChatMessage = (message: string) => {
         socketRef.current?.send(JSON.stringify({
@@ -148,14 +145,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }));
     };
 
-    // Set the initial host name from room details when they change
-    useEffect(() => {
-        if (roomDetails?.host_name) {
-            setHostName(roomDetails.host_name);
-        }
-    }, [roomDetails]);
-
-    // Placeholder for start game handler (will be implemented by the user)
     const handleStartGame = () => {
         console.log("Start game button clicked");
         socketRef.current?.send(JSON.stringify({
@@ -164,9 +153,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }));
     };
 
-    // Determine if the current user is the host
     const isHost = username === hostName;
-    // Determine if there are enough players to start the game
     const canStartGame = players.length === 4;
 
     return (
@@ -175,7 +162,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 <h2 className="game-room-title">Game Room {roomId}</h2>
                 <PlayerList players={players} currentPlayer={username} host={hostName} />
 
-                {/* Start Game button - only visible to host */}
                 {isHost && (
                     <div className="game-controls">
                         <button
@@ -188,12 +174,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     </div>
                 )}
 
-                <>
-                    {/* <GameInfo currentTurn={currentTurn} />
-                        <PlayerHand hand={hand} /> */}
-                    {/* <MoveInput currentTurn={currentTurn} playerName={playerName} onPlayMove={playMove} /> */}
-                    <ChatBox messages={messages} onSendMessage={sendChatMessage} />
-                </>
+                <ChatBox messages={messages} onSendMessage={sendChatMessage} />
             </div>
         </div>
     );

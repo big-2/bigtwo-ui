@@ -22,7 +22,6 @@ axios.interceptors.response.use(
         if (error.response?.status === 401) {
             console.log('JWT token expired or invalid, clearing session');
             clearSession();
-            // Optionally trigger a page reload to re-initialize session
             window.location.reload();
         }
         return Promise.reject(error);
@@ -31,9 +30,9 @@ axios.interceptors.response.use(
 
 export const createRoom = async (hostName: string): Promise<RoomResponse | null> => {
     try {
-        console.log("Create room request with host name:", hostName);
+        console.log("Creating room with host name:", hostName);
         const response = await axios.post(`${API_URL}/room`, { host_name: hostName });
-        console.log("Create room response", response.data);
+        console.log("Room created:", response.data);
         return response.data;
     } catch (error) {
         console.error("Error creating room:", error);
@@ -41,17 +40,17 @@ export const createRoom = async (hostName: string): Promise<RoomResponse | null>
     }
 };
 
-// TODO: These endpoints are not yet implemented in the Rust backend
-// export const deleteRoom = async (roomId: string, hostName: string): Promise<boolean> => {
-//     try {
-//         const response = await axios.delete(`${API_URL}/rooms/${roomId}?host_name=${hostName}`);
-//         console.log(response.data.message);
-//         return true;
-//     } catch (error) {
-//         console.error("Error deleting room:", error);
-//         return false;
-//     }
-// };
+export const joinRoom = async (roomId: string): Promise<RoomResponse | null> => {
+    try {
+        console.log("Joining room:", roomId);
+        const response = await axios.post(`${API_URL}/room/${roomId}/join`, {});
+        console.log("Joined room:", response.data);
+        return response.data;
+    } catch (error) {
+        console.error("Error joining room:", error);
+        return null;
+    }
+};
 
 export const getRooms = async (): Promise<RoomResponse[]> => {
     try {
@@ -63,14 +62,3 @@ export const getRooms = async (): Promise<RoomResponse[]> => {
         return [];
     }
 };
-
-// TODO: This endpoint is not yet implemented in the Rust backend
-// export const getRandomUsername = async (): Promise<string> => {
-//     try {
-//         const response = await axios.get(`${API_URL}/username/`);
-//         return response.data.username;
-//     } catch (error) {
-//         console.error("Error fetching random username:", error);
-//         return "jellyfish"; // Fallback if API call fails
-//     }
-// };
