@@ -14,6 +14,7 @@ interface UseSessionReturn {
     username: string;
     createNewSession: () => Promise<void>;
     logout: () => void;
+    validateCurrentSession: () => Promise<boolean>;
 }
 
 /**
@@ -59,9 +60,11 @@ export const useSession = (): UseSessionReturn => {
             if (hasStoredSession()) {
                 const storedSession = getStoredSession();
                 if (storedSession) {
+                    // Optimistic approach: Assume stored session is valid
+                    // Let axios interceptor handle validation on first actual request
                     setSession(storedSession);
                     setUsername(storedSession.username);
-                    console.log('Found existing session for:', storedSession.username);
+                    console.log('Found existing session for:', storedSession.username, '(will validate on first request)');
                 } else {
                     console.log('Invalid stored session, creating a new one');
                     await createNewSession();
@@ -78,6 +81,33 @@ export const useSession = (): UseSessionReturn => {
         }
     }, [createNewSession]);
 
+    // Optional: Explicit validation method for when you need to ensure session is valid
+    const validateCurrentSession = useCallback(async (): Promise<boolean> => {
+        const currentSession = getStoredSession();
+        if (!currentSession) return false;
+
+        try {
+            const response = await fetch('http://localhost:3000/session/validate', {
+                headers: {
+                    'X-Session-ID': currentSession.session_id
+                }
+            });
+
+            if (response.ok) {
+                return true;
+            } else {
+                // Session invalid, clear it
+                clearSession();
+                setSession(null);
+                setUsername('');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error validating session:', error);
+            return false;
+        }
+    }, []);
+
     // Initialize session on mount
     useEffect(() => {
         initializeSession();
@@ -90,5 +120,6 @@ export const useSession = (): UseSessionReturn => {
         username,
         createNewSession,
         logout,
+        validateCurrentSession,
     };
 }; 

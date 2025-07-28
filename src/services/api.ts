@@ -48,6 +48,14 @@ export const joinRoom = async (roomId: string): Promise<RoomResponse | null> => 
         return response.data;
     } catch (error) {
         console.error("Error joining room:", error);
+
+        // Log detailed error information for debugging
+        if (axios.isAxiosError(error) && error.response) {
+            console.error("Response status:", error.response.status);
+            console.error("Response data:", error.response.data);
+            console.error("Response headers:", error.response.headers);
+        }
+
         return null;
     }
 };

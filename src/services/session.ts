@@ -82,10 +82,37 @@ export const clearSession = (): void => {
 };
 
 /**
+ * Checks if a JWT token is expired client-side
+ * Returns true if expired, false if still valid, null if can't determine
+ */
+const isJWTExpired = (token: string): boolean | null => {
+    try {
+        const payload = decodeJWTPayload(token);
+        if (!payload || !payload.exp) return null;
+
+        // exp is in seconds, Date.now() is in milliseconds
+        const isExpired = payload.exp * 1000 < Date.now();
+        return isExpired;
+    } catch (error) {
+        console.error('Error checking JWT expiration:', error);
+        return null;
+    }
+};
+
+/**
  * Checks if we have a valid session token stored locally
- * Note: This doesn't validate the JWT - the server will do that
+ * Now includes client-side expiration check
  */
 export const hasStoredSession = (): boolean => {
     const sessionId = getSessionId();
-    return sessionId !== null && sessionId.length > 0;
+    if (!sessionId || sessionId.length === 0) return false;
+
+    // Check if token is expired client-side first
+    const expired = isJWTExpired(sessionId);
+    if (expired === true) {
+        console.log('Stored JWT token is expired');
+        return false;
+    }
+
+    return true;
 }; 
