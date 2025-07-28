@@ -10,15 +10,12 @@ interface LobbyProps {
 const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
     const [rooms, setRooms] = useState<RoomResponse[]>([]);
 
-    useEffect(() => {
-        const fetchRooms = async () => {
-            setRooms(await getRooms());
-        };
-        fetchRooms();
+    const fetchRooms = async () => {
+        setRooms(await getRooms());
+    };
 
-        // Refresh rooms list periodically
-        const interval = setInterval(fetchRooms, 5000);
-        return () => clearInterval(interval);
+    useEffect(() => {
+        fetchRooms();
     }, []);
 
     const handleCreateRoom = async () => {
@@ -33,7 +30,12 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
     return (
         <div className="lobby-wrapper">
             <div className="lobby-container wide">
-                <h2 className="lobby-title">Available Rooms</h2>
+                <div className="lobby-header">
+                    <h2 className="lobby-title">Available Rooms</h2>
+                    <button className="refresh-button" onClick={fetchRooms} title="Refresh rooms">
+                        ↻
+                    </button>
+                </div>
                 <button className="create-room-button" onClick={handleCreateRoom}>Create Room</button>
                 <ul className="room-list">
                     {rooms.map((room) => (

@@ -6,32 +6,66 @@
     justify-content: flex-start;
     padding-top: 40px;
     width: 100%;
-    min-height: calc(100vh - 60px); /* Account for header height */
+    min-height: calc(100vh - 60px);
+    /* Account for header height */
     color: var(--text-color);
     font-family: Arial, sans-serif;
 }
 
 /* Responsive game title */
 .game-title {
-    font-size: clamp(1.5rem, 4vw, 2.5rem); /* Adjusts between 1.5rem and 2.5rem based on screen width */
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    /* Adjusts between 1.5rem and 2.5rem based on screen width */
     margin-bottom: 2vh;
 }
 
 /* Adaptive lobby container */
 .lobby-container {
     width: 90%;
-    max-width: 60rem; /* Maximum width for large screens */
-    min-width: 20rem; /* Prevents it from being too small */
+    max-width: 60rem;
+    /* Maximum width for large screens */
+    min-width: 20rem;
+    /* Prevents it from being too small */
     background: var(--container-bg);
     padding: 2vh 2vw;
     border-radius: 10px;
     box-shadow: 0px 4px 10px var(--shadow-color);
 }
 
+/* Header section with title and refresh button */
+.lobby-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2vh;
+}
+
 /* Responsive heading */
 .lobby-title {
     font-size: clamp(1.2rem, 3vw, 2rem);
-    margin-bottom: 2vh;
+    margin: 0;
+}
+
+/* Refresh button styling */
+.refresh-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.refresh-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: rotate(180deg);
 }
 
 /* Create Room button with dynamic size */
@@ -59,7 +93,8 @@
     flex-direction: column;
     gap: 1vh;
     max-height: 50vh;
-    overflow-y: auto; /* Allows scrolling if too many rooms */
+    overflow-y: auto;
+    /* Allows scrolling if too many rooms */
 }
 
 /* Room item auto-resizing */
@@ -110,4 +145,3 @@
 .delete-room-button:hover {
     background-color: var(--delete-btn-hover);
 }
-
