@@ -70,3 +70,14 @@ export const getRooms = async (): Promise<RoomResponse[]> => {
         return [];
     }
 };
+
+export const getRoomDetails = async (roomId: string): Promise<RoomResponse | null> => {
+    // Call GET /room/{roomId} - no auth required
+    try {
+        const response = await axios.get(`${API_URL}/room/${roomId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching room details:", error);
+        return null;
+    }
+}
