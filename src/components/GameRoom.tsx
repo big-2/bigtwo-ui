@@ -4,6 +4,7 @@ import { RoomResponse } from '../services/api';
 import "./GameRoom.css";
 import ChatBox from "./ChatBox";
 import PlayerList from "./PlayerList";
+import GameScreen from "./GameScreen";
 import { WebSocketMessage } from "../types.websocket";
 
 interface UserChatMessage {
@@ -30,6 +31,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [rawMessages, setRawMessages] = useState<UserChatMessage[]>([]);
     const [players, setPlayers] = useState<string[]>([username]);
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
+    const [gameStarted, setGameStarted] = useState(false);
 
     // WebSocket message handlers
     const messageHandlers = useRef<Record<string, MessageHandler>>({
@@ -78,14 +80,16 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 }
             ]);
         },
+        GAME_STARTED: (message) => {
+            console.log("GAME_STARTED message received", message.payload);
+            setGameStarted(true);
+        },
 
-        // Game message handlers (stubs for future implementation)
+        // Game message handlers
         MOVE: () => console.log("MOVE message received"),
         MOVE_PLAYED: () => console.log("MOVE_PLAYED message received"),
         TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
         ERROR: (message) => console.error("Error from server:", message.payload.message),
-        START_GAME: () => console.log("START_GAME message received"),
-        GAME_STARTED: () => console.log("GAME_STARTED message received"),
     });
 
     const processMessage = (msg: string) => {
@@ -156,6 +160,17 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const isHost = username === hostName;
     const canStartGame = players.length === 4;
 
+    // If game has started, show the GameScreen
+    if (gameStarted) {
+        return (
+            <GameScreen
+                username={username}
+                socket={socketRef.current}
+            />
+        );
+    }
+
+    // Otherwise show the lobby/room interface
     return (
         <div className="game-room-wrapper">
             <div className="game-room-container wide">
