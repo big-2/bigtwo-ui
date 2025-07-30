@@ -32,6 +32,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [players, setPlayers] = useState<string[]>([username]);
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
     const [gameStarted, setGameStarted] = useState(false);
+    const [gameData, setGameData] = useState<{ cards: string[], currentTurn: string, playerList: string[] } | null>(null);
 
     // WebSocket message handlers
     const messageHandlers = useRef<Record<string, MessageHandler>>({
@@ -82,6 +83,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         },
         GAME_STARTED: (message) => {
             console.log("GAME_STARTED message received", message.payload);
+            const cards = message.payload.cards as string[];
+            const currentTurn = message.payload.current_turn as string;
+            const playerList = message.payload.player_list as string[];
+            setGameData({ cards, currentTurn, playerList });
             setGameStarted(true);
         },
 
@@ -161,11 +166,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const canStartGame = players.length === 4;
 
     // If game has started, show the GameScreen
-    if (gameStarted) {
+    if (gameStarted && gameData) {
         return (
             <GameScreen
                 username={username}
                 socket={socketRef.current}
+                initialGameData={gameData}
             />
         );
     }

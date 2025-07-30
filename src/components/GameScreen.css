@@ -26,26 +26,145 @@
 .player-position.top {
     grid-area: top;
     position: absolute;
-    top: 20px;
+    top: 10px;
+    /* Moved up from 20px */
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
+    /* Change to horizontal layout */
+    flex-direction: row;
+    align-items: center;
+    gap: 100px;
+    /* Increased gap to prevent overlap */
+    padding: 10px 50px;
+    /* Add padding for better spacing */
+}
+
+/* Top player specific card styling */
+.player-position.top .card-back {
+    width: 45px;
+    /* Smaller than default 60px */
+    height: 60px;
+    /* Smaller than default 80px */
+    margin-right: -8px;
+    /* Much more overlap like left/right players */
+}
+
+.player-position.top .player-info {
+    margin-bottom: 0;
+    /* Remove bottom margin since it's now horizontal */
+    /* Keep the same styling but adjust for horizontal layout */
+    flex-shrink: 0;
+    /* Prevent player info from shrinking */
+    /* Ensure player info doesn't overlap with cards */
+    position: relative;
+    z-index: 5;
+}
+
+/* Ensure card stack doesn't overlap with player info */
+.player-position.top .card-back-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    position: relative;
+    height: 60px;
+    /* Match card height */
+    justify-content: center;
+    z-index: 1;
+    /* Add much more margin to ensure separation */
+    margin-left: 60px;
+}
+
+/* Top player card stack - horizontal cards with heavy overlap */
+.player-position.top .card-back-row .card-back {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-right: 0;
+    /* Use CSS custom property for positioning */
+    --card-spacing: 8px;
+    --card-width: 45px;
+}
+
+/* Use a more maintainable approach with CSS custom properties */
+.player-position.top .card-back-row .card-back {
+    left: calc(50% + (var(--card-index, 0) * var(--card-spacing)) - (var(--card-width) / 2));
+}
+
+/* Set card index using CSS custom properties */
+.player-position.top .card-back-row .card-back:nth-child(1) {
+    --card-index: -6;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(2) {
+    --card-index: -5;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(3) {
+    --card-index: -4;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(4) {
+    --card-index: -3;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(5) {
+    --card-index: -2;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(6) {
+    --card-index: -1;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(7) {
+    --card-index: 0;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(8) {
+    --card-index: 1;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(9) {
+    --card-index: 2;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(10) {
+    --card-index: 3;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(11) {
+    --card-index: 4;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(12) {
+    --card-index: 5;
+}
+
+.player-position.top .card-back-row .card-back:nth-child(13) {
+    --card-index: 6;
 }
 
 .player-position.left {
     grid-area: left;
     justify-content: center;
+    padding: 20px 10px;
 }
 
 .player-position.right {
     grid-area: right;
     justify-content: center;
+    padding: 20px 10px;
 }
 
 .player-position.bottom {
     grid-area: bottom;
     background: rgba(0, 0, 0, 0.3);
     border-top: 2px solid rgba(255, 255, 255, 0.2);
+    padding: 15px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 250px;
 }
 
 /* Player Info */
@@ -82,13 +201,15 @@
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     margin-right: -15px;
     position: relative;
     z-index: 1;
+    color: #333;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .card:hover {
@@ -102,6 +223,19 @@
     border-color: #ffd700;
     box-shadow: 0 6px 12px rgba(255, 215, 0, 0.4);
     z-index: 10;
+}
+
+/* Card suit colors */
+.card[data-suit="H"],
+.card[data-suit="D"] {
+    color: #d32f2f;
+    /* Red for hearts and diamonds */
+}
+
+.card[data-suit="S"],
+.card[data-suit="C"] {
+    color: #333;
+    /* Black for spades and clubs */
 }
 
 .card-back {
@@ -137,6 +271,81 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+/* Left/Right card stacks - horizontal cards stacked vertically with proper overlap */
+.card-back-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    height: 200px;
+    justify-content: center;
+}
+
+.card-back-stack .card-back {
+    width: 40px;
+    height: 60px;
+    margin-right: 0;
+    margin-bottom: -12px;
+    /* Increased overlap */
+    transform: rotate(90deg);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%) rotate(90deg);
+}
+
+/* Position each card in the stack */
+.card-back-stack .card-back:nth-child(1) {
+    top: 0;
+}
+
+.card-back-stack .card-back:nth-child(2) {
+    top: 8px;
+}
+
+.card-back-stack .card-back:nth-child(3) {
+    top: 16px;
+}
+
+.card-back-stack .card-back:nth-child(4) {
+    top: 24px;
+}
+
+.card-back-stack .card-back:nth-child(5) {
+    top: 32px;
+}
+
+.card-back-stack .card-back:nth-child(6) {
+    top: 40px;
+}
+
+.card-back-stack .card-back:nth-child(7) {
+    top: 48px;
+}
+
+.card-back-stack .card-back:nth-child(8) {
+    top: 56px;
+}
+
+.card-back-stack .card-back:nth-child(9) {
+    top: 64px;
+}
+
+.card-back-stack .card-back:nth-child(10) {
+    top: 72px;
+}
+
+.card-back-stack .card-back:nth-child(11) {
+    top: 80px;
+}
+
+.card-back-stack .card-back:nth-child(12) {
+    top: 88px;
+}
+
+.card-back-stack .card-back:nth-child(13) {
+    top: 96px;
 }
 
 .player-hand {
@@ -186,12 +395,13 @@
     opacity: 0.9;
 }
 
-/* Game Controls */
+/* Game Controls - Move up from bottom */
 .game-controls {
     display: flex;
     gap: 15px;
     justify-content: center;
-    margin-top: 20px;
+    margin: 20px 0;
+    padding: 0 20px;
 }
 
 .play-button,
@@ -278,12 +488,79 @@
     .card-back {
         width: 50px;
         height: 70px;
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .card-back.vertical {
         width: 35px;
         height: 50px;
+    }
+
+    .card-back-stack .card-back {
+        width: 35px;
+        height: 50px;
+    }
+
+    /* Top player cards on smaller screens */
+    .player-position.top .card-back {
+        width: 40px;
+        height: 55px;
+        margin-right: -8px;
+        --card-width: 40px;
+        --card-spacing: 8px;
+    }
+
+    /* Adjust top player card positions for smaller screens */
+    .player-position.top .card-back-row .card-back:nth-child(1) {
+        --card-index: -6;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(2) {
+        --card-index: -5;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(3) {
+        --card-index: -4;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(4) {
+        --card-index: -3;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(5) {
+        --card-index: -2;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(6) {
+        --card-index: -1;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(7) {
+        --card-index: 0;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(8) {
+        --card-index: 1;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(9) {
+        --card-index: 2;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(10) {
+        --card-index: 3;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(11) {
+        --card-index: 4;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(12) {
+        --card-index: 5;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(13) {
+        --card-index: 6;
     }
 }
 
@@ -313,7 +590,7 @@
     .card-back {
         width: 45px;
         height: 60px;
-        font-size: 11px;
+        font-size: 12px;
         margin-right: -10px;
     }
 
@@ -321,6 +598,68 @@
         width: 30px;
         height: 40px;
         margin-bottom: -8px;
+    }
+
+    /* Top player cards on mobile */
+    .player-position.top .card-back {
+        width: 35px;
+        height: 45px;
+        margin-right: -6px;
+        --card-width: 35px;
+        --card-spacing: 6px;
+    }
+
+    /* Adjust top player card positions for mobile */
+    .player-position.top .card-back-row .card-back:nth-child(1) {
+        --card-index: -6;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(2) {
+        --card-index: -5;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(3) {
+        --card-index: -4;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(4) {
+        --card-index: -3;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(5) {
+        --card-index: -2;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(6) {
+        --card-index: -1;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(7) {
+        --card-index: 0;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(8) {
+        --card-index: 1;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(9) {
+        --card-index: 2;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(10) {
+        --card-index: 3;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(11) {
+        --card-index: 4;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(12) {
+        --card-index: 5;
+    }
+
+    .player-position.top .card-back-row .card-back:nth-child(13) {
+        --card-index: 6;
     }
 
     .game-controls {
