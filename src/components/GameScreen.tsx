@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { WebSocketMessage } from "../types.websocket";
+import PlayerHand from "./PlayerHand";
 import "./GameScreen.css";
 
 interface GameScreenProps {
@@ -22,6 +23,8 @@ interface GameState {
     selectedCards: string[];
     gameStarted: boolean;
     playerList: string[]; // Track the full player list order
+    lastPlayedCards: string[]; // Track the last played cards for validation
+    lastPlayedBy: string; // Track who played the last cards
 }
 
 const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameData }) => {
@@ -69,6 +72,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             selectedCards: [],
             gameStarted: true,
             playerList,
+            lastPlayedCards: [],
+            lastPlayedBy: "",
         };
     };
 
@@ -85,6 +90,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             selectedCards: [],
             gameStarted: false,
             playerList: [username],
+            lastPlayedCards: [],
+            lastPlayedBy: "",
         };
     });
 
@@ -120,7 +127,23 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         MOVE_PLAYED: (message) => {
             const player = message.payload.player as string;
             const cards = message.payload.cards as string[];
+
+            setGameState(prev => ({
+                ...prev,
+                lastPlayedCards: cards,
+                lastPlayedBy: player,
+                players: prev.players.map(p => {
+                    if (p.name === player) {
+                        // Remove the played cards from the player's hand
+                        const newCards = p.cards.filter(card => !cards.includes(card));
+                        return { ...p, cards: newCards };
+                    }
+                    return p;
+                }),
+            }));
+
             setMessages(prev => [...prev, `${player} played: ${cards.join(", ")}`]);
+
         },
 
         ERROR: (message) => {
@@ -153,12 +176,20 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         }
     }, [socket]);
 
+    const currentPlayer = gameState.players.find(p => p.name === username);
+    const isCurrentTurn = gameState.currentTurn === username;
+
+    // Get player positions based on player list
+    const playerPositions = getPlayerPositions(gameState.playerList, username);
+
     const handleCardClick = (card: string) => {
+        const newSelectedCards = gameState.selectedCards.includes(card)
+            ? gameState.selectedCards.filter(c => c !== card)
+            : [...gameState.selectedCards, card];
+
         setGameState(prev => ({
             ...prev,
-            selectedCards: prev.selectedCards.includes(card)
-                ? prev.selectedCards.filter(c => c !== card)
-                : [...prev.selectedCards, card],
+            selectedCards: newSelectedCards,
         }));
     };
 
@@ -191,23 +222,18 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         }
     };
 
-    const currentPlayer = gameState.players.find(p => p.name === username);
-    const isCurrentTurn = gameState.currentTurn === username;
-
-    // Get player positions based on player list
-    const playerPositions = getPlayerPositions(gameState.playerList, username);
-
-    // Remove the loading state check since we now initialize with game data
     return (
         <div className="game-screen">
             {/* Top Player */}
             <div className="player-position top">
                 <div className="player-info">
                     <span className="player-name">{playerPositions.top || "Opponent"}</span>
-                    <span className="card-count">13</span>
+                    <span className="card-count">
+                        {gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13}
+                    </span>
                 </div>
                 <div className="card-back-row">
-                    {Array(13).fill(null).map((_, index) => (
+                    {Array(gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13).fill(null).map((_, index) => (
                         <div key={index} className="card-back"></div>
                     ))}
                 </div>
@@ -217,10 +243,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             <div className="player-position left">
                 <div className="player-info">
                     <span className="player-name">{playerPositions.left || "Opponent"}</span>
-                    <span className="card-count">13</span>
+                    <span className="card-count">
+                        {gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13}
+                    </span>
                 </div>
                 <div className="card-back-stack">
-                    {Array(13).fill(null).map((_, index) => (
+                    {Array(gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13).fill(null).map((_, index) => (
                         <div key={index} className="card-back"></div>
                     ))}
                 </div>
@@ -230,10 +258,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             <div className="player-position right">
                 <div className="player-info">
                     <span className="player-name">{playerPositions.right || "Opponent"}</span>
-                    <span className="card-count">13</span>
+                    <span className="card-count">
+                        {gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13}
+                    </span>
                 </div>
                 <div className="card-back-stack">
-                    {Array(13).fill(null).map((_, index) => (
+                    {Array(gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13).fill(null).map((_, index) => (
                         <div key={index} className="card-back"></div>
                     ))}
                 </div>
@@ -245,6 +275,31 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                     <div className="turn-indicator">
                         {isCurrentTurn ? "Your turn!" : `${gameState.currentTurn}'s turn`}
                     </div>
+
+                    {/* Last played cards display */}
+                    {gameState.lastPlayedCards.length > 0 && (
+                        <div className="last-played">
+                            <div className="last-played-label">
+                                {gameState.lastPlayedBy === username ? "You played:" : `${gameState.lastPlayedBy} played:`}
+                            </div>
+                            <div className="last-played-cards">
+                                {gameState.lastPlayedCards.map((card, index) => {
+                                    const suit = card.slice(-1);
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="played-card"
+                                            data-suit={suit}
+                                            title={card}
+                                        >
+                                            {card}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="game-messages">
                         {messages.slice(-3).map((msg, index) => (
                             <div key={index} className="game-message">{msg}</div>
@@ -261,22 +316,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                 </div>
 
                 {/* Player's Hand */}
-                <div className="player-hand">
-                    {currentPlayer?.cards.map((card, index) => {
-                        // Extract suit from card (e.g., "4S" -> "S")
-                        const suit = card.slice(-1);
-                        return (
-                            <div
-                                key={index}
-                                className={`card ${gameState.selectedCards.includes(card) ? 'selected' : ''}`}
-                                onClick={() => handleCardClick(card)}
-                                data-suit={suit}
-                            >
-                                {card}
-                            </div>
-                        );
-                    })}
-                </div>
+                <PlayerHand
+                    cards={currentPlayer?.cards || []}
+                    selectedCards={gameState.selectedCards}
+                    onCardClick={handleCardClick}
+                />
 
                 {/* Game Controls */}
                 <div className="game-controls">
