@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { WebSocketMessage } from "../types.websocket";
 import PlayerHand from "./PlayerHand";
+import { sortSelectedCards, SortType } from "../utils/cardSorting";
 import "./GameScreen.css";
 
 interface GameScreenProps {
@@ -193,6 +194,49 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         }));
     };
 
+    const handleCardsReorder = (newOrder: string[]) => {
+        setGameState(prev => {
+            const currentPlayer = prev.players.find(p => p.isCurrentPlayer);
+            if (!currentPlayer) return prev;
+
+            const updatedPlayers = prev.players.map(player =>
+                player.isCurrentPlayer
+                    ? { ...player, cards: newOrder }
+                    : player
+            );
+
+            return {
+                ...prev,
+                players: updatedPlayers,
+            };
+        });
+    };
+
+    const handleSortCards = (sortType: SortType) => {
+        setGameState(prev => {
+            const currentPlayer = prev.players.find(p => p.isCurrentPlayer);
+            if (!currentPlayer) return prev;
+
+            const sortedCards = sortSelectedCards(
+                currentPlayer.cards,
+                prev.selectedCards,
+                sortType
+            );
+
+            const updatedPlayers = prev.players.map(player =>
+                player.isCurrentPlayer
+                    ? { ...player, cards: sortedCards }
+                    : player
+            );
+
+            return {
+                ...prev,
+                players: updatedPlayers,
+                selectedCards: [], // Clear selection after sorting
+            };
+        });
+    };
+
     const handlePlayCards = () => {
         if (gameState.selectedCards.length === 0) return;
 
@@ -315,11 +359,32 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                     <span className="card-count">{currentPlayer?.cards.length || 0}</span>
                 </div>
 
+                {/* Card Sorting Controls */}
+                <div className="card-controls">
+                    <div className="sort-controls">
+                        <button
+                            className="sort-button"
+                            onClick={() => handleSortCards('numerical')}
+                            title="Sort by rank (3 smallest, 2 biggest)"
+                        >
+                            Sort by Rank
+                        </button>
+                        <button
+                            className="sort-button"
+                            onClick={() => handleSortCards('suit')}
+                            title="Sort by suit (♣♦♥♠)"
+                        >
+                            Sort by Suit
+                        </button>
+                    </div>
+                </div>
+
                 {/* Player's Hand */}
                 <PlayerHand
                     cards={currentPlayer?.cards || []}
                     selectedCards={gameState.selectedCards}
                     onCardClick={handleCardClick}
+                    onCardsReorder={handleCardsReorder}
                 />
 
                 {/* Game Controls */}
@@ -334,7 +399,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                     <button
                         className="pass-button"
                         onClick={handlePass}
-                        disabled={!isCurrentTurn}
+                        disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0}
                     >
                         Pass
                     </button>
