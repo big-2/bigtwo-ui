@@ -342,14 +342,43 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                                     <div className="last-played-cards">
                                         {gameState.lastPlayedCards.map((card, index) => {
                                             const suit = card.slice(-1);
+                                            const rank = card.slice(0, -1);
+                                            
+                                            const getSuitColor = (suit: string) => {
+                                                switch (suit) {
+                                                    case 'H':
+                                                    case 'D':
+                                                        return '#ff6b6b';
+                                                    case 'S':
+                                                    case 'C':
+                                                        return '#000000';
+                                                    default:
+                                                        return '#000000';
+                                                }
+                                            };
+
+                                            const getSuitSymbol = (suit: string) => {
+                                                switch (suit) {
+                                                    case 'H': return '♥';
+                                                    case 'D': return '♦';
+                                                    case 'S': return '♠';
+                                                    case 'C': return '♣';
+                                                    default: return suit;
+                                                }
+                                            };
+
                                             return (
                                                 <div
                                                     key={index}
                                                     className="played-card"
                                                     data-suit={suit}
                                                     title={card}
+                                                    style={{ color: getSuitColor(suit) }}
                                                 >
-                                                    {card}
+                                                    <div className="card-content">
+                                                        <div className="card-rank">{rank}</div>
+                                                        <div className="card-suit">{getSuitSymbol(suit)}</div>
+                                                    </div>
                                                 </div>
                                             );
                                         })}
