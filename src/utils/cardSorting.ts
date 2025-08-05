@@ -1,6 +1,6 @@
 // Card sorting utilities for Big Two game
 // Big Two ranking: 3 < 4 < 5 < 6 < 7 < 8 < 9 < 10 < J < Q < K < A < 2
-// Suit ranking: ♣ < ♦ < ♥ < ♠ (Clubs < Diamonds < Hearts < Spades)
+// Suit ranking: ♦ < ♣ < ♥ < ♠ (Diamonds < Clubs < Hearts < Spades)
 
 export type SortType = 'numerical' | 'suit';
 
@@ -24,8 +24,8 @@ const RANK_VALUES: Record<string, number> = {
 
 // Map suits to their values for comparison
 const SUIT_VALUES: Record<string, number> = {
-    'C': 1, // Clubs
-    'D': 2, // Diamonds
+    'D': 1, // Diamonds
+    'C': 2, // Clubs
     'H': 3, // Hearts
     'S': 4  // Spades
 };

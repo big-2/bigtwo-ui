@@ -9,7 +9,7 @@
         "left center right"
         "bottom bottom bottom";
     grid-template-columns: 200px 1fr 200px;
-    grid-template-rows: 1fr 1fr 340px;
+    grid-template-rows: 1fr 1fr 320px;
     overflow: hidden;
 }
 
@@ -161,33 +161,69 @@
     grid-area: bottom;
     background: rgba(0, 0, 0, 0.3);
     border-top: 2px solid rgba(255, 255, 255, 0.2);
-    padding: 10px 20px 15px 20px;
+    padding: 5px 15px 5px 15px;
     display: flex;
     flex-direction: column;
     height: 100%;
-    overflow: visible;
+    overflow: hidden;
+}
+
+/* New horizontal top row layout */
+.bottom-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Player Info */
 .player-info {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    margin-bottom: 10px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 8px 16px;
-    border-radius: 20px;
+    gap: 8px;
+    margin-bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px 10px;
+    border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+/* Highlight current turn player */
+.player-info.current-turn {
+    background: rgba(255, 215, 0, 0.2);
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    animation: currentTurnPulse 2s ease-in-out infinite;
+}
+
+@keyframes currentTurnPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+    }
 }
 
 .player-name {
     font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 4px;
+    font-size: 12px;
+    margin-bottom: 2px;
 }
 
 .card-count {
-    font-size: 12px;
+    font-size: 10px;
     opacity: 0.8;
 }
 
@@ -447,13 +483,13 @@
     flex-direction: row;
     align-items: flex-end;
     justify-content: center;
-    margin: 0;
-    min-height: 80px;
-    max-height: 100px;
+    margin: 2px 0;
+    min-height: 70px;
+    max-height: 75px;
     position: relative;
-    padding: 5px;
-    border-radius: 8px;
-    gap: 2px;
+    padding: 2px;
+    border-radius: 6px;
+    gap: 1px;
     flex: 1;
 }
 
@@ -573,28 +609,29 @@
     }
 }
 
-/* Game Controls - always at bottom */
+/* Game Controls - now inline in top row */
 .game-controls {
     display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin-top: auto;
-    padding: 5px 10px;
-    background: rgba(0, 0, 0, 0.2);
+    gap: 6px;
+    align-items: center;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(5px);
+    flex-shrink: 0;
 }
 
 .play-button,
 .pass-button {
-    padding: 8px 16px;
+    padding: 4px 8px;
     border: none;
-    border-radius: 8px;
+    border-radius: 4px;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
 .play-button {
@@ -626,7 +663,7 @@
 .pass-button:disabled {
     background: #666;
     cursor: not-allowed;
-    opacity: 0.6;
+    opacity: 0.8;
 }
 
 .keyboard-help {
@@ -754,20 +791,21 @@
 
 .sort-controls {
     display: flex;
-    gap: 10px;
+    gap: 5px;
+    flex-shrink: 0;
 }
 
 .sort-button {
     background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 500;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .sort-button:hover {

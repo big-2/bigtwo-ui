@@ -21,11 +21,12 @@ interface GameRoomProps {
     roomId: string;
     username: string;
     roomDetails: RoomResponse | null;
+    onGameStateChange?: (gameStarted: boolean) => void;
 }
 
 type MessageHandler = (message: WebSocketMessage) => void;
 
-const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) => {
+const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGameStateChange }) => {
     const socketRef = useRef<WebSocket | null>(null);
     const [messages, setMessages] = useState<DisplayMessage[]>([]);
     const [rawMessages, setRawMessages] = useState<UserChatMessage[]>([]);
@@ -33,6 +34,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
     const [gameStarted, setGameStarted] = useState(false);
     const [gameData, setGameData] = useState<{ cards: string[], currentTurn: string, playerList: string[] } | null>(null);
+
+    // Notify parent when game state changes
+    useEffect(() => {
+        onGameStateChange?.(gameStarted);
+    }, [gameStarted, onGameStateChange]);
 
     // WebSocket message handlers
     const messageHandlers = useRef<Record<string, MessageHandler>>({

@@ -96,10 +96,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         };
     });
 
-    const [messages, setMessages] = useState<string[]>(() => {
-        return initialGameData ? ["Game started! You have 13 cards."] : [];
-    });
-
     // WebSocket message handlers
     const messageHandlers = useRef<Record<string, (message: WebSocketMessage) => void>>({
         GAME_STARTED: (message) => {
@@ -109,7 +105,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             const playerList = message.payload.player_list as string[];
 
             setGameState(createGameState(cards, currentTurn, playerList));
-            setMessages(prev => [...prev, "Game started! You have 13 cards."]);
         },
 
         TURN_CHANGE: (message) => {
@@ -122,7 +117,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                     isCurrentTurn: p.name === player,
                 })),
             }));
-            setMessages(prev => [...prev, `${player}'s turn`]);
         },
 
         MOVE_PLAYED: (message) => {
@@ -131,8 +125,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
 
             setGameState(prev => ({
                 ...prev,
-                lastPlayedCards: cards,
-                lastPlayedBy: player,
+                // Only update lastPlayedCards if cards were actually played (not a pass)
+                lastPlayedCards: cards.length > 0 ? cards : prev.lastPlayedCards,
+                lastPlayedBy: cards.length > 0 ? player : prev.lastPlayedBy,
                 players: prev.players.map(p => {
                     if (p.name === player) {
                         // Remove the played cards from the player's hand
@@ -142,14 +137,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                     return p;
                 }),
             }));
-
-            setMessages(prev => [...prev, `${player} played: ${cards.join(", ")}`]);
-
-        },
-
-        ERROR: (message) => {
-            const errorMsg = message.payload.message as string;
-            setMessages(prev => [...prev, `Error: ${errorMsg}`]);
         },
     });
 
@@ -270,7 +257,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         <div className="game-screen">
             {/* Top Player */}
             <div className="player-position top">
-                <div className="player-info">
+                <div className={`player-info ${gameState.currentTurn === playerPositions.top ? 'current-turn' : ''}`}>
                     <span className="player-name">{playerPositions.top || "Opponent"}</span>
                     <span className="card-count">
                         {gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13}
@@ -285,7 +272,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
 
             {/* Left Player */}
             <div className="player-position left">
-                <div className="player-info">
+                <div className={`player-info ${gameState.currentTurn === playerPositions.left ? 'current-turn' : ''}`}>
                     <span className="player-name">{playerPositions.left || "Opponent"}</span>
                     <span className="card-count">
                         {gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13}
@@ -300,7 +287,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
 
             {/* Right Player */}
             <div className="player-position right">
-                <div className="player-info">
+                <div className={`player-info ${gameState.currentTurn === playerPositions.right ? 'current-turn' : ''}`}>
                     <span className="player-name">{playerPositions.right || "Opponent"}</span>
                     <span className="card-count">
                         {gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13}
@@ -343,38 +330,50 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             </div>
                         </div>
                     )}
-
-                    <div className="game-messages">
-                        {messages.slice(-3).map((msg, index) => (
-                            <div key={index} className="game-message">{msg}</div>
-                        ))}
-                    </div>
                 </div>
             </div>
 
             {/* Bottom Player (Current Player) */}
             <div className="player-position bottom">
-                <div className="player-info">
-                    <span className="player-name">{username}</span>
-                    <span className="card-count">{currentPlayer?.cards.length || 0}</span>
-                </div>
+                {/* Top row with player info and controls */}
+                <div className="bottom-top-row">
+                    <div className={`player-info ${gameState.currentTurn === username ? 'current-turn' : ''}`}>
+                        <span className="player-name">{username}</span>
+                        <span className="card-count">{currentPlayer?.cards.length || 0}</span>
+                    </div>
 
-                {/* Card Sorting Controls */}
-                <div className="card-controls">
                     <div className="sort-controls">
                         <button
                             className="sort-button"
                             onClick={() => handleSortCards('numerical')}
                             title="Sort by rank (3 smallest, 2 biggest)"
                         >
-                            Sort by Rank
+                            Rank
                         </button>
                         <button
                             className="sort-button"
                             onClick={() => handleSortCards('suit')}
                             title="Sort by suit (♣♦♥♠)"
                         >
-                            Sort by Suit
+                            Suit
+                        </button>
+                    </div>
+
+                    <div className="game-controls">
+                        <button
+                            className="play-button"
+                            onClick={handlePlayCards}
+                            disabled={gameState.selectedCards.length === 0 || !isCurrentTurn}
+                        >
+                            Play ({gameState.selectedCards.length})
+                        </button>
+                        <button
+                            className="pass-button"
+                            onClick={handlePass}
+                            disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0}
+                            title={!isCurrentTurn ? "Not your turn" : gameState.lastPlayedCards.length === 0 ? "Cannot pass on first move" : "Pass your turn"}
+                        >
+                            Pass
                         </button>
                     </div>
                 </div>
@@ -386,24 +385,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                     onCardClick={handleCardClick}
                     onCardsReorder={handleCardsReorder}
                 />
-
-                {/* Game Controls */}
-                <div className="game-controls">
-                    <button
-                        className="play-button"
-                        onClick={handlePlayCards}
-                        disabled={gameState.selectedCards.length === 0 || !isCurrentTurn}
-                    >
-                        Play Cards ({gameState.selectedCards.length})
-                    </button>
-                    <button
-                        className="pass-button"
-                        onClick={handlePass}
-                        disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0}
-                    >
-                        Pass
-                    </button>
-                </div>
             </div>
         </div>
     );
