@@ -343,29 +343,35 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                     </div>
 
                     <div className="sort-controls">
-                        <button
-                            className="sort-button"
-                            onClick={() => handleSortCards('numerical')}
-                            title="Sort by rank (3 smallest, 2 biggest)"
-                        >
-                            Rank
-                        </button>
-                        <button
-                            className="sort-button"
-                            onClick={() => handleSortCards('suit')}
-                            title="Sort by suit (♣♦♥♠)"
-                        >
-                            Suit
-                        </button>
+                        <div className="sort-controls-label">Sort</div>
+                        <div className="sort-buttons-row">
+                            <button
+                                className="sort-button"
+                                onClick={() => handleSortCards('numerical')}
+                                title="Sort by rank (3 smallest, 2 biggest)"
+                            >
+                                Rank
+                            </button>
+                            <button
+                                className="sort-button"
+                                onClick={() => handleSortCards('suit')}
+                                title="Sort by suit (♣♦♥♠)"
+                            >
+                                Suit
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="game-controls">
+                    <div className="play-controls">
                         <button
                             className="play-button"
                             onClick={handlePlayCards}
                             disabled={gameState.selectedCards.length === 0 || !isCurrentTurn}
                         >
-                            Play ({gameState.selectedCards.length})
+                            Play
+                            {gameState.selectedCards.length > 0 && (
+                                <span className="card-count">({gameState.selectedCards.length})</span>
+                            )}
                         </button>
                         <button
                             className="pass-button"

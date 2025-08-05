@@ -174,11 +174,14 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
-    gap: 15px;
+    gap: 25px;
     background: rgba(0, 0, 0, 0.1);
-    padding: 8px 12px;
+    padding: 8px 15px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    min-height: 45px;
+    flex-wrap: nowrap;
+    overflow: hidden;
 }
 
 /* Player Info */
@@ -189,11 +192,12 @@
     gap: 8px;
     margin-bottom: 0;
     background: rgba(0, 0, 0, 0.3);
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 120px;
 }
 
 /* Highlight current turn player */
@@ -609,22 +613,89 @@
     }
 }
 
-/* Game Controls - now inline in top row */
+/* Game Controls - now only for non-play/pass controls */
 .game-controls {
+    display: none; /* Hidden since play/pass buttons are now side buttons */
+}
+
+/* Large Side Buttons for Play and Pass */
+.side-button {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 80px;
+    height: 120px;
+    border: none;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
     display: flex;
-    gap: 6px;
+    flex-direction: column;
     align-items: center;
-    padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(5px);
-    flex-shrink: 0;
+    justify-content: center;
+    gap: 8px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.side-button:hover:not(:disabled) {
+    transform: translateY(-50%) scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.side-button:active:not(:disabled) {
+    transform: translateY(-50%) scale(0.98);
+}
+
+.side-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: translateY(-50%) scale(0.95);
+}
+
+.play-side-button {
+    left: 20px;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    border: 2px solid rgba(76, 175, 80, 0.3);
+}
+
+.play-side-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+    border-color: rgba(76, 175, 80, 0.6);
+}
+
+.pass-side-button {
+    right: 20px;
+    background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+    color: white;
+    border: 2px solid rgba(244, 67, 54, 0.3);
+}
+
+.pass-side-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #da190b 0%, #c62828 100%);
+    border-color: rgba(244, 67, 54, 0.6);
+}
+
+.side-button .card-count {
+    font-size: 12px;
+    opacity: 0.9;
+    font-weight: normal;
+}
+
+.play-controls .card-count {
+    font-size: 10px;
+    opacity: 0.9;
+    font-weight: normal;
+    margin-left: 4px;
 }
 
 .play-button,
 .pass-button {
-    padding: 4px 8px;
+    padding: 6px 12px;
     border: none;
     border-radius: 4px;
     font-weight: bold;
@@ -632,6 +703,8 @@
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
+    min-width: 60px;
+    text-align: center;
 }
 
 .play-button {
@@ -791,8 +864,30 @@
 
 .sort-controls {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 1;
+    min-width: 90px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(5px);
+}
+
+.sort-controls-label {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.sort-buttons-row {
+    display: flex;
     gap: 5px;
-    flex-shrink: 0;
 }
 
 .sort-button {
@@ -874,6 +969,65 @@
     .game-screen {
         grid-template-columns: 150px 1fr 150px;
     }
+
+    .bottom-top-row {
+        gap: 20px;
+        padding: 6px 12px;
+    }
+
+    .player-info {
+        min-width: 100px;
+    }
+
+    .side-button {
+        width: 70px;
+        height: 100px;
+        font-size: 14px;
+    }
+
+    .play-side-button {
+        left: 15px;
+    }
+
+    .pass-side-button {
+        right: 15px;
+    }
+}
+
+@media (max-width: 900px) {
+    .bottom-top-row {
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+    }
+
+    .player-info,
+    .sort-controls {
+        flex-shrink: 0;
+        min-width: unset;
+    }
+
+    .sort-controls,
+    .play-controls {
+        justify-content: center;
+        align-self: center;
+        min-width: 100px;
+    }
+
+    .side-button {
+        width: 60px;
+        height: 80px;
+        font-size: 12px;
+    }
+
+    .play-side-button {
+        left: 10px;
+    }
+
+    .pass-side-button {
+        right: 10px;
+    }
+}
 
     .card,
     .card-back {
@@ -986,17 +1140,19 @@
         padding: 10px;
     }
 
-    .game-controls {
-        margin-top: auto;
-        padding: 15px;
-        flex-direction: row;
-        align-items: center;
-        gap: 10px;
+    .side-button {
+        width: 50px;
+        height: 70px;
+        font-size: 11px;
+        border-radius: 8px;
     }
 
-    .play-button,
-    .pass-button {
-        width: 200px;
+    .play-side-button {
+        left: 5px;
+    }
+
+    .pass-side-button {
+        right: 5px;
     }
 
     .card,
@@ -1075,14 +1231,26 @@
         --card-index: 6;
     }
 
-    .sort-controls {
+    .sort-controls,
+    .play-controls {
+        min-width: 90px;
+    }
+
+    .sort-buttons-row {
         flex-direction: column;
-        gap: 5px;
+        gap: 3px;
     }
 
     .sort-button {
         padding: 6px 12px;
         font-size: 12px;
+    }
+
+    .play-button,
+    .pass-button {
+        padding: 6px 10px;
+        font-size: 11px;
+        min-width: 60px;
     }
 }
 
