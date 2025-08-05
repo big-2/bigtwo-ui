@@ -26,6 +26,8 @@ interface GameState {
     playerList: string[]; // Track the full player list order
     lastPlayedCards: string[]; // Track the last played cards for validation
     lastPlayedBy: string; // Track who played the last cards
+    gameWon: boolean; // Track if the game has been won
+    winner: string; // Track who won the game
 }
 
 const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameData }) => {
@@ -75,6 +77,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             playerList,
             lastPlayedCards: [],
             lastPlayedBy: "",
+            gameWon: false,
+            winner: "",
         };
     };
 
@@ -93,6 +97,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             playerList: [username],
             lastPlayedCards: [],
             lastPlayedBy: "",
+            gameWon: false,
+            winner: "",
         };
     });
 
@@ -138,6 +144,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                 }),
             }));
         },
+
+        GAME_WON: (message) => {
+            const winner = message.payload.winner as string;
+            console.log(`Game won by ${winner}!`);
+
+            setGameState(prev => ({
+                ...prev,
+                gameWon: true,
+                winner: winner,
+            }));
+        },
     });
 
     const processMessage = (msg: string) => {
@@ -165,7 +182,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
     }, [socket]);
 
     const currentPlayer = gameState.players.find(p => p.name === username);
-    const isCurrentTurn = gameState.currentTurn === username;
+    const isCurrentTurn = gameState.currentTurn === username && !gameState.gameWon;
 
     // Get player positions based on player list
     const playerPositions = getPlayerPositions(gameState.playerList, username);
@@ -303,32 +320,43 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             {/* Center Game Area */}
             <div className="game-center">
                 <div className="game-info">
-                    <div className="turn-indicator">
-                        {isCurrentTurn ? "Your turn!" : `${gameState.currentTurn}'s turn`}
-                    </div>
-
-                    {/* Last played cards display */}
-                    {gameState.lastPlayedCards.length > 0 && (
-                        <div className="last-played">
-                            <div className="last-played-label">
-                                {gameState.lastPlayedBy === username ? "You played:" : `${gameState.lastPlayedBy} played:`}
+                    {gameState.gameWon ? (
+                        <div className="game-won">
+                            <div className="winner-announcement">
+                                🎉 {gameState.winner === username ? "You won!" : `${gameState.winner} won!`} 🎉
                             </div>
-                            <div className="last-played-cards">
-                                {gameState.lastPlayedCards.map((card, index) => {
-                                    const suit = card.slice(-1);
-                                    return (
-                                        <div
-                                            key={index}
-                                            className="played-card"
-                                            data-suit={suit}
-                                            title={card}
-                                        >
-                                            {card}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            <div className="game-over">Game Over</div>
                         </div>
+                    ) : (
+                        <>
+                            <div className="turn-indicator">
+                                {isCurrentTurn ? "Your turn!" : `${gameState.currentTurn}'s turn`}
+                            </div>
+
+                            {/* Last played cards display */}
+                            {gameState.lastPlayedCards.length > 0 && (
+                                <div className="last-played">
+                                    <div className="last-played-label">
+                                        {gameState.lastPlayedBy === username ? "You played:" : `${gameState.lastPlayedBy} played:`}
+                                    </div>
+                                    <div className="last-played-cards">
+                                        {gameState.lastPlayedCards.map((card, index) => {
+                                            const suit = card.slice(-1);
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    className="played-card"
+                                                    data-suit={suit}
+                                                    title={card}
+                                                >
+                                                    {card}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -355,7 +383,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             <button
                                 className="sort-button"
                                 onClick={() => handleSortCards('suit')}
-                                title="Sort by suit (♣♦♥♠)"
+                                title="Sort by suit (♦♣♥♠)"
                             >
                                 Suit
                             </button>
@@ -366,7 +394,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                         <button
                             className="play-button"
                             onClick={handlePlayCards}
-                            disabled={gameState.selectedCards.length === 0 || !isCurrentTurn}
+                            disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || gameState.gameWon}
                         >
                             Play
                             {gameState.selectedCards.length > 0 && (
@@ -376,8 +404,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                         <button
                             className="pass-button"
                             onClick={handlePass}
-                            disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0}
-                            title={!isCurrentTurn ? "Not your turn" : gameState.lastPlayedCards.length === 0 ? "Cannot pass on first move" : "Pass your turn"}
+                            disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
+                            title={gameState.gameWon ? "Game is over" : !isCurrentTurn ? "Not your turn" : gameState.lastPlayedCards.length === 0 ? "Cannot pass on first move" : "Pass your turn"}
                         >
                             Pass
                         </button>

@@ -18,7 +18,8 @@ export type MessageType =
     | "TURN_CHANGE"
     | "ERROR"
     | "START_GAME"
-    | "GAME_STARTED";
+    | "GAME_STARTED"
+    | "GAME_WON";
 
 /**
  * Model for chat messages.
@@ -128,6 +129,18 @@ export interface GameStartedMessage {
 export interface GameStartedPayload {
     current_turn: string;
     cards: string[];
+    player_list: string[];
+}
+/**
+ * Model for game won messages.
+ */
+export interface GameWonMessage {
+    type: "GAME_WON";
+    payload: GameWonPayload;
+    meta?: WebSocketMessageMeta;
+}
+export interface GameWonPayload {
+    winner: string;
 }
 /**
  * Base model for all WebSocket messages.

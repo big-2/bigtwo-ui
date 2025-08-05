@@ -96,7 +96,8 @@
     align-items: center;
     justify-content: flex-start;
     width: 100%;
-    min-height: calc(100vh - 60px); /* Account for header height */
+    min-height: calc(100vh - 60px);
+    /* Account for header height */
     padding-top: 20px;
 }
 
@@ -131,7 +132,7 @@
     background-color: var(--danger-btn-hover);
 }
 
-.game-controls {
+.game-room-container .game-controls {
     display: flex;
     flex-direction: column;
     align-items: center;
