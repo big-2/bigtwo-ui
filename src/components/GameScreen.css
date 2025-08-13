@@ -2,7 +2,7 @@
     position: relative;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(135deg, #2c5530 0%, #1a3d1f 100%);
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
     display: grid;
     grid-template-areas:
         "left center right"
@@ -159,8 +159,8 @@
 /* Bottom player positioning - simple fix for button visibility */
 .player-position.bottom {
     grid-area: bottom;
-    background: rgba(0, 0, 0, 0.3);
-    border-top: 2px solid rgba(255, 255, 255, 0.2);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
     padding: 5px 15px 5px 15px;
     display: flex;
     flex-direction: column;
@@ -175,10 +175,10 @@
     align-items: center;
     margin-bottom: 8px;
     gap: 25px;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--color-surface-2);
     padding: 8px 15px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--color-border);
     min-height: 45px;
     flex-wrap: nowrap;
     overflow: hidden;
@@ -191,10 +191,10 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 0;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--color-surface);
     padding: 6px 12px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--color-border);
     transition: all 0.3s ease;
     flex-shrink: 1;
     min-width: 120px;
@@ -287,15 +287,15 @@
 /* Selected cards move up and stay up */
 .card.selected {
     transform: translateY(-15px);
-    border-color: #4CAF50;
-    box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+    border-color: var(--color-primary);
+    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.35);
     z-index: 10;
 }
 
 /* Selected cards on hover move up even more */
 .card.selected:hover:not(.dragging) {
     transform: translateY(-20px);
-    box-shadow: 0 8px 16px rgba(76, 175, 80, 0.4);
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.4);
 }
 
 /* Invalid selection animation */
@@ -331,7 +331,7 @@
 
 .card.selected.dragging {
     transform: translateY(-15px) scale(1.05) rotate(5deg);
-    border: 2px solid #4CAF50;
+    border: 2px solid var(--color-primary);
 }
 
 /* Drop target animations */
@@ -352,9 +352,9 @@
     top: 0;
     bottom: 0;
     width: 4px;
-    background: linear-gradient(to bottom, #4CAF50, #81C784);
+    background: linear-gradient(to bottom, var(--color-primary), var(--color-primary));
     border-radius: 2px;
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.5);
     animation: dropPulse 1s ease-in-out infinite alternate;
 }
 
@@ -512,12 +512,13 @@
     flex-direction: column;
     align-items: center;
     gap: 15px;
-    color: white;
+    color: var(--color-text);
     text-align: center;
     padding: 20px;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 10px;
-    backdrop-filter: blur(10px);
+    box-shadow: 0 6px 20px var(--shadow-color);
 }
 
 .last-played {
@@ -526,14 +527,14 @@
     align-items: center;
     gap: 10px;
     padding: 15px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-surface-2);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--color-border);
 }
 
 .last-played-label {
     font-size: 0.9em;
-    color: #e0e0e0;
+    color: var(--color-text-muted);
     font-weight: 500;
 }
 
@@ -582,12 +583,13 @@
 }
 
 .game-message {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-surface-2);
     padding: 8px 12px;
     border-radius: 4px;
     margin: 4px 0;
     font-size: 0.9em;
-    color: #e0e0e0;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
 }
 
 .validation-error {
@@ -615,7 +617,8 @@
 
 /* Game Controls - now only for non-play/pass controls */
 .game-controls {
-    display: none; /* Hidden since play/pass buttons are now side buttons */
+    display: none;
+    /* Hidden since play/pass buttons are now side buttons */
 }
 
 /* Large Side Buttons for Play and Pass */
@@ -658,26 +661,26 @@
 
 .play-side-button {
     left: 20px;
-    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-    color: white;
-    border: 2px solid rgba(76, 175, 80, 0.3);
+    background: var(--primary-btn-bg);
+    color: var(--color-primary-contrast);
+    border: 2px solid rgba(37, 99, 235, 0.3);
 }
 
 .play-side-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
-    border-color: rgba(76, 175, 80, 0.6);
+    background: var(--primary-btn-hover);
+    border-color: rgba(37, 99, 235, 0.6);
 }
 
 .pass-side-button {
     right: 20px;
-    background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
-    color: white;
-    border: 2px solid rgba(244, 67, 54, 0.3);
+    background: var(--danger-btn-bg);
+    color: #ffffff;
+    border: 2px solid rgba(239, 68, 68, 0.3);
 }
 
 .pass-side-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #da190b 0%, #c62828 100%);
-    border-color: rgba(244, 67, 54, 0.6);
+    background: var(--danger-btn-hover);
+    border-color: rgba(239, 68, 68, 0.6);
 }
 
 .side-button .card-count {
@@ -742,15 +745,15 @@
 .keyboard-help {
     margin-top: 8px;
     text-align: center;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--color-text-muted);
     font-size: 0.8em;
 }
 
 .keyboard-help small {
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--color-surface-2);
     padding: 4px 8px;
     border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--color-border);
 }
 
 .winner-overlay {
@@ -768,13 +771,13 @@
 }
 
 .winner-content {
-    background: linear-gradient(135deg, #2c5530 0%, #1a3d1f 100%);
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
     padding: 40px;
     border-radius: 20px;
     text-align: center;
-    color: white;
-    border: 2px solid #4CAF50;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color: var(--color-text);
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
     animation: winnerAppear 0.5s ease-out;
 }
 
@@ -793,19 +796,19 @@
 .winner-content h2 {
     margin: 0 0 20px 0;
     font-size: 2.5em;
-    color: #4CAF50;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    color: var(--color-primary);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .winner-text {
     font-size: 1.5em;
     margin: 0 0 30px 0;
-    color: #e0e0e0;
+    color: var(--color-text-muted);
 }
 
 .new-game-button {
-    background: #4CAF50;
-    color: white;
+    background: var(--primary-btn-bg);
+    color: var(--color-primary-contrast);
     border: none;
     padding: 12px 24px;
     border-radius: 8px;
@@ -817,7 +820,7 @@
 }
 
 .new-game-button:hover {
-    background: #45a049;
+    background: var(--primary-btn-hover);
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
@@ -829,8 +832,8 @@
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: linear-gradient(135deg, #2c5530 0%, #1a3d1f 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
+    color: var(--color-text);
 }
 
 .loading-spinner {
@@ -923,13 +926,13 @@
 
 @keyframes dropPulse {
     from {
-        opacity: 0.7;
-        box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+        opacity: 0.8;
+        box-shadow: 0 0 8px rgba(37, 99, 235, 0.45);
     }
 
     to {
         opacity: 1;
-        box-shadow: 0 0 12px rgba(76, 175, 80, 0.8);
+        box-shadow: 0 0 12px rgba(37, 99, 235, 0.6);
     }
 }
 
@@ -1029,84 +1032,84 @@
     }
 }
 
-    .card,
-    .card-back {
-        width: 50px;
-        height: 70px;
-        font-size: 14px;
-    }
+.card,
+.card-back {
+    width: 50px;
+    height: 70px;
+    font-size: 14px;
+}
 
-    .card-back.vertical {
-        width: 35px;
-        height: 50px;
-    }
+.card-back.vertical {
+    width: 35px;
+    height: 50px;
+}
 
-    .card-back-stack .card-back {
-        width: 35px;
-        height: 50px;
-    }
+.card-back-stack .card-back {
+    width: 35px;
+    height: 50px;
+}
 
-    /* Top player cards on smaller screens */
-    .player-position.top .card-back {
-        width: 40px;
-        height: 55px;
-        margin-right: -8px;
-        --card-width: 40px;
-        --card-spacing: 8px;
-    }
+/* Top player cards on smaller screens */
+.player-position.top .card-back {
+    width: 40px;
+    height: 55px;
+    margin-right: -8px;
+    --card-width: 40px;
+    --card-spacing: 8px;
+}
 
-    /* Adjust top player card positions for smaller screens */
-    .player-position.top .card-back-row .card-back:nth-child(1) {
-        --card-index: -6;
-    }
+/* Adjust top player card positions for smaller screens */
+.player-position.top .card-back-row .card-back:nth-child(1) {
+    --card-index: -6;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(2) {
-        --card-index: -5;
-    }
+.player-position.top .card-back-row .card-back:nth-child(2) {
+    --card-index: -5;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(3) {
-        --card-index: -4;
-    }
+.player-position.top .card-back-row .card-back:nth-child(3) {
+    --card-index: -4;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(4) {
-        --card-index: -3;
-    }
+.player-position.top .card-back-row .card-back:nth-child(4) {
+    --card-index: -3;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(5) {
-        --card-index: -2;
-    }
+.player-position.top .card-back-row .card-back:nth-child(5) {
+    --card-index: -2;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(6) {
-        --card-index: -1;
-    }
+.player-position.top .card-back-row .card-back:nth-child(6) {
+    --card-index: -1;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(7) {
-        --card-index: 0;
-    }
+.player-position.top .card-back-row .card-back:nth-child(7) {
+    --card-index: 0;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(8) {
-        --card-index: 1;
-    }
+.player-position.top .card-back-row .card-back:nth-child(8) {
+    --card-index: 1;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(9) {
-        --card-index: 2;
-    }
+.player-position.top .card-back-row .card-back:nth-child(9) {
+    --card-index: 2;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(10) {
-        --card-index: 3;
-    }
+.player-position.top .card-back-row .card-back:nth-child(10) {
+    --card-index: 3;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(11) {
-        --card-index: 4;
-    }
+.player-position.top .card-back-row .card-back:nth-child(11) {
+    --card-index: 4;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(12) {
-        --card-index: 5;
-    }
+.player-position.top .card-back-row .card-back:nth-child(12) {
+    --card-index: 5;
+}
 
-    .player-position.top .card-back-row .card-back:nth-child(13) {
-        --card-index: 6;
-    }
+.player-position.top .card-back-row .card-back:nth-child(13) {
+    --card-index: 6;
+}
 }
 
 @media (max-width: 768px) {
@@ -1256,12 +1259,12 @@
 
 /* Accessibility */
 .sort-button:focus {
-    outline: 2px solid #fff;
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
 }
 
 .card:focus {
-    outline: 2px solid #4CAF50;
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
 }
 
@@ -1302,9 +1305,9 @@
     top: 0;
     bottom: 0;
     width: 4px;
-    background: linear-gradient(to bottom, #4CAF50, #81C784);
+    background: linear-gradient(to bottom, var(--color-primary), var(--color-primary));
     border-radius: 2px;
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.5);
     animation: dropPulse 1s ease-in-out infinite alternate;
 }
 

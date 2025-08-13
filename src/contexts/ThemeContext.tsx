@@ -25,7 +25,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     // Use localStorage to persist theme preference
     const [theme, setTheme] = useState<ThemeMode>(() => {
         const savedTheme = localStorage.getItem('theme');
-        return (savedTheme === 'light' ? 'light' : 'dark') as ThemeMode;
+        if (savedTheme === 'light' || savedTheme === 'dark') {
+            return savedTheme as ThemeMode;
+        }
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return prefersDark ? 'dark' : 'light';
     });
 
     // Toggle theme function
