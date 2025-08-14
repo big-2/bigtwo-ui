@@ -6,11 +6,11 @@ const API_URL = "http://localhost:3000";
 
 export type RoomResponse = components["schemas"]["RoomResponse"];
 
-// Configure axios to include session ID from localStorage in headers
+// Configure axios to include session ID from localStorage in Authorization header
 axios.interceptors.request.use((config) => {
     const sessionId = localStorage.getItem('session_id');
     if (sessionId) {
-        config.headers['X-Session-ID'] = sessionId;
+        config.headers['Authorization'] = `Bearer ${sessionId}`;
     }
     return config;
 });

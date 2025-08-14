@@ -9,10 +9,10 @@ export const connectToRoomWebSocket = (roomId: string, playerName: string, onMes
 
     console.log(`Connecting to WebSocket: room=${roomId}, player=${playerName}`);
 
-    // Connect to the dedicated WebSocket endpoint
-    const wsUrl = `ws://127.0.0.1:3000/ws/${roomId}?token=${sessionId}&player=${encodeURIComponent(playerName)}`;
+    // Connect to the dedicated WebSocket endpoint with JWT in subprotocol
+    const wsUrl = `ws://127.0.0.1:3000/ws/${roomId}`;
 
-    const socket = new WebSocket(wsUrl);
+    const socket = new WebSocket(wsUrl, sessionId);
 
     socket.onopen = () => console.log(`WebSocket connected to room ${roomId} as ${playerName}`);
     socket.onmessage = (event) => onMessage(event.data);
