@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { connectToRoomWebSocket } from "../services/socket";
 import { RoomResponse } from '../services/api';
-import "./GameRoom.css";
+import { Container, Stack, Title, Button, Center } from "@mantine/core";
 import ChatBox from "./ChatBox";
 import PlayerList from "./PlayerList";
 import GameScreen from "./GameScreen";
@@ -184,26 +184,33 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
 
     // Otherwise show the lobby/room interface
     return (
-        <div className="game-room-wrapper">
-            <div className="game-room-container wide">
-                <h2 className="game-room-title">Game Room {roomId}</h2>
+        <Container size="lg" py="xl" style={{ minHeight: 'calc(100vh - 60px)' }}>
+            <Stack align="center" gap="lg" style={{ maxWidth: 1000, margin: '0 auto' }}>
+                <Title order={2} c="blue">Game Room {roomId}</Title>
+                
                 <PlayerList players={players} currentPlayer={username} host={hostName} />
 
                 {isHost && (
-                    <div className="game-controls">
-                        <button
-                            className={`start-game-button ${canStartGame ? 'enabled' : 'disabled'}`}
+                    <Center>
+                        <Button
+                            size="lg"
+                            color={canStartGame ? 'green' : 'gray'}
                             onClick={handleStartGame}
                             disabled={!canStartGame}
+                            style={{
+                                width: 200,
+                                transform: canStartGame ? 'none' : 'none',
+                                transition: 'all 0.3s ease'
+                            }}
                         >
                             {canStartGame ? 'Start Game' : 'Waiting for Players...'}
-                        </button>
-                    </div>
+                        </Button>
+                    </Center>
                 )}
 
                 <ChatBox messages={messages} onSendMessage={sendChatMessage} />
-            </div>
-        </div>
+            </Stack>
+        </Container>
     );
 };
 

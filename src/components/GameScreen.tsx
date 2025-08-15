@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { WebSocketMessage } from "../types.websocket";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType } from "../utils/cardSorting";
-import "./GameScreen.css";
+import { Grid, Stack, Group, Text, Button, Card, Badge, Container } from "@mantine/core";
 
 interface GameScreenProps {
     username: string;
@@ -271,185 +271,288 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
     };
 
     return (
-        <div className="game-screen">
-            {/* Top Player */}
-            <div className="player-position top">
-                <div className={`player-info ${gameState.currentTurn === playerPositions.top ? 'current-turn' : ''}`}>
-                    <span className="player-name">{playerPositions.top || "Opponent"}</span>
-                    <span className="card-count">
-                        {gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13}
-                    </span>
-                </div>
-                <div className="card-back-row">
-                    {Array(gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13).fill(null).map((_, index) => (
-                        <div key={index} className="card-back"></div>
-                    ))}
-                </div>
-            </div>
+        <Container 
+            fluid 
+            style={{ 
+                height: '100vh', 
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                padding: 0
+            }}
+        >
+            <Grid 
+                style={{ height: '100vh', margin: 0 }}
+                gutter={0}
+            >
+                {/* Top Player */}
+                <Grid.Col span={12} style={{ height: '25%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 10 }}>
+                    <Group gap="lg" align="center">
+                        <Badge 
+                            color={gameState.currentTurn === playerPositions.top ? 'yellow' : 'gray'}
+                            size="lg"
+                            style={{ 
+                                animation: gameState.currentTurn === playerPositions.top ? 'pulse 2s infinite' : 'none'
+                            }}
+                        >
+                            <Stack gap={0} align="center">
+                                <Text size="xs" fw={700}>{playerPositions.top || "Opponent"}</Text>
+                                <Text size="xs">
+                                    {gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13} cards
+                                </Text>
+                            </Stack>
+                        </Badge>
+                        <Group gap={2}>
+                            {Array(Math.min(gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13, 13)).fill(null).map((_, index) => (
+                                <div 
+                                    key={index} 
+                                    style={{
+                                        width: 45,
+                                        height: 60,
+                                        background: '#1c7ed6',
+                                        border: '1px solid #1864ab',
+                                        borderRadius: 6,
+                                        marginLeft: index > 0 ? -8 : 0,
+                                        position: 'relative',
+                                        zIndex: 13 - index
+                                    }}
+                                />
+                            ))}
+                        </Group>
+                    </Group>
+                </Grid.Col>
 
-            {/* Left Player */}
-            <div className="player-position left">
-                <div className={`player-info ${gameState.currentTurn === playerPositions.left ? 'current-turn' : ''}`}>
-                    <span className="player-name">{playerPositions.left || "Opponent"}</span>
-                    <span className="card-count">
-                        {gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13}
-                    </span>
-                </div>
-                <div className="card-back-stack">
-                    {Array(gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13).fill(null).map((_, index) => (
-                        <div key={index} className="card-back"></div>
-                    ))}
-                </div>
-            </div>
+                {/* Middle Row with Left Player, Center, Right Player */}
+                <Grid.Col span={12} style={{ height: '50%', display: 'flex' }}>
+                    {/* Left Player */}
+                    <div style={{ width: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                        <Badge 
+                            color={gameState.currentTurn === playerPositions.left ? 'yellow' : 'gray'}
+                            size="lg"
+                            mb="md"
+                            style={{ 
+                                animation: gameState.currentTurn === playerPositions.left ? 'pulse 2s infinite' : 'none'
+                            }}
+                        >
+                            <Stack gap={0} align="center">
+                                <Text size="xs" fw={700}>{playerPositions.left || "Opponent"}</Text>
+                                <Text size="xs">
+                                    {gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13} cards
+                                </Text>
+                            </Stack>
+                        </Badge>
+                        <Stack gap={1}>
+                            {Array(Math.min(gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13, 13)).fill(null).map((_, index) => (
+                                <div 
+                                    key={index} 
+                                    style={{
+                                        width: 60,
+                                        height: 20,
+                                        background: '#1c7ed6',
+                                        border: '1px solid #1864ab',
+                                        borderRadius: 4,
+                                        marginTop: index > 0 ? -8 : 0,
+                                        position: 'relative',
+                                        zIndex: 13 - index
+                                    }}
+                                />
+                            ))}
+                        </Stack>
+                    </div>
 
-            {/* Right Player */}
-            <div className="player-position right">
-                <div className={`player-info ${gameState.currentTurn === playerPositions.right ? 'current-turn' : ''}`}>
-                    <span className="player-name">{playerPositions.right || "Opponent"}</span>
-                    <span className="card-count">
-                        {gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13}
-                    </span>
-                </div>
-                <div className="card-back-stack">
-                    {Array(gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13).fill(null).map((_, index) => (
-                        <div key={index} className="card-back"></div>
-                    ))}
-                </div>
-            </div>
+                    {/* Center Game Area */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                        <Card shadow="md" padding="lg" radius="md" style={{ minWidth: 300, textAlign: 'center' }}>
+                            {gameState.gameWon ? (
+                                <Stack align="center" gap="sm">
+                                    <Text size="xl" fw={700} c="green">
+                                        🎉 {gameState.winner === username ? "You won!" : `${gameState.winner} won!`} 🎉
+                                    </Text>
+                                    <Text size="lg" c="dimmed">Game Over</Text>
+                                </Stack>
+                            ) : (
+                                <Stack align="center" gap="md">
+                                    <Text size="lg" fw={600}>
+                                        {isCurrentTurn ? "Your turn!" : `${gameState.currentTurn}'s turn`}
+                                    </Text>
 
-            {/* Center Game Area */}
-            <div className="game-center">
-                <div className="game-info">
-                    {gameState.gameWon ? (
-                        <div className="game-won">
-                            <div className="winner-announcement">
-                                🎉 {gameState.winner === username ? "You won!" : `${gameState.winner} won!`} 🎉
-                            </div>
-                            <div className="game-over">Game Over</div>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="turn-indicator">
-                                {isCurrentTurn ? "Your turn!" : `${gameState.currentTurn}'s turn`}
-                            </div>
+                                    {/* Last played cards display */}
+                                    {gameState.lastPlayedCards.length > 0 && (
+                                        <Stack align="center" gap="xs">
+                                            <Text size="sm" c="dimmed">
+                                                {gameState.lastPlayedBy === username ? "You played:" : `${gameState.lastPlayedBy} played:`}
+                                            </Text>
+                                            <Group gap="xs">
+                                                {gameState.lastPlayedCards.map((card, index) => {
+                                                    const suit = card.slice(-1);
+                                                    const rank = card.slice(0, -1);
+                                                    
+                                                    const getSuitColor = (suit: string) => {
+                                                        switch (suit) {
+                                                            case 'H':
+                                                            case 'D':
+                                                                return '#ff6b6b';
+                                                            case 'S':
+                                                            case 'C':
+                                                                return '#000000';
+                                                            default:
+                                                                return '#000000';
+                                                        }
+                                                    };
 
-                            {/* Last played cards display */}
-                            {gameState.lastPlayedCards.length > 0 && (
-                                <div className="last-played">
-                                    <div className="last-played-label">
-                                        {gameState.lastPlayedBy === username ? "You played:" : `${gameState.lastPlayedBy} played:`}
-                                    </div>
-                                    <div className="last-played-cards">
-                                        {gameState.lastPlayedCards.map((card, index) => {
-                                            const suit = card.slice(-1);
-                                            const rank = card.slice(0, -1);
-                                            
-                                            const getSuitColor = (suit: string) => {
-                                                switch (suit) {
-                                                    case 'H':
-                                                    case 'D':
-                                                        return '#ff6b6b';
-                                                    case 'S':
-                                                    case 'C':
-                                                        return '#000000';
-                                                    default:
-                                                        return '#000000';
-                                                }
-                                            };
+                                                    const getSuitSymbol = (suit: string) => {
+                                                        switch (suit) {
+                                                            case 'H': return '♥';
+                                                            case 'D': return '♦';
+                                                            case 'S': return '♠';
+                                                            case 'C': return '♣';
+                                                            default: return suit;
+                                                        }
+                                                    };
 
-                                            const getSuitSymbol = (suit: string) => {
-                                                switch (suit) {
-                                                    case 'H': return '♥';
-                                                    case 'D': return '♦';
-                                                    case 'S': return '♠';
-                                                    case 'C': return '♣';
-                                                    default: return suit;
-                                                }
-                                            };
+                                                    return (
+                                                        <div
+                                                            key={index}
+                                                            style={{
+                                                                width: 40,
+                                                                height: 55,
+                                                                background: 'white',
+                                                                border: '1px solid #ddd',
+                                                                borderRadius: 4,
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                color: getSuitColor(suit),
+                                                                fontSize: '12px',
+                                                                fontWeight: 'bold'
+                                                            }}
+                                                        >
+                                                            <div>{rank}</div>
+                                                            <div style={{ fontSize: '16px' }}>{getSuitSymbol(suit)}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </Group>
+                                        </Stack>
+                                    )}
+                                </Stack>
+                            )}
+                        </Card>
+                    </div>
 
-                                            return (
-                                                <div
-                                                    key={index}
-                                                    className="played-card"
-                                                    data-suit={suit}
-                                                    title={card}
-                                                    style={{ color: getSuitColor(suit) }}
-                                                >
-                                                    <div className="card-content">
-                                                        <div className="card-rank">{rank}</div>
-                                                        <div className="card-suit">{getSuitSymbol(suit)}</div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                    {/* Right Player */}
+                    <div style={{ width: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                        <Badge 
+                            color={gameState.currentTurn === playerPositions.right ? 'yellow' : 'gray'}
+                            size="lg"
+                            mb="md"
+                            style={{ 
+                                animation: gameState.currentTurn === playerPositions.right ? 'pulse 2s infinite' : 'none'
+                            }}
+                        >
+                            <Stack gap={0} align="center">
+                                <Text size="xs" fw={700}>{playerPositions.right || "Opponent"}</Text>
+                                <Text size="xs">
+                                    {gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13} cards
+                                </Text>
+                            </Stack>
+                        </Badge>
+                        <Stack gap={1}>
+                            {Array(Math.min(gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13, 13)).fill(null).map((_, index) => (
+                                <div 
+                                    key={index} 
+                                    style={{
+                                        width: 60,
+                                        height: 20,
+                                        background: '#1c7ed6',
+                                        border: '1px solid #1864ab',
+                                        borderRadius: 4,
+                                        marginTop: index > 0 ? -8 : 0,
+                                        position: 'relative',
+                                        zIndex: 13 - index
+                                    }}
+                                />
+                            ))}
+                        </Stack>
+                    </div>
+                </Grid.Col>
+
+                {/* Bottom Player (Current Player) */}
+                <Grid.Col span={12} style={{ height: '25%' }}>
+                    <Stack gap="xs" p="sm">
+                        {/* Top row with player info and controls */}
+                        <Group justify="space-between" align="center">
+                            <Badge 
+                                color={gameState.currentTurn === username ? 'yellow' : 'gray'}
+                                size="lg"
+                                style={{ 
+                                    animation: gameState.currentTurn === username ? 'pulse 2s infinite' : 'none'
+                                }}
+                            >
+                                <Stack gap={0} align="center">
+                                    <Text size="xs" fw={700}>{username}</Text>
+                                    <Text size="xs">{currentPlayer?.cards.length || 0} cards</Text>
+                                </Stack>
+                            </Badge>
+
+                            <Group gap="md">
+                                <div>
+                                    <Text size="xs" c="dimmed" mb={4}>Sort</Text>
+                                    <Group gap="xs">
+                                        <Button
+                                            size="xs"
+                                            variant="light"
+                                            onClick={() => handleSortCards('numerical')}
+                                            title="Sort by rank (3 smallest, 2 biggest)"
+                                        >
+                                            Rank
+                                        </Button>
+                                        <Button
+                                            size="xs"
+                                            variant="light"
+                                            onClick={() => handleSortCards('suit')}
+                                            title="Sort by suit (♦♣♥♠)"
+                                        >
+                                            Suit
+                                        </Button>
+                                    </Group>
                                 </div>
-                            )}
-                        </>
-                    )}
-                </div>
-            </div>
 
-            {/* Bottom Player (Current Player) */}
-            <div className="player-position bottom">
-                {/* Top row with player info and controls */}
-                <div className="bottom-top-row">
-                    <div className={`player-info ${gameState.currentTurn === username ? 'current-turn' : ''}`}>
-                        <span className="player-name">{username}</span>
-                        <span className="card-count">{currentPlayer?.cards.length || 0}</span>
-                    </div>
+                                <Group gap="xs">
+                                    <Button
+                                        size="md"
+                                        onClick={handlePlayCards}
+                                        disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || gameState.gameWon}
+                                    >
+                                        Play
+                                        {gameState.selectedCards.length > 0 && (
+                                            <Text component="span" size="xs" ml={4}>({gameState.selectedCards.length})</Text>
+                                        )}
+                                    </Button>
+                                    <Button
+                                        size="md"
+                                        variant="light"
+                                        color="orange"
+                                        onClick={handlePass}
+                                        disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
+                                        title={gameState.gameWon ? "Game is over" : !isCurrentTurn ? "Not your turn" : gameState.lastPlayedCards.length === 0 ? "Cannot pass on first move" : "Pass your turn"}
+                                    >
+                                        Pass
+                                    </Button>
+                                </Group>
+                            </Group>
+                        </Group>
 
-                    <div className="sort-controls">
-                        <div className="sort-controls-label">Sort</div>
-                        <div className="sort-buttons-row">
-                            <button
-                                className="sort-button"
-                                onClick={() => handleSortCards('numerical')}
-                                title="Sort by rank (3 smallest, 2 biggest)"
-                            >
-                                Rank
-                            </button>
-                            <button
-                                className="sort-button"
-                                onClick={() => handleSortCards('suit')}
-                                title="Sort by suit (♦♣♥♠)"
-                            >
-                                Suit
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="play-controls">
-                        <button
-                            className="play-button"
-                            onClick={handlePlayCards}
-                            disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || gameState.gameWon}
-                        >
-                            Play
-                            {gameState.selectedCards.length > 0 && (
-                                <span className="card-count">({gameState.selectedCards.length})</span>
-                            )}
-                        </button>
-                        <button
-                            className="pass-button"
-                            onClick={handlePass}
-                            disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
-                            title={gameState.gameWon ? "Game is over" : !isCurrentTurn ? "Not your turn" : gameState.lastPlayedCards.length === 0 ? "Cannot pass on first move" : "Pass your turn"}
-                        >
-                            Pass
-                        </button>
-                    </div>
-                </div>
-
-                {/* Player's Hand */}
-                <PlayerHand
-                    cards={currentPlayer?.cards || []}
-                    selectedCards={gameState.selectedCards}
-                    onCardClick={handleCardClick}
-                    onCardsReorder={handleCardsReorder}
-                />
-            </div>
-        </div>
+                        {/* Player's Hand */}
+                        <PlayerHand
+                            cards={currentPlayer?.cards || []}
+                            selectedCards={gameState.selectedCards}
+                            onCardClick={handleCardClick}
+                            onCardsReorder={handleCardsReorder}
+                        />
+                    </Stack>
+                </Grid.Col>
+            </Grid>
+        </Container>
     );
 };
 
