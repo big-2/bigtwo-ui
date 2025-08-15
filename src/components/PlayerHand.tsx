@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { Paper, Text, Group } from "@mantine/core";
 
 interface CardProps {
     card: string;
@@ -84,7 +85,7 @@ const Card: React.FC<CardProps> = ({
     };
 
     return (
-        <div
+        <Paper
             className={`card ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${isDropTarget ? 'drop-target' : ''}`}
             onClick={() => onClick(card)}
             onDragStart={handleDragStart}
@@ -95,19 +96,64 @@ const Card: React.FC<CardProps> = ({
             data-suit={suit}
             data-batch-count={isSelected && isDragging ? selectedCards.length : undefined}
             title={card}
-            style={{ color: getSuitColor(suit) }}
+            shadow="sm"
+            radius="md"
+            p="xs"
+            style={{ 
+                color: getSuitColor(suit),
+                cursor: 'pointer',
+                userSelect: 'none',
+                background: 'white',
+                border: isSelected ? '3px solid #2563eb' : '2px solid #ddd',
+                transform: isSelected ? 'translateY(-15px)' : 'translateY(0)',
+                transition: 'all 0.2s ease',
+                position: 'relative',
+                minWidth: '80px',
+                height: '110px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}
         >
-            <div className="card-content">
-                <div className="card-rank">{rank}</div>
-                <div className="card-suit">{getSuitSymbol(suit)}</div>
-            </div>
+            <Group 
+                gap={0} 
+                style={{ 
+                    flexDirection: 'column', 
+                    alignItems: 'center',
+                    height: '100%',
+                    justifyContent: 'center'
+                }}
+            >
+                <Text 
+                    size="xl" 
+                    fw={700}
+                    style={{ 
+                        color: getSuitColor(suit),
+                        lineHeight: 1,
+                        fontSize: '18px'
+                    }}
+                >
+                    {rank}
+                </Text>
+                <Text 
+                    size="xl"
+                    style={{ 
+                        color: getSuitColor(suit),
+                        lineHeight: 1,
+                        fontSize: '24px'
+                    }}
+                >
+                    {getSuitSymbol(suit)}
+                </Text>
+            </Group>
             {isDropTarget && <div className="drop-indicator" />}
             {isSelected && isDragging && selectedCards.length > 1 && (
                 <div className="batch-indicator">
                     {selectedCards.length}
                 </div>
             )}
-        </div>
+        </Paper>
     );
 };
 
@@ -273,11 +319,25 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     };
 
     return (
-        <div
+        <Group
             className="player-hand"
             ref={handRef}
             onDragOver={handleHandDragOver}
             onDrop={handleHandDrop}
+            gap="sm"
+            justify="center"
+            align="flex-end"
+            style={{
+                minHeight: '140px',
+                padding: '20px 15px 35px 15px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                margin: '10px 0',
+                flexWrap: 'nowrap',
+                overflowX: 'auto',
+                width: '100%'
+            }}
         >
             {cards.map((card, index) => (
                 <Card
@@ -301,7 +361,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
                     <div className="drop-indicator"></div>
                 </div>
             )}
-        </div>
+        </Group>
     );
 };
 
