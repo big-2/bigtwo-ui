@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useThemeContext } from "../contexts/ThemeContext";
-import "./Header.css";
+import { Group, Title, Button, Text, ActionIcon, Badge } from "@mantine/core";
 
 interface HeaderProps {
     username: string;
@@ -17,29 +17,38 @@ const Header: React.FC<HeaderProps> = ({ username, showBackButton = false }) => 
     };
 
     return (
-        <header className="app-header">
-            <div className="header-content">
-                <h1 className="game-title">Big Two Game</h1>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-                    {showBackButton && (
-                        <button onClick={handleBack} className="back-button">
-                            Back to Lobby
-                        </button>
-                    )}
-                    <div className="user-badge">
-                        <span className="user-label">Playing as:</span>
-                        <span className="user-name">{username}</span>
-                    </div>
-                    <button
-                        className="theme-toggle"
-                        onClick={toggleTheme}
-                        aria-label="Toggle theme"
-                    >
-                        {theme === 'dark' ? '☀️' : '🌙'}
-                    </button>
-                </div>
-            </div>
-        </header>
+        <Group 
+            justify="space-between" 
+            p="md" 
+            style={{ 
+                backgroundColor: 'var(--mantine-color-blue-6)',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                position: 'sticky',
+                top: 0,
+                zIndex: 100
+            }}
+        >
+            <Title order={2} c="white">Big Two Game</Title>
+            <Group gap="md">
+                {showBackButton && (
+                    <Button onClick={handleBack} variant="light" color="white">
+                        Back to Lobby
+                    </Button>
+                )}
+                <Badge size="lg" variant="light" color="white">
+                    <Text size="sm">Playing as: <Text component="span" fw={700}>{username}</Text></Text>
+                </Badge>
+                <ActionIcon
+                    onClick={toggleTheme}
+                    variant="light"
+                    color="white"
+                    size="lg"
+                    aria-label="Toggle theme"
+                >
+                    {theme === 'dark' ? '☀️' : '🌙'}
+                </ActionIcon>
+            </Group>
+        </Group>
     );
 };
 
