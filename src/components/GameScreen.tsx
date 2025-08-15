@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { WebSocketMessage } from "../types.websocket";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType } from "../utils/cardSorting";
-import { Grid, Stack, Group, Text, Button, Card, Badge, Container } from "@mantine/core";
+import { Grid, Stack, Group, Text, Button, Card, Badge, Container, useMantineTheme } from "@mantine/core";
+import { useThemeContext } from "../contexts/ThemeContext";
 
 interface GameScreenProps {
     username: string;
@@ -31,6 +32,8 @@ interface GameState {
 }
 
 const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameData }) => {
+    const { theme } = useThemeContext();
+    const mantineTheme = useMantineTheme();
     // Helper function to get player position based on player list
     const getPlayerPositions = (playerList: string[], currentPlayer: string) => {
         const currentIndex = playerList.indexOf(currentPlayer);
@@ -270,14 +273,32 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         }
     };
 
+    // Theme-responsive background styling
+    const containerStyle = {
+        height: '100vh',
+        background: theme === 'light' 
+            ? 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
+            : `
+                linear-gradient(135deg, ${mantineTheme.colors.dark[7]} 0%, ${mantineTheme.colors.dark[6]} 100%),
+                linear-gradient(45deg, rgba(96, 165, 250, 0.05) 25%, transparent 25%), 
+                linear-gradient(-45deg, rgba(96, 165, 250, 0.05) 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, rgba(96, 165, 250, 0.05) 75%), 
+                linear-gradient(-45deg, transparent 75%, rgba(96, 165, 250, 0.05) 75%)
+              `,
+        backgroundSize: theme === 'light' 
+            ? '100% 100%'
+            : '100% 100%, 80px 80px, 80px 80px, 80px 80px, 80px 80px',
+        backgroundPosition: theme === 'light'
+            ? '0 0'
+            : '0 0, 0 0, 40px 0, 40px -40px, 0px 40px',
+        padding: 0,
+        transition: 'background 0.3s ease'
+    };
+
     return (
         <Container 
             fluid 
-            style={{ 
-                height: '100vh', 
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                padding: 0
-            }}
+            style={containerStyle}
         >
             <Grid 
                 style={{ height: '100vh', margin: 0 }}
@@ -290,7 +311,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             color={gameState.currentTurn === playerPositions.top ? 'yellow' : 'gray'}
                             size="lg"
                             style={{ 
-                                animation: gameState.currentTurn === playerPositions.top ? 'pulse 2s infinite' : 'none'
+                                animation: gameState.currentTurn === playerPositions.top ? 'pulse 2s infinite' : 'none',
+                                minHeight: '48px',
+                                padding: '12px 16px',
+                                borderRadius: '12px'
                             }}
                         >
                             <Stack gap={0} align="center">
@@ -329,7 +353,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             size="lg"
                             mb="md"
                             style={{ 
-                                animation: gameState.currentTurn === playerPositions.left ? 'pulse 2s infinite' : 'none'
+                                animation: gameState.currentTurn === playerPositions.left ? 'pulse 2s infinite' : 'none',
+                                minHeight: '48px',
+                                padding: '12px 16px',
+                                borderRadius: '12px'
                             }}
                         >
                             <Stack gap={0} align="center">
@@ -446,7 +473,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             size="lg"
                             mb="md"
                             style={{ 
-                                animation: gameState.currentTurn === playerPositions.right ? 'pulse 2s infinite' : 'none'
+                                animation: gameState.currentTurn === playerPositions.right ? 'pulse 2s infinite' : 'none',
+                                minHeight: '48px',
+                                padding: '12px 16px',
+                                borderRadius: '12px'
                             }}
                         >
                             <Stack gap={0} align="center">
@@ -485,7 +515,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                                 color={gameState.currentTurn === username ? 'yellow' : 'gray'}
                                 size="lg"
                                 style={{ 
-                                    animation: gameState.currentTurn === username ? 'pulse 2s infinite' : 'none'
+                                    animation: gameState.currentTurn === username ? 'pulse 2s infinite' : 'none',
+                                    minHeight: '48px',
+                                    padding: '12px 16px',
+                                    borderRadius: '12px'
                                 }}
                             >
                                 <Stack gap={0} align="center">

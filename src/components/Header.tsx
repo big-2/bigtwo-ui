@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useThemeContext } from "../contexts/ThemeContext";
-import { Group, Title, Button, Text, ActionIcon, Badge } from "@mantine/core";
+import { Group, Title, Button, Text, Badge, useMantineTheme } from "@mantine/core";
+import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
     username: string;
@@ -10,43 +11,63 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ username, showBackButton = false }) => {
     const navigate = useNavigate();
-    const { theme, toggleTheme } = useThemeContext();
+    const { theme } = useThemeContext();
+    const mantineTheme = useMantineTheme();
 
     const handleBack = () => {
         navigate("/");
+    };
+
+    // Theme-responsive header styling
+    const headerStyle = {
+        backgroundColor: theme === 'light' 
+            ? '#ffffff' 
+            : mantineTheme.colors.dark[7],
+        borderBottom: `1px solid ${theme === 'light' 
+            ? mantineTheme.colors.gray[2] 
+            : mantineTheme.colors.dark[4]}`,
+        boxShadow: theme === 'light' 
+            ? '0 1px 3px rgba(0, 0, 0, 0.1)' 
+            : '0 1px 3px rgba(0, 0, 0, 0.3)',
+        position: 'sticky' as const,
+        top: 0,
+        zIndex: 100,
+        transition: 'all 0.3s ease'
     };
 
     return (
         <Group 
             justify="space-between" 
             p="md" 
-            style={{ 
-                backgroundColor: 'var(--mantine-color-blue-6)',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                position: 'sticky',
-                top: 0,
-                zIndex: 100
-            }}
+            style={headerStyle}
         >
-            <Title order={2} c="white">Big Two Game</Title>
+            <Title 
+                order={2} 
+                c={theme === 'light' ? 'blue.6' : 'blue.4'}
+                style={{ transition: 'color 0.3s ease' }}
+            >
+                Big Two Game
+            </Title>
             <Group gap="md">
                 {showBackButton && (
-                    <Button onClick={handleBack} variant="light" color="white">
+                    <Button 
+                        onClick={handleBack} 
+                        variant="light" 
+                        color="blue"
+                    >
                         Back to Lobby
                     </Button>
                 )}
-                <Badge size="lg" variant="light" color="white">
-                    <Text size="sm">Playing as: <Text component="span" fw={700}>{username}</Text></Text>
-                </Badge>
-                <ActionIcon
-                    onClick={toggleTheme}
-                    variant="light"
-                    color="white"
-                    size="lg"
-                    aria-label="Toggle theme"
+                <Badge 
+                    size="lg" 
+                    variant={theme === 'light' ? 'light' : 'filled'} 
+                    color="blue"
                 >
-                    {theme === 'dark' ? '☀️' : '🌙'}
-                </ActionIcon>
+                    <Text size="sm">
+                        Playing as: <Text component="span" fw={700}>{username}</Text>
+                    </Text>
+                </Badge>
+                <ThemeToggle />
             </Group>
         </Group>
     );
