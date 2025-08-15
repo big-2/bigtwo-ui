@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { AppShell, Box, Center, Text, Alert } from "@mantine/core";
 import Lobby from "./components/Lobby";
 import RoomContainer from "./components/RoomContainer";
 import Header from "./components/Header";
 import { useSessionContext } from "./contexts/SessionContext";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { useThemeContext } from "./contexts/ThemeContext";
 import "./index.css"; // Ensure global styles are included
 
 const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [gameStarted, setGameStarted] = useState(false);
     const { username, isLoading } = useSessionContext();
+    const { theme } = useThemeContext();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -42,23 +44,45 @@ const App: React.FC = () => {
     const showBackButton = location.pathname.includes('/room/') && !gameStarted;
 
     if (isLoading) {
-        return <div className="loading">Loading...</div>;
+        return (
+            <Center style={{ width: '100vw', height: '100vh' }}>
+                <Text size="xl">Loading...</Text>
+            </Center>
+        );
     }
 
     return (
-        <ThemeProvider>
-            <div className="app-wrapper">
+        <AppShell
+            header={{ height: 60 }}
+            style={{
+                minHeight: '100vh',
+                backgroundColor: theme === 'light' ? '#ffffff' : undefined
+            }}
+        >
+            <AppShell.Header>
                 <Header username={username} showBackButton={showBackButton} />
-                {error && <div className="error-message">{error}</div>}
-                <main className="app-content">
+            </AppShell.Header>
+            
+            <AppShell.Main>
+                <Box
+                    style={{
+                        minHeight: 'calc(100vh - 60px)',
+                        transition: 'background-color 0.3s ease'
+                    }}
+                >
+                    {error && (
+                        <Alert color="red" m="md">
+                            {error}
+                        </Alert>
+                    )}
                     <Routes>
                         <Route path="/" element={<Lobby onJoinRoom={handleJoinRoom} username={username} />} />
                         <Route path="/room/:roomId" element={<RoomContainer username={username} onGameStateChange={handleGameStateChange} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
-                </main>
-            </div>
-        </ThemeProvider>
+                </Box>
+            </AppShell.Main>
+        </AppShell>
     );
 };
 

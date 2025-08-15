@@ -1,5 +1,5 @@
 import React from "react";
-import "./UserInfo.css";
+import { Card, Group, Text } from "@mantine/core";
 
 interface UserInfoProps {
     playerName: string;
@@ -7,12 +7,22 @@ interface UserInfoProps {
 
 const UserInfo: React.FC<UserInfoProps> = ({ playerName }) => {
     return (
-        <div className="user-info">
-            <div className="username-display">
-                <span className="username-label">Player:</span>
-                <span className="username-value">{playerName}</span>
-            </div>
-        </div>
+        <Card 
+            shadow="sm" 
+            padding="xs" 
+            radius="xl"
+            style={{
+                position: 'absolute',
+                top: 10,
+                right: 20,
+                zIndex: 100
+            }}
+        >
+            <Group gap="xs">
+                <Text size="sm" c="dimmed" fw={700}>Player:</Text>
+                <Text size="sm" fw={700} c="blue">{playerName}</Text>
+            </Group>
+        </Card>
     );
 };
 
