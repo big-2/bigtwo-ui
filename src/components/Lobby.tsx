@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createRoom, getRooms, RoomResponse } from "../services/api";
-import "./Lobby.css";
+import { Container, Card, Group, Title, Button, ActionIcon, Table, Text, Stack, ScrollArea } from "@mantine/core";
 
 interface LobbyProps {
     onJoinRoom: (roomId: string) => void;
@@ -28,28 +28,74 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
     }
 
     return (
-        <div className="lobby-wrapper">
-            <div className="lobby-container wide">
-                <div className="lobby-header">
-                    <h2 className="lobby-title">Available Rooms</h2>
-                    <button className="refresh-button" onClick={fetchRooms} title="Refresh rooms">
-                        ↻
-                    </button>
-                </div>
-                <button className="create-room-button" onClick={handleCreateRoom}>Create Room</button>
-                <ul className="room-list">
-                    {rooms.map((room) => (
-                        <li key={room.id} className="room-item">
-                            <span>{room.id} - {room.status} ({room.player_count}/4 Players)</span>
-                            <button className="join-room-button" onClick={() => onJoinRoom(room.id)}>Join</button>
-                        </li>
-                    ))}
-                    {rooms.length === 0 && (
-                        <li className="room-item empty-message">No available rooms. Create one!</li>
-                    )}
-                </ul>
-            </div>
-        </div>
+        <Container size="lg" py="xl" style={{ minHeight: 'calc(100vh - 60px)' }}>
+            <Card shadow="md" padding="xl" radius="md" style={{ maxWidth: 960, margin: '0 auto' }}>
+                <Stack gap="lg">
+                    <Group justify="space-between" align="center">
+                        <Title order={2}>Available Rooms</Title>
+                        <ActionIcon 
+                            onClick={fetchRooms} 
+                            variant="light" 
+                            size="lg"
+                            title="Refresh rooms"
+                            style={{ '&:hover': { transform: 'rotate(180deg)', transition: 'transform 0.2s' } }}
+                        >
+                            ↻
+                        </ActionIcon>
+                    </Group>
+                    
+                    <Button 
+                        onClick={handleCreateRoom}
+                        color="green" 
+                        size="md" 
+                        fullWidth
+                    >
+                        Create Room
+                    </Button>
+                    
+                    <ScrollArea h={400}>
+                        {rooms.length === 0 ? (
+                            <Text ta="center" c="dimmed" py="xl" fs="italic">
+                                No available rooms. Create one!
+                            </Text>
+                        ) : (
+                            <Table striped highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Room ID</Table.Th>
+                                        <Table.Th>Status</Table.Th>
+                                        <Table.Th>Players</Table.Th>
+                                        <Table.Th>Action</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {rooms.map((room) => (
+                                        <Table.Tr key={room.id}>
+                                            <Table.Td>{room.id}</Table.Td>
+                                            <Table.Td>
+                                                <Text c={room.status === 'waiting' ? 'green' : 'orange'}>
+                                                    {room.status}
+                                                </Text>
+                                            </Table.Td>
+                                            <Table.Td>{room.player_count}/4</Table.Td>
+                                            <Table.Td>
+                                                <Button 
+                                                    onClick={() => onJoinRoom(room.id)}
+                                                    size="sm"
+                                                    variant="light"
+                                                >
+                                                    Join
+                                                </Button>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        )}
+                    </ScrollArea>
+                </Stack>
+            </Card>
+        </Container>
     );
 };
 
