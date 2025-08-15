@@ -509,8 +509,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                 {/* Bottom Player (Current Player) */}
                 <Grid.Col span={12} style={{ height: '25%' }}>
                     <Stack gap="xs" p="sm">
-                        {/* Top row with player info and controls */}
+                        {/* Top row with player info centered and sort controls on right */}
                         <Group justify="space-between" align="center">
+                            <div style={{ width: 120 }}></div> {/* Spacer for balance */}
+                            
                             <Badge 
                                 color={gameState.currentTurn === username ? 'yellow' : 'gray'}
                                 size="lg"
@@ -527,52 +529,27 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                                 </Stack>
                             </Badge>
 
-                            <Group gap="md">
-                                <div>
-                                    <Text size="xs" c="dimmed" mb={4}>Sort</Text>
-                                    <Group gap="xs">
-                                        <Button
-                                            size="xs"
-                                            variant="light"
-                                            onClick={() => handleSortCards('numerical')}
-                                            title="Sort by rank (3 smallest, 2 biggest)"
-                                        >
-                                            Rank
-                                        </Button>
-                                        <Button
-                                            size="xs"
-                                            variant="light"
-                                            onClick={() => handleSortCards('suit')}
-                                            title="Sort by suit (♦♣♥♠)"
-                                        >
-                                            Suit
-                                        </Button>
-                                    </Group>
-                                </div>
-
+                            <div>
+                                <Text size="xs" c="dimmed" mb={4}>Sort</Text>
                                 <Group gap="xs">
                                     <Button
-                                        size="md"
-                                        onClick={handlePlayCards}
-                                        disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || gameState.gameWon}
+                                        size="xs"
+                                        variant="light"
+                                        onClick={() => handleSortCards('numerical')}
+                                        title="Sort by rank (3 smallest, 2 biggest)"
                                     >
-                                        Play
-                                        {gameState.selectedCards.length > 0 && (
-                                            <Text component="span" size="xs" ml={4}>({gameState.selectedCards.length})</Text>
-                                        )}
+                                        Rank
                                     </Button>
                                     <Button
-                                        size="md"
+                                        size="xs"
                                         variant="light"
-                                        color="orange"
-                                        onClick={handlePass}
-                                        disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
-                                        title={gameState.gameWon ? "Game is over" : !isCurrentTurn ? "Not your turn" : gameState.lastPlayedCards.length === 0 ? "Cannot pass on first move" : "Pass your turn"}
+                                        onClick={() => handleSortCards('suit')}
+                                        title="Sort by suit (♦♣♥♠)"
                                     >
-                                        Pass
+                                        Suit
                                     </Button>
                                 </Group>
-                            </Group>
+                            </div>
                         </Group>
 
                         {/* Player's Hand */}
@@ -582,6 +559,33 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             onCardClick={handleCardClick}
                             onCardsReorder={handleCardsReorder}
                         />
+
+                        {/* Game Action Buttons - Centered below hand */}
+                        <Group justify="center" gap="lg" mt="sm">
+                            <Button
+                                size="lg"
+                                color={theme === 'dark' && gameState.selectedCards.length > 0 && isCurrentTurn && !gameState.gameWon ? 'green' : undefined}
+                                onClick={handlePlayCards}
+                                disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || gameState.gameWon}
+                                style={{ minWidth: 120 }}
+                            >
+                                Play
+                                {gameState.selectedCards.length > 0 && (
+                                    <Text component="span" size="sm" ml={4}>({gameState.selectedCards.length})</Text>
+                                )}
+                            </Button>
+                            <Button
+                                size="lg"
+                                variant="light"
+                                color="orange"
+                                onClick={handlePass}
+                                disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
+                                title={gameState.gameWon ? "Game is over" : !isCurrentTurn ? "Not your turn" : gameState.lastPlayedCards.length === 0 ? "Cannot pass on first move" : "Pass your turn"}
+                                style={{ minWidth: 120 }}
+                            >
+                                Pass
+                            </Button>
+                        </Group>
                     </Stack>
                 </Grid.Col>
             </Grid>
