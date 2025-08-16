@@ -182,12 +182,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         );
     }
 
-    // Otherwise show the lobby/room interface
+    // Otherwise show the home/room interface
     return (
         <Container size="lg" py="xl" style={{ minHeight: 'calc(100vh - 60px)' }}>
             <Stack align="center" gap="lg" style={{ maxWidth: 1000, margin: '0 auto' }}>
                 <Title order={2} c="blue">Game Room {roomId}</Title>
-                
+
                 <PlayerList players={players} currentPlayer={username} host={hostName} />
 
                 {isHost && (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AppShell, Box, Center, Text, Alert } from "@mantine/core";
-import Lobby from "./components/Lobby";
+import Home from "./components/Home";
 import RoomContainer from "./components/RoomContainer";
 import Header from "./components/Header";
 import { useSessionContext } from "./contexts/SessionContext";
@@ -62,7 +62,7 @@ const App: React.FC = () => {
             <AppShell.Header>
                 <Header username={username} showBackButton={showBackButton} />
             </AppShell.Header>
-            
+
             <AppShell.Main>
                 <Box
                     style={{
@@ -76,7 +76,7 @@ const App: React.FC = () => {
                         </Alert>
                     )}
                     <Routes>
-                        <Route path="/" element={<Lobby onJoinRoom={handleJoinRoom} username={username} />} />
+                        <Route path="/" element={<Home onJoinRoom={handleJoinRoom} username={username} />} />
                         <Route path="/room/:roomId" element={<RoomContainer username={username} onGameStateChange={handleGameStateChange} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

@@ -42,7 +42,7 @@ const RoomContainer: React.FC<RoomContainerProps> = ({ username, onGameStateChan
         handleJoinRoom();
     }, [roomId, username]);
 
-    // Redirect to lobby if join failed
+    // Redirect to home if join failed
     useEffect(() => {
         if (joinStatus === 'failed') {
             const timer = setTimeout(() => {
@@ -61,8 +61,8 @@ const RoomContainer: React.FC<RoomContainerProps> = ({ username, onGameStateChan
         return (
             <div className="error-container">
                 <h2>Unable to Join Room</h2>
-                <p>Could not join room "{roomId}". Redirecting to lobby...</p>
-                <button onClick={() => navigate("/")}>Return to Lobby</button>
+                <p>Could not join room "{roomId}". Redirecting to home...</p>
+                <button onClick={() => navigate("/")}>Return to Home</button>
             </div>
         );
     }

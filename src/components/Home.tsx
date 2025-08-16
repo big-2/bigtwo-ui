@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { createRoom, getRooms, RoomResponse } from "../services/api";
 import { Container, Card, Group, Title, Button, ActionIcon, Table, Text, Stack, ScrollArea } from "@mantine/core";
 
-interface LobbyProps {
+interface HomeProps {
     onJoinRoom: (roomId: string) => void;
     username: string;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
+const Home: React.FC<HomeProps> = ({ onJoinRoom, username }) => {
     const [rooms, setRooms] = useState<RoomResponse[]>([]);
 
     const fetchRooms = async () => {
@@ -33,9 +33,9 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
                 <Stack gap="lg">
                     <Group justify="space-between" align="center">
                         <Title order={2}>Available Rooms</Title>
-                        <ActionIcon 
-                            onClick={fetchRooms} 
-                            variant="light" 
+                        <ActionIcon
+                            onClick={fetchRooms}
+                            variant="light"
                             size="lg"
                             title="Refresh rooms"
                             style={{ '&:hover': { transform: 'rotate(180deg)', transition: 'transform 0.2s' } }}
@@ -43,16 +43,16 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
                             ↻
                         </ActionIcon>
                     </Group>
-                    
-                    <Button 
+
+                    <Button
                         onClick={handleCreateRoom}
-                        color="green" 
-                        size="md" 
+                        color="green"
+                        size="md"
                         fullWidth
                     >
                         Create Room
                     </Button>
-                    
+
                     <ScrollArea h={400}>
                         {rooms.length === 0 ? (
                             <Text ta="center" c="dimmed" py="xl" fs="italic">
@@ -79,7 +79,7 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
                                             </Table.Td>
                                             <Table.Td>{room.player_count}/4</Table.Td>
                                             <Table.Td>
-                                                <Button 
+                                                <Button
                                                     onClick={() => onJoinRoom(room.id)}
                                                     size="sm"
                                                     variant="light"
@@ -99,4 +99,4 @@ const Lobby: React.FC<LobbyProps> = ({ onJoinRoom, username }) => {
     );
 };
 
-export default Lobby;
+export default Home;

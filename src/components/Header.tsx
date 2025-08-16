@@ -20,14 +20,14 @@ const Header: React.FC<HeaderProps> = ({ username, showBackButton = false }) => 
 
     // Theme-responsive header styling
     const headerStyle = {
-        backgroundColor: theme === 'light' 
-            ? '#ffffff' 
+        backgroundColor: theme === 'light'
+            ? '#ffffff'
             : mantineTheme.colors.dark[7],
-        borderBottom: `1px solid ${theme === 'light' 
-            ? mantineTheme.colors.gray[2] 
+        borderBottom: `1px solid ${theme === 'light'
+            ? mantineTheme.colors.gray[2]
             : mantineTheme.colors.dark[4]}`,
-        boxShadow: theme === 'light' 
-            ? '0 1px 3px rgba(0, 0, 0, 0.1)' 
+        boxShadow: theme === 'light'
+            ? '0 1px 3px rgba(0, 0, 0, 0.1)'
             : '0 1px 3px rgba(0, 0, 0, 0.3)',
         position: 'sticky' as const,
         top: 0,
@@ -36,13 +36,13 @@ const Header: React.FC<HeaderProps> = ({ username, showBackButton = false }) => 
     };
 
     return (
-        <Group 
-            justify="space-between" 
-            p="md" 
+        <Group
+            justify="space-between"
+            p="md"
             style={headerStyle}
         >
-            <Title 
-                order={2} 
+            <Title
+                order={2}
                 c={theme === 'light' ? 'blue.6' : 'blue.4'}
                 style={{ transition: 'color 0.3s ease' }}
             >
@@ -50,17 +50,17 @@ const Header: React.FC<HeaderProps> = ({ username, showBackButton = false }) => 
             </Title>
             <Group gap="md">
                 {showBackButton && (
-                    <Button 
-                        onClick={handleBack} 
-                        variant="light" 
+                    <Button
+                        onClick={handleBack}
+                        variant="light"
                         color="blue"
                     >
-                        Back to Lobby
+                        Back to Home
                     </Button>
                 )}
-                <Badge 
-                    size="lg" 
-                    variant={theme === 'light' ? 'light' : 'filled'} 
+                <Badge
+                    size="lg"
+                    variant={theme === 'light' ? 'light' : 'filled'}
                     color="blue"
                 >
                     <Text size="sm">
