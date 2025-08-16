@@ -19,7 +19,8 @@ export type MessageType =
     | "ERROR"
     | "START_GAME"
     | "GAME_STARTED"
-    | "GAME_WON";
+    | "GAME_WON"
+    | "GAME_RESET";
 
 /**
  * Model for chat messages.
@@ -141,6 +142,17 @@ export interface GameWonMessage {
 }
 export interface GameWonPayload {
     winner: string;
+}
+/**
+ * Model for game reset messages.
+ */
+export interface GameResetMessage {
+    type: "GAME_RESET";
+    payload: GameResetPayload;
+    meta?: WebSocketMessageMeta;
+}
+export interface GameResetPayload {
+    // Empty payload - just signals that game should reset to lobby
 }
 /**
  * Base model for all WebSocket messages.

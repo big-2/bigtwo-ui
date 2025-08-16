@@ -171,6 +171,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     const isHost = username === hostName;
     const canStartGame = players.length === 4;
 
+    const handleReturnToLobby = () => {
+        console.log("Returning to lobby after game");
+        setGameStarted(false);
+        setGameData(null);
+    };
+
     // If game has started, show the GameScreen
     if (gameStarted && gameData) {
         return (
@@ -178,6 +184,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                 username={username}
                 socket={socketRef.current}
                 initialGameData={gameData}
+                onReturnToLobby={handleReturnToLobby}
             />
         );
     }

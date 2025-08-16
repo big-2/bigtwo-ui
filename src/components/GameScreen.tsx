@@ -9,6 +9,7 @@ interface GameScreenProps {
     username: string;
     socket: WebSocket | null;
     initialGameData?: { cards: string[], currentTurn: string, playerList: string[] };
+    onReturnToLobby?: () => void;
 }
 
 interface Player {
@@ -29,9 +30,10 @@ interface GameState {
     lastPlayedBy: string; // Track who played the last cards
     gameWon: boolean; // Track if the game has been won
     winner: string; // Track who won the game
+    countdown: number; // Countdown seconds after game won
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameData }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameData, onReturnToLobby }) => {
     const { theme } = useThemeContext();
     const mantineTheme = useMantineTheme();
     // Helper function to get player position based on player list
@@ -82,6 +84,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             lastPlayedBy: "",
             gameWon: false,
             winner: "",
+            countdown: 0,
         };
     };
 
@@ -102,6 +105,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             lastPlayedBy: "",
             gameWon: false,
             winner: "",
+            countdown: 0,
         };
     });
 
@@ -156,7 +160,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                 ...prev,
                 gameWon: true,
                 winner: winner,
+                countdown: 5, // Start 5-second countdown
             }));
+        },
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        GAME_RESET: (_message) => {
+            console.log("Game reset received, returning to lobby");
+            if (onReturnToLobby) {
+                onReturnToLobby();
+            }
         },
     });
 
@@ -183,6 +196,20 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             });
         }
     }, [socket]);
+
+    // Handle countdown timer
+    useEffect(() => {
+        if (gameState.gameWon && gameState.countdown > 0) {
+            const timer = setTimeout(() => {
+                setGameState(prev => ({
+                    ...prev,
+                    countdown: prev.countdown - 1,
+                }));
+            }, 1000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [gameState.gameWon, gameState.countdown]);
 
     const currentPlayer = gameState.players.find(p => p.name === username);
     const isCurrentTurn = gameState.currentTurn === username && !gameState.gameWon;
@@ -401,6 +428,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                                         🎉 {gameState.winner === username ? "You won!" : `${gameState.winner} won!`} 🎉
                                     </Text>
                                     <Text size="lg" c="dimmed">Game Over</Text>
+                                    {gameState.countdown > 0 && (
+                                        <Text size="md" c="blue" fw={600}>
+                                            Returning to lobby in {gameState.countdown}...
+                                        </Text>
+                                    )}
                                 </Stack>
                             ) : (
                                 <Stack align="center" gap="md">
