@@ -67,7 +67,9 @@ const App: React.FC = () => {
                 <Box
                     style={{
                         minHeight: 'calc(100vh - 60px)',
-                        transition: 'background-color 0.3s ease'
+                        transition: 'background-color 0.3s ease',
+                        display: 'flex',
+                        justifyContent: 'center'
                     }}
                 >
                     {error && (
