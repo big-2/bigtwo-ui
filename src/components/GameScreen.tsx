@@ -273,10 +273,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         }
     };
 
+    const handleDeselectAll = () => {
+        setGameState(prev => ({
+            ...prev,
+            selectedCards: [],
+        }));
+    };
+
     // Theme-responsive background styling
     const containerStyle = {
         height: '100vh',
-        background: theme === 'light' 
+        background: theme === 'light'
             ? 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
             : `
                 linear-gradient(135deg, ${mantineTheme.colors.dark[7]} 0%, ${mantineTheme.colors.dark[6]} 100%),
@@ -285,7 +292,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                 linear-gradient(45deg, transparent 75%, rgba(96, 165, 250, 0.05) 75%), 
                 linear-gradient(-45deg, transparent 75%, rgba(96, 165, 250, 0.05) 75%)
               `,
-        backgroundSize: theme === 'light' 
+        backgroundSize: theme === 'light'
             ? '100% 100%'
             : '100% 100%, 80px 80px, 80px 80px, 80px 80px, 80px 80px',
         backgroundPosition: theme === 'light'
@@ -296,21 +303,21 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
     };
 
     return (
-        <Container 
-            fluid 
+        <Container
+            fluid
             style={containerStyle}
         >
-            <Grid 
+            <Grid
                 style={{ height: '100vh', margin: 0 }}
                 gutter={0}
             >
                 {/* Top Player */}
                 <Grid.Col span={12} style={{ height: '25%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 10 }}>
                     <Group gap="lg" align="center">
-                        <Badge 
+                        <Badge
                             color={gameState.currentTurn === playerPositions.top ? 'yellow' : 'gray'}
                             size="lg"
-                            style={{ 
+                            style={{
                                 animation: gameState.currentTurn === playerPositions.top ? 'pulse 2s infinite' : 'none',
                                 minHeight: '48px',
                                 padding: '12px 16px',
@@ -326,8 +333,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                         </Badge>
                         <Group gap={2}>
                             {Array(Math.min(gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13, 13)).fill(null).map((_, index) => (
-                                <div 
-                                    key={index} 
+                                <div
+                                    key={index}
                                     style={{
                                         width: 45,
                                         height: 60,
@@ -348,11 +355,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                 <Grid.Col span={12} style={{ height: '50%', display: 'flex' }}>
                     {/* Left Player */}
                     <div style={{ width: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-                        <Badge 
+                        <Badge
                             color={gameState.currentTurn === playerPositions.left ? 'yellow' : 'gray'}
                             size="lg"
                             mb="md"
-                            style={{ 
+                            style={{
                                 animation: gameState.currentTurn === playerPositions.left ? 'pulse 2s infinite' : 'none',
                                 minHeight: '48px',
                                 padding: '12px 16px',
@@ -368,8 +375,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                         </Badge>
                         <Stack gap={1}>
                             {Array(Math.min(gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13, 13)).fill(null).map((_, index) => (
-                                <div 
-                                    key={index} 
+                                <div
+                                    key={index}
                                     style={{
                                         width: 60,
                                         height: 20,
@@ -411,7 +418,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                                                 {gameState.lastPlayedCards.map((card, index) => {
                                                     const suit = card.slice(-1);
                                                     const rank = card.slice(0, -1);
-                                                    
+
                                                     const getSuitColor = (suit: string) => {
                                                         switch (suit) {
                                                             case 'H':
@@ -468,11 +475,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
 
                     {/* Right Player */}
                     <div style={{ width: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-                        <Badge 
+                        <Badge
                             color={gameState.currentTurn === playerPositions.right ? 'yellow' : 'gray'}
                             size="lg"
                             mb="md"
-                            style={{ 
+                            style={{
                                 animation: gameState.currentTurn === playerPositions.right ? 'pulse 2s infinite' : 'none',
                                 minHeight: '48px',
                                 padding: '12px 16px',
@@ -488,8 +495,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                         </Badge>
                         <Stack gap={1}>
                             {Array(Math.min(gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13, 13)).fill(null).map((_, index) => (
-                                <div 
-                                    key={index} 
+                                <div
+                                    key={index}
                                     style={{
                                         width: 60,
                                         height: 20,
@@ -512,11 +519,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                         {/* Top row with player info centered and sort controls on right */}
                         <Group justify="space-between" align="center">
                             <div style={{ width: 120 }}></div> {/* Spacer for balance */}
-                            
-                            <Badge 
+
+                            <Badge
                                 color={gameState.currentTurn === username ? 'yellow' : 'gray'}
                                 size="lg"
-                                style={{ 
+                                style={{
                                     animation: gameState.currentTurn === username ? 'pulse 2s infinite' : 'none',
                                     minHeight: '48px',
                                     padding: '12px 16px',
@@ -573,6 +580,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                                 {gameState.selectedCards.length > 0 && (
                                     <Text component="span" size="sm" ml={4}>({gameState.selectedCards.length})</Text>
                                 )}
+                            </Button>
+                            <Button
+                                size="lg"
+                                variant="light"
+                                onClick={handleDeselectAll}
+                                disabled={gameState.selectedCards.length === 0}
+                                title={gameState.selectedCards.length === 0 ? "No cards selected" : "Deselect all selected cards"}
+                                style={{ minWidth: 120 }}
+                            >
+                                Clear selection
                             </Button>
                             <Button
                                 size="lg"
