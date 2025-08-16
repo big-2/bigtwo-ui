@@ -36,7 +36,9 @@ npm install
 - **React Router DOM** for client-side routing
 - **Axios** for REST API communication
 - **Native WebSocket API** for real-time game communication
-- **CSS Modules** and vanilla CSS for styling
+- **Mantine UI** component library with theming
+- **@tabler/icons-react** for icons
+- **@emotion/react** for CSS-in-JS styling
 
 ### Application Structure
 ```
@@ -204,10 +206,11 @@ Dynamic 4-player layout calculation:
 4. Update components to use new API functions
 
 ### Styling Updates
-1. Component-specific styles go in `ComponentName.css`
-2. Global styles and CSS variables in `index.css`
-3. Theme-aware styles use CSS custom properties
-4. Follow existing color scheme and spacing patterns
+1. Use Mantine components and theming system for consistent UI
+2. Custom styles go in component-specific CSS files when needed
+3. Global styles and CSS variables in `index.css`
+4. Theme-aware styles use Mantine's MantineProvider and CSS custom properties
+5. Follow Mantine design system patterns and spacing
 
 ## Testing Strategy
 
