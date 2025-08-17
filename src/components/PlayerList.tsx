@@ -2,12 +2,13 @@ import React, { useEffect } from "react";
 import { Paper, Title, List, Text, Badge, Group } from "@mantine/core";
 
 interface PlayerListProps {
-    players: string[];
-    currentPlayer: string;
-    host?: string;
+    players: string[]; // UUIDs
+    currentPlayer: string; // display name of current user
+    host?: string; // display name of host
+    mapping?: Record<string, string>; // uuid -> name
 }
 
-const PlayerList: React.FC<PlayerListProps> = ({ players, currentPlayer, host }) => {
+const PlayerList: React.FC<PlayerListProps> = ({ players, currentPlayer, host, mapping = {} }) => {
     console.log("Players", players, "Current Player", currentPlayer, "Host", host);
     useEffect(() => {
         // Check if player names match the current player
@@ -21,27 +22,30 @@ const PlayerList: React.FC<PlayerListProps> = ({ players, currentPlayer, host })
                 Players in Game
             </Title>
             <List spacing="xs" size="sm">
-                {players.map((player) => (
-                    <List.Item key={player}>
-                        <Group justify="space-between" wrap="wrap" gap="xs">
-                            <Text 
-                                fw={player === currentPlayer ? 700 : 400}
-                                c={player === currentPlayer ? "green" : undefined}
-                                style={{ flexGrow: 1 }}
-                            >
-                                {player}
-                            </Text>
-                            <Group gap="xs">
-                                {player === currentPlayer && (
-                                    <Badge color="green" size="xs">You</Badge>
-                                )}
-                                {player === host && (
-                                    <Badge color="blue" size="xs">Host</Badge>
-                                )}
+                {players.map((uuid) => {
+                    const displayName = mapping[uuid] || uuid;
+                    return (
+                        <List.Item key={uuid}>
+                            <Group justify="space-between" wrap="wrap" gap="xs">
+                                <Text
+                                    fw={displayName === currentPlayer ? 700 : 400}
+                                    c={displayName === currentPlayer ? "green" : undefined}
+                                    style={{ flexGrow: 1 }}
+                                >
+                                    {displayName}
+                                </Text>
+                                <Group gap="xs">
+                                    {displayName === currentPlayer && (
+                                        <Badge color="green" size="xs">You</Badge>
+                                    )}
+                                    {displayName === host && (
+                                        <Badge color="blue" size="xs">Host</Badge>
+                                    )}
+                                </Group>
                             </Group>
-                        </Group>
-                    </List.Item>
-                ))}
+                        </List.Item>
+                    );
+                })}
             </List>
             <Text ta="center" mt="md" size="sm" c="dimmed">
                 {players.length}/4 Players

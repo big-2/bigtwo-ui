@@ -47,7 +47,7 @@ const RoomContainer: React.FC<RoomContainerProps> = ({ username, onGameStateChan
         if (joinStatus === 'failed') {
             const timer = setTimeout(() => {
                 navigate("/");
-            }, 1500);
+            }, 500);
 
             return () => clearTimeout(timer);
         }

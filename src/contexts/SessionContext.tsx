@@ -8,6 +8,7 @@ interface SessionContextType {
     isLoading: boolean;
     error: string | null;
     username: string;
+    userUuid: string;
     createNewSession: () => Promise<void>;
     logout: () => void;
 }

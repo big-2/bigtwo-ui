@@ -28,10 +28,10 @@ axios.interceptors.response.use(
     }
 );
 
-export const createRoom = async (hostName: string): Promise<RoomResponse | null> => {
+export const createRoom = async (hostUuid: string): Promise<RoomResponse | null> => {
     try {
-        console.log("Creating room with host name:", hostName);
-        const response = await axios.post(`${API_URL}/room`, { host_name: hostName });
+        console.log("Creating room with host uuid:", hostUuid);
+        const response = await axios.post(`${API_URL}/room`, { host_uuid: hostUuid });
         console.log("Room created:", response.data);
         return response.data;
     } catch (error) {

@@ -31,7 +31,7 @@ export interface ChatMessage {
     meta?: WebSocketMessageMeta;
 }
 export interface ChatPayload {
-    sender: string;
+    sender_uuid: string;
     content: string;
 }
 /**
@@ -107,6 +107,7 @@ export interface PlayersListMessage {
 }
 export interface PlayersListPayload {
     players: string[];
+    mapping: { [uuid: string]: string };
 }
 /**
  * Model for turn change messages.

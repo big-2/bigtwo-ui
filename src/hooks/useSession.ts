@@ -12,6 +12,7 @@ interface UseSessionReturn {
     isLoading: boolean;
     error: string | null;
     username: string;
+    userUuid: string;
     createNewSession: () => Promise<void>;
     logout: () => void;
     validateCurrentSession: () => Promise<boolean>;
@@ -26,6 +27,7 @@ export const useSession = (): UseSessionReturn => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [username, setUsername] = useState<string>('');
+    const [userUuid, setUserUuid] = useState<string>('');
 
     const createNewSession = useCallback(async () => {
         try {
@@ -35,6 +37,7 @@ export const useSession = (): UseSessionReturn => {
             const newSession = await createSession();
             setSession(newSession);
             setUsername(newSession.username);
+            setUserUuid(newSession.player_uuid || '');
 
             console.log('New session created:', newSession.username);
         } catch (err) {
@@ -49,6 +52,7 @@ export const useSession = (): UseSessionReturn => {
         clearSession();
         setSession(null);
         setUsername('');
+        setUserUuid('');
         console.log('Session cleared');
     }, []);
 
@@ -64,6 +68,7 @@ export const useSession = (): UseSessionReturn => {
                     // Let axios interceptor handle validation on first actual request
                     setSession(storedSession);
                     setUsername(storedSession.username);
+                    setUserUuid(storedSession.player_uuid || '');
                     console.log('Found existing session for:', storedSession.username, '(will validate on first request)');
                 } else {
                     console.log('Invalid stored session, creating a new one');
@@ -100,6 +105,7 @@ export const useSession = (): UseSessionReturn => {
                 clearSession();
                 setSession(null);
                 setUsername('');
+                setUserUuid('');
                 return false;
             }
         } catch (error) {
@@ -118,6 +124,7 @@ export const useSession = (): UseSessionReturn => {
         isLoading,
         error,
         username,
+        userUuid,
         createNewSession,
         logout,
         validateCurrentSession,

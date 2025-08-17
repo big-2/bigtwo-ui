@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { connectToRoomWebSocket } from "../services/socket";
+import { getStoredSession } from "../services/session";
 import { RoomResponse } from '../services/api';
 import { Container, Stack, Title, Button, Center } from "@mantine/core";
 import ChatBox from "./ChatBox";
@@ -30,10 +31,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     const socketRef = useRef<WebSocket | null>(null);
     const [messages, setMessages] = useState<DisplayMessage[]>([]);
     const [rawMessages, setRawMessages] = useState<UserChatMessage[]>([]);
-    const [players, setPlayers] = useState<string[]>([username]);
+    const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
     const [gameStarted, setGameStarted] = useState(false);
     const [gameData, setGameData] = useState<{ cards: string[], currentTurn: string, playerList: string[] } | null>(null);
+    const [selfUuid, setSelfUuid] = useState<string>("");
 
     // Notify parent when game state changes
     useEffect(() => {
@@ -43,34 +45,40 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     // WebSocket message handlers
     const messageHandlers = useRef<Record<string, MessageHandler>>({
         CHAT: (message) => {
-            const sender = message.payload.sender as string;
-            const content = message.payload.content as string;
+            const senderUuid = (message.payload as any).sender_uuid as string;
+            const content = (message.payload as any).content as string;
 
             setRawMessages((prevMessages) => [
                 ...prevMessages,
                 {
-                    username: sender,
+                    username: uuidToName[senderUuid] || senderUuid,
                     message: content
                 }
             ]);
         },
 
         PLAYERS_LIST: (message) => {
-            const players = message.payload.players as string[];
-            setPlayers(players);
+            const mapping = (message.payload as any).mapping as Record<string, string> | undefined;
+            if (mapping) {
+                setUuidToName(mapping);
+                const foundSelf = Object.keys(mapping).find((uuid) => mapping[uuid] === username);
+                if (foundSelf) setSelfUuid(foundSelf);
+            }
         },
 
         LEAVE: (message) => {
-            const leftPlayerName = message.payload.player as string;
-            console.log(`Player left: ${leftPlayerName}`);
+            const leftPlayerUuid = (message.payload as any).player as string;
+            console.log(`Player left: ${leftPlayerUuid}`);
 
-            setPlayers(currentPlayers =>
-                currentPlayers.filter(player => player !== leftPlayerName)
-            );
+            setUuidToName(currentMapping => {
+                const newMapping = { ...currentMapping };
+                delete newMapping[leftPlayerUuid];
+                return newMapping;
+            });
         },
 
         HOST_CHANGE: (message) => {
-            const newHost = message.payload.host as string;
+            const newHost = (message.payload as any).host as string;
             console.log(`New host: ${newHost}`);
             setHostName(newHost);
 
@@ -89,9 +97,9 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         },
         GAME_STARTED: (message) => {
             console.log("GAME_STARTED message received", message.payload);
-            const cards = message.payload.cards as string[];
-            const currentTurn = message.payload.current_turn as string;
-            const playerList = message.payload.player_list as string[];
+            const cards = (message.payload as any).cards as string[];
+            const currentTurn = (message.payload as any).current_turn as string;
+            const playerList = (message.payload as any).player_list as string[];
             setGameData({ cards, currentTurn, playerList });
             setGameStarted(true);
         },
@@ -100,7 +108,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         MOVE: () => console.log("MOVE message received"),
         MOVE_PLAYED: () => console.log("MOVE_PLAYED message received"),
         TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
-        ERROR: (message) => console.error("Error from server:", message.payload.message),
+        ERROR: (message) => console.error("Error from server:", (message.payload as any).message),
     });
 
     const processMessage = (msg: string) => {
@@ -121,7 +129,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     // Establish WebSocket connection
     useEffect(() => {
         console.log(`Establishing WebSocket connection to room ${roomId}...`);
-        socketRef.current = connectToRoomWebSocket(roomId, username, processMessage);
+        // Prefer uuid-based identity for socket protocol when available
+        const stored = getStoredSession();
+        const identity = stored?.player_uuid || username;
+        socketRef.current = connectToRoomWebSocket(roomId, identity, processMessage);
 
         return () => {
             console.log(`Closing WebSocket connection to room ${roomId}`);
@@ -154,7 +165,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         socketRef.current?.send(JSON.stringify({
             type: "CHAT",
             payload: {
-                sender: username,
+                sender_uuid: selfUuid || username,
                 content: message
             }
         }));
@@ -168,8 +179,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         }));
     };
 
-    const isHost = username === hostName;
-    const canStartGame = players.length === 4;
+    // Check if current user is the host using UUID mapping
+    // Find the UUID that maps to the current username and see if that UUID maps to the host
+    const currentUserUuid = selfUuid || Object.keys(uuidToName).find(uuid => uuidToName[uuid] === username);
+    const hostUuid = Object.keys(uuidToName).find(uuid => uuidToName[uuid] === hostName);
+    const isHost = currentUserUuid && hostUuid && currentUserUuid === hostUuid;
+    const canStartGame = Object.keys(uuidToName).length === 4;
 
     const handleReturnToLobby = () => {
         console.log("Returning to lobby after game");
@@ -177,13 +192,15 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         setGameData(null);
     };
 
-    // If game has started, show the GameScreen
-    if (gameStarted && gameData) {
+    // If game has started, show the GameScreen (only after we know self uuid for consistent identity)
+    if (gameStarted && gameData && (selfUuid || Object.keys(uuidToName).find((uuid) => uuidToName[uuid] === username))) {
         return (
             <GameScreen
                 username={username}
+                uuid={selfUuid || Object.keys(uuidToName).find((uuid) => uuidToName[uuid] === username) || username}
                 socket={socketRef.current}
                 initialGameData={gameData}
+                mapping={uuidToName}
                 onReturnToLobby={handleReturnToLobby}
             />
         );
@@ -195,7 +212,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
             <Stack align="center" gap="lg" style={{ maxWidth: 1000, margin: '0 auto' }}>
                 <Title order={2} c="blue">Game Room {roomId}</Title>
 
-                <PlayerList players={players} currentPlayer={username} host={hostName} />
+                <PlayerList players={Object.keys(uuidToName)} currentPlayer={username} host={hostName} mapping={uuidToName} />
 
                 {isHost && (
                     <Center>

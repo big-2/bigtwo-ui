@@ -11,7 +11,7 @@ import "./index.css"; // Ensure global styles are included
 const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [gameStarted, setGameStarted] = useState(false);
-    const { username, isLoading } = useSessionContext();
+    const { username, userUuid, isLoading } = useSessionContext();
     const { theme } = useThemeContext();
     const navigate = useNavigate();
     const location = useLocation();
@@ -78,7 +78,7 @@ const App: React.FC = () => {
                         </Alert>
                     )}
                     <Routes>
-                        <Route path="/" element={<Home onJoinRoom={handleJoinRoom} username={username} />} />
+                        <Route path="/" element={<Home onJoinRoom={handleJoinRoom} username={username} userUuid={userUuid} />} />
                         <Route path="/room/:roomId" element={<RoomContainer username={username} onGameStateChange={handleGameStateChange} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

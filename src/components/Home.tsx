@@ -5,9 +5,10 @@ import { Container, Card, Group, Title, Button, ActionIcon, Table, Text, Stack, 
 interface HomeProps {
     onJoinRoom: (roomId: string) => void;
     username: string;
+    userUuid: string;
 }
 
-const Home: React.FC<HomeProps> = ({ onJoinRoom, username }) => {
+const Home: React.FC<HomeProps> = ({ onJoinRoom, username, userUuid }) => {
     const [rooms, setRooms] = useState<RoomResponse[]>([]);
 
     const fetchRooms = async () => {
@@ -19,7 +20,7 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, username }) => {
     }, []);
 
     const handleCreateRoom = async () => {
-        const newRoom = await createRoom(username);
+        const newRoom = await createRoom(userUuid);
         if (newRoom) {
             setRooms([...rooms, newRoom]);
             console.log("Rooms:", rooms);

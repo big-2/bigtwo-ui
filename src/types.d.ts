@@ -113,11 +113,11 @@ export interface components {
         /** RoomCreateRequest */
         RoomCreateRequest: {
             /**
-             * Host Name
-             * @description Username of the room host
-             * @example coolPlayer
+             * Host UUID
+             * @description UUID of the room host
+             * @example 550e8400-e29b-41d4-a716-446655440000
              */
-            host_name: string;
+            host_uuid: string;
         };
         /** RoomDeleteResponse */
         RoomDeleteResponse: {

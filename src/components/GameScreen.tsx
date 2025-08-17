@@ -6,9 +6,11 @@ import { Grid, Stack, Group, Text, Button, Card, Badge, Container, useMantineThe
 import { useThemeContext } from "../contexts/ThemeContext";
 
 interface GameScreenProps {
-    username: string;
+    username: string; // display name for current client
+    uuid: string; // uuid for current client
     socket: WebSocket | null;
     initialGameData?: { cards: string[], currentTurn: string, playerList: string[] };
+    mapping: Record<string, string>; // uuid to display name mapping
     onReturnToLobby?: () => void;
 }
 
@@ -31,14 +33,21 @@ interface GameState {
     gameWon: boolean; // Track if the game has been won
     winner: string; // Track who won the game
     countdown: number; // Countdown seconds after game won
+    uuidToName: Record<string, string>; // UUID to username mapping
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameData, onReturnToLobby }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initialGameData, mapping, onReturnToLobby }) => {
     const { theme } = useThemeContext();
     const mantineTheme = useMantineTheme();
+
+    // Helper function to get display name from UUID or return the original value if it's already a username
+    const getDisplayName = (uuidOrName: string, mapping: Record<string, string>) => {
+        return mapping[uuidOrName] || uuidOrName;
+    };
+
     // Helper function to get player position based on player list
-    const getPlayerPositions = (playerList: string[], currentPlayer: string) => {
-        const currentIndex = playerList.indexOf(currentPlayer);
+    const getPlayerPositions = (playerList: string[], currentPlayerUuid: string) => {
+        const currentIndex = playerList.indexOf(currentPlayerUuid);
         if (currentIndex === -1) return { top: "", left: "", right: "" };
 
         // Calculate positions: current player is at bottom, others positioned clockwise
@@ -55,16 +64,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
     };
 
     // Helper function to create game state from game data
-    const createGameState = (cards: string[], currentTurn: string, playerList: string[]) => {
+    const createGameState = (cards: string[], currentTurn: string, playerList: string[], selfUuid: string) => {
         const currentPlayer: Player = {
-            name: username,
+            name: selfUuid,
             cards: cards,
             isCurrentPlayer: true,
-            isCurrentTurn: currentTurn === username,
+            isCurrentTurn: false,
         };
 
-        // Get player positions based on player list
-        const playerPositions = getPlayerPositions(playerList, username);
+        // Get player positions based on the local player's uuid
+        const playerPositions = getPlayerPositions(playerList, selfUuid);
 
         // Create other players with actual names
         const otherPlayers: Player[] = [
@@ -76,7 +85,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         return {
             players: [currentPlayer, ...otherPlayers],
             currentTurn,
-            currentPlayer: username,
+            currentPlayer: selfUuid,
             selectedCards: [],
             gameStarted: true,
             playerList,
@@ -85,39 +94,44 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
             gameWon: false,
             winner: "",
             countdown: 0,
+            uuidToName: {},
         };
     };
 
     const [gameState, setGameState] = useState<GameState>(() => {
         // Initialize with initial game data if provided
         if (initialGameData) {
-            return createGameState(initialGameData.cards, initialGameData.currentTurn, initialGameData.playerList);
+            const gameState = createGameState(initialGameData.cards, initialGameData.currentTurn, initialGameData.playerList, uuid);
+            return { ...gameState, uuidToName: mapping };
         }
 
         return {
             players: [],
             currentTurn: "",
-            currentPlayer: username,
+            currentPlayer: uuid,
             selectedCards: [],
             gameStarted: false,
-            playerList: [username],
+            playerList: [uuid],
             lastPlayedCards: [],
             lastPlayedBy: "",
             gameWon: false,
             winner: "",
             countdown: 0,
+            uuidToName: mapping,
         };
     });
 
     // WebSocket message handlers
     const messageHandlers = useRef<Record<string, (message: WebSocketMessage) => void>>({
+        // PLAYERS_LIST: No longer needed - mapping is passed as prop from GameRoom
+
         GAME_STARTED: (message) => {
             console.log("Game started!", message.payload);
             const currentTurn = message.payload.current_turn as string;
             const cards = message.payload.cards as string[];
             const playerList = message.payload.player_list as string[];
 
-            setGameState(createGameState(cards, currentTurn, playerList));
+            setGameState(createGameState(cards, currentTurn, playerList, uuid));
         },
 
         TURN_CHANGE: (message) => {
@@ -211,11 +225,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
         }
     }, [gameState.gameWon, gameState.countdown]);
 
-    const currentPlayer = gameState.players.find(p => p.name === username);
-    const isCurrentTurn = gameState.currentTurn === username && !gameState.gameWon;
+    const currentPlayer = gameState.players.find(p => p.name === uuid);
+    const isCurrentTurn = gameState.currentTurn === uuid && !gameState.gameWon;
 
     // Get player positions based on player list
-    const playerPositions = getPlayerPositions(gameState.playerList, username);
+    const playerPositions = getPlayerPositions(gameState.playerList, uuid);
 
     const handleCardClick = (card: string) => {
         const newSelectedCards = gameState.selectedCards.includes(card)
@@ -352,7 +366,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             }}
                         >
                             <Stack gap={0} align="center">
-                                <Text size="xs" fw={700}>{playerPositions.top || "Opponent"}</Text>
+                                <Text size="xs" fw={700}>{getDisplayName(playerPositions.top, gameState.uuidToName) || "Opponent"}</Text>
                                 <Text size="xs">
                                     {gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13} cards
                                 </Text>
@@ -394,7 +408,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             }}
                         >
                             <Stack gap={0} align="center">
-                                <Text size="xs" fw={700}>{playerPositions.left || "Opponent"}</Text>
+                                <Text size="xs" fw={700}>{getDisplayName(playerPositions.left, gameState.uuidToName) || "Opponent"}</Text>
                                 <Text size="xs">
                                     {gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13} cards
                                 </Text>
@@ -425,7 +439,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             {gameState.gameWon ? (
                                 <Stack align="center" gap="sm">
                                     <Text size="xl" fw={700} c="green">
-                                        🎉 {gameState.winner === username ? "You won!" : `${gameState.winner} won!`} 🎉
+                                        🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`} 🎉
                                     </Text>
                                     <Text size="lg" c="dimmed">Game Over</Text>
                                     {gameState.countdown > 0 && (
@@ -437,14 +451,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             ) : (
                                 <Stack align="center" gap="md">
                                     <Text size="lg" fw={600}>
-                                        {isCurrentTurn ? "Your turn!" : `${gameState.currentTurn}'s turn`}
+                                        {isCurrentTurn ? "Your turn!" : `${getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn`}
                                     </Text>
 
                                     {/* Last played cards display */}
                                     {gameState.lastPlayedCards.length > 0 && (
                                         <Stack align="center" gap="xs">
                                             <Text size="sm" c="dimmed">
-                                                {gameState.lastPlayedBy === username ? "You played:" : `${gameState.lastPlayedBy} played:`}
+                                                {gameState.lastPlayedBy === uuid ? "You played:" : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played:`}
                                             </Text>
                                             <Group gap="xs">
                                                 {gameState.lastPlayedCards.map((card, index) => {
@@ -519,7 +533,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             }}
                         >
                             <Stack gap={0} align="center">
-                                <Text size="xs" fw={700}>{playerPositions.right || "Opponent"}</Text>
+                                <Text size="xs" fw={700}>{getDisplayName(playerPositions.right, gameState.uuidToName) || "Opponent"}</Text>
                                 <Text size="xs">
                                     {gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13} cards
                                 </Text>
@@ -553,17 +567,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, socket, initialGameDa
                             <div style={{ width: 120 }}></div> {/* Spacer for balance */}
 
                             <Badge
-                                color={gameState.currentTurn === username ? 'yellow' : 'gray'}
+                                color={gameState.currentTurn === uuid ? 'yellow' : 'gray'}
                                 size="lg"
                                 style={{
-                                    animation: gameState.currentTurn === username ? 'pulse 2s infinite' : 'none',
+                                    animation: gameState.currentTurn === uuid ? 'pulse 2s infinite' : 'none',
                                     minHeight: '48px',
                                     padding: '12px 16px',
                                     borderRadius: '12px'
                                 }}
                             >
                                 <Stack gap={0} align="center">
-                                    <Text size="xs" fw={700}>{username}</Text>
+                                    <Text size="xs" fw={700}>{gameState.uuidToName[uuid] || username}</Text>
                                     <Text size="xs">{currentPlayer?.cards.length || 0} cards</Text>
                                 </Stack>
                             </Badge>
