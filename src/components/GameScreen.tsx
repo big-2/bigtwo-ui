@@ -19,6 +19,7 @@ interface Player {
     cards: string[];
     isCurrentPlayer: boolean;
     isCurrentTurn: boolean;
+    hasPassed: boolean;
 }
 
 interface GameState {
@@ -70,6 +71,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             cards: cards,
             isCurrentPlayer: true,
             isCurrentTurn: false,
+            hasPassed: false,
         };
 
         // Get player positions based on the local player's uuid
@@ -77,9 +79,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
         // Create other players with actual names
         const otherPlayers: Player[] = [
-            { name: playerPositions.right, cards: Array(13).fill(""), isCurrentPlayer: false, isCurrentTurn: false },
-            { name: playerPositions.top, cards: Array(13).fill(""), isCurrentPlayer: false, isCurrentTurn: false },
-            { name: playerPositions.left, cards: Array(13).fill(""), isCurrentPlayer: false, isCurrentTurn: false },
+            { name: playerPositions.right, cards: Array(13).fill(""), isCurrentPlayer: false, isCurrentTurn: false, hasPassed: false },
+            { name: playerPositions.top, cards: Array(13).fill(""), isCurrentPlayer: false, isCurrentTurn: false, hasPassed: false },
+            { name: playerPositions.left, cards: Array(13).fill(""), isCurrentPlayer: false, isCurrentTurn: false, hasPassed: false },
         ];
 
         return {
@@ -142,6 +144,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 players: prev.players.map(p => ({
                     ...p,
                     isCurrentTurn: p.name === player,
+                    // Clear hasPassed when it becomes this player's turn
+                    hasPassed: p.name === player ? false : p.hasPassed,
                 })),
             }));
         },
@@ -159,7 +163,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     if (p.name === player) {
                         // Remove the played cards from the player's hand
                         const newCards = p.cards.filter(card => !cards.includes(card));
-                        return { ...p, cards: newCards };
+                        // Set hasPassed to true if no cards were played (pass move)
+                        return { ...p, cards: newCards, hasPassed: cards.length === 0 };
                     }
                     return p;
                 }),
@@ -370,6 +375,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 <Text size="xs">
                                     {gameState.players.find(p => p.name === playerPositions.top)?.cards.length || 13} cards
                                 </Text>
+                                {gameState.players.find(p => p.name === playerPositions.top)?.hasPassed && (
+                                    <Text size="xs" c="dimmed" fw={600}>PASSED</Text>
+                                )}
                             </Stack>
                         </Badge>
                         <Group gap={2}>
@@ -412,6 +420,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 <Text size="xs">
                                     {gameState.players.find(p => p.name === playerPositions.left)?.cards.length || 13} cards
                                 </Text>
+                                {gameState.players.find(p => p.name === playerPositions.left)?.hasPassed && (
+                                    <Text size="xs" c="dimmed" fw={600}>PASSED</Text>
+                                )}
                             </Stack>
                         </Badge>
                         <Stack gap={1}>
@@ -537,6 +548,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 <Text size="xs">
                                     {gameState.players.find(p => p.name === playerPositions.right)?.cards.length || 13} cards
                                 </Text>
+                                {gameState.players.find(p => p.name === playerPositions.right)?.hasPassed && (
+                                    <Text size="xs" c="dimmed" fw={600}>PASSED</Text>
+                                )}
                             </Stack>
                         </Badge>
                         <Stack gap={1}>
