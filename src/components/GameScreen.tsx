@@ -9,7 +9,13 @@ interface GameScreenProps {
     username: string; // display name for current client
     uuid: string; // uuid for current client
     socket: WebSocket | null;
-    initialGameData?: { cards: string[], currentTurn: string, playerList: string[] };
+    initialGameData?: {
+        cards: string[];
+        currentTurn: string;
+        playerList: string[];
+        lastPlayedCards?: string[];
+        lastPlayedBy?: string;
+    };
     mapping: Record<string, string>; // uuid to display name mapping
     onReturnToLobby?: () => void;
 }
@@ -65,7 +71,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     };
 
     // Helper function to create game state from game data
-    const createGameState = (cards: string[], currentTurn: string, playerList: string[], selfUuid: string) => {
+    const createGameState = (
+        cards: string[],
+        currentTurn: string,
+        playerList: string[],
+        selfUuid: string,
+        lastPlayedCards: string[] = [],
+        lastPlayedBy = "",
+    ) => {
         const currentPlayer: Player = {
             name: selfUuid,
             cards: cards,
@@ -91,8 +104,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             selectedCards: [],
             gameStarted: true,
             playerList,
-            lastPlayedCards: [],
-            lastPlayedBy: "",
+            lastPlayedCards,
+            lastPlayedBy,
             gameWon: false,
             winner: "",
             countdown: 0,
@@ -103,7 +116,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     const [gameState, setGameState] = useState<GameState>(() => {
         // Initialize with initial game data if provided
         if (initialGameData) {
-            const gameState = createGameState(initialGameData.cards, initialGameData.currentTurn, initialGameData.playerList, uuid);
+            const gameState = createGameState(
+                initialGameData.cards,
+                initialGameData.currentTurn,
+                initialGameData.playerList,
+                uuid,
+                initialGameData.lastPlayedCards || [],
+                initialGameData.lastPlayedBy || "",
+            );
             return { ...gameState, uuidToName: mapping };
         }
 
@@ -133,7 +153,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             const cards = message.payload.cards as string[];
             const playerList = message.payload.player_list as string[];
 
-            setGameState(createGameState(cards, currentTurn, playerList, uuid));
+            const lastCards = (message.payload as any).last_played_cards as string[] | undefined;
+            const lastPlayer = (message.payload as any).last_played_by as string | undefined;
+
+            setGameState(createGameState(
+                cards,
+                currentTurn,
+                playerList,
+                uuid,
+                Array.isArray(lastCards) ? lastCards : [],
+                lastPlayer || "",
+            ));
         },
 
         TURN_CHANGE: (message) => {

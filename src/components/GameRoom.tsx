@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { connectToRoomWebSocket } from "../services/socket";
 import { getStoredSession } from "../services/session";
 import { RoomResponse } from '../services/api';
@@ -9,8 +9,8 @@ import GameScreen from "./GameScreen";
 import { WebSocketMessage } from "../types.websocket";
 
 interface UserChatMessage {
-    username: string;
-    message: string;
+    senderUuid: string;
+    content: string;
 }
 
 interface DisplayMessage {
@@ -29,13 +29,25 @@ type MessageHandler = (message: WebSocketMessage) => void;
 
 const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGameStateChange }) => {
     const socketRef = useRef<WebSocket | null>(null);
-    const [messages, setMessages] = useState<DisplayMessage[]>([]);
-    const [rawMessages, setRawMessages] = useState<UserChatMessage[]>([]);
+    const [chatMessages, setChatMessages] = useState<UserChatMessage[]>([]);
     const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
     const [gameStarted, setGameStarted] = useState(false);
-    const [gameData, setGameData] = useState<{ cards: string[], currentTurn: string, playerList: string[] } | null>(null);
+    const [gameData, setGameData] = useState<{
+        cards: string[],
+        currentTurn: string,
+        playerList: string[],
+        lastPlayedCards?: string[],
+        lastPlayedBy?: string,
+    } | null>(null);
     const [selfUuid, setSelfUuid] = useState<string>("");
+
+    useEffect(() => {
+        const stored = getStoredSession();
+        if (stored?.player_uuid) {
+            setSelfUuid(stored.player_uuid);
+        }
+    }, []);
 
     // Notify parent when game state changes
     useEffect(() => {
@@ -48,13 +60,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
             const senderUuid = (message.payload as any).sender_uuid as string;
             const content = (message.payload as any).content as string;
 
-            setRawMessages((prevMessages) => [
+            setChatMessages(prevMessages => ([
                 ...prevMessages,
                 {
-                    username: uuidToName[senderUuid] || senderUuid,
-                    message: content
+                    senderUuid,
+                    content
                 }
-            ]);
+            ]));
         },
 
         PLAYERS_LIST: (message) => {
@@ -80,33 +92,55 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         HOST_CHANGE: (message) => {
             const newHost = (message.payload as any).host as string;
             console.log(`New host: ${newHost}`);
-            setHostName(newHost);
+            const hostDisplayName = uuidToName[newHost] || (newHost === selfUuid ? username : newHost);
+            setHostName(hostDisplayName);
 
             // Add system message to chat
-            const systemMessage = newHost === username
+            const targetName = newHost === selfUuid ? username : hostDisplayName;
+            const systemMessage = newHost === selfUuid
                 ? "You are now the host of this room."
-                : `${newHost} is now the host of this room.`;
+                : `${targetName} is now the host of this room.`;
 
-            setRawMessages(prevMessages => [
+            setChatMessages(prevMessages => ([
                 ...prevMessages,
                 {
-                    username: "SYSTEM",
-                    message: systemMessage
+                    senderUuid: "SYSTEM",
+                    content: systemMessage
                 }
-            ]);
+            ]));
         },
         GAME_STARTED: (message) => {
             console.log("GAME_STARTED message received", message.payload);
             const cards = (message.payload as any).cards as string[];
             const currentTurn = (message.payload as any).current_turn as string;
             const playerList = (message.payload as any).player_list as string[];
-            setGameData({ cards, currentTurn, playerList });
+            const lastPlayedCards = (message.payload as any).last_played_cards as string[] | undefined;
+            const lastPlayedBy = (message.payload as any).last_played_by as string | undefined;
+
+            setGameData({
+                cards,
+                currentTurn,
+                playerList,
+                lastPlayedCards,
+                lastPlayedBy,
+            });
             setGameStarted(true);
         },
 
         // Game message handlers
         MOVE: () => console.log("MOVE message received"),
-        MOVE_PLAYED: () => console.log("MOVE_PLAYED message received"),
+        MOVE_PLAYED: (message) => {
+            const playerUuid = (message.payload as any).player as string;
+            const cards = (message.payload as any).cards as string[];
+
+            if (Array.isArray(cards) && cards.length > 0) {
+                setGameData(prev => prev ? {
+                    ...prev,
+                    lastPlayedCards: cards,
+                    lastPlayedBy: playerUuid,
+                } : prev);
+            }
+        },
         TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
         ERROR: (message) => console.error("Error from server:", (message.payload as any).message),
     });
@@ -140,26 +174,44 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         };
     }, [username, roomId]);
 
-    // Process chat messages
-    useEffect(() => {
-        if (username && rawMessages.length > 0) {
-            setMessages(prevMessages => [
-                ...prevMessages,
-                ...rawMessages.map(msg => ({
-                    text: `${msg.username}: ${msg.message}`,
-                    isCurrentUser: msg.username === username
-                }))
-            ]);
-            setRawMessages([]);
-        }
-    }, [rawMessages, username]);
-
     // Update host name from room details
     useEffect(() => {
         if (roomDetails?.host_name) {
             setHostName(roomDetails.host_name);
         }
     }, [roomDetails]);
+
+    const getDisplayName = useCallback((identifier: string) => {
+        if (identifier === "SYSTEM") {
+            return "SYSTEM";
+        }
+
+        if (uuidToName[identifier]) {
+            return uuidToName[identifier];
+        }
+
+        if (identifier === selfUuid && username) {
+            return username;
+        }
+
+        if (identifier === username) {
+            return username;
+        }
+
+        return identifier;
+    }, [uuidToName, selfUuid, username]);
+
+    const displayMessages = useMemo<DisplayMessage[]>(() => (
+        chatMessages.map(msg => {
+            const senderName = getDisplayName(msg.senderUuid);
+            const isCurrentUser = msg.senderUuid === selfUuid || msg.senderUuid === username || senderName === username;
+
+            return {
+                text: `${senderName}: ${msg.content}`,
+                isCurrentUser
+            };
+        })
+    ), [chatMessages, getDisplayName, selfUuid, username]);
 
     const sendChatMessage = (message: string) => {
         socketRef.current?.send(JSON.stringify({
@@ -232,7 +284,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                     </Center>
                 )}
 
-                <ChatBox messages={messages} onSendMessage={sendChatMessage} />
+                <ChatBox messages={displayMessages} onSendMessage={sendChatMessage} />
             </Stack>
         </Container>
     );

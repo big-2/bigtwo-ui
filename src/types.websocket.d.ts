@@ -132,6 +132,8 @@ export interface GameStartedPayload {
     current_turn: string;
     cards: string[];
     player_list: string[];
+    last_played_cards?: string[];
+    last_played_by?: string;
 }
 /**
  * Model for game won messages.
