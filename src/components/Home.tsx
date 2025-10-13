@@ -8,7 +8,7 @@ interface HomeProps {
     userUuid: string;
 }
 
-const Home: React.FC<HomeProps> = ({ onJoinRoom, username, userUuid }) => {
+const Home: React.FC<HomeProps> = ({ onJoinRoom, username: _username, userUuid }) => {
     const [rooms, setRooms] = useState<RoomResponse[]>([]);
 
     const fetchRooms = async () => {
