@@ -9,8 +9,11 @@ export const connectToRoomWebSocket = (roomId: string, playerName: string, onMes
 
     console.log(`Connecting to WebSocket: room=${roomId}, player=${playerName}`);
 
-    // Connect to the dedicated WebSocket endpoint with JWT in subprotocol
-    const wsUrl = `ws://127.0.0.1:3000/ws/${roomId}`;
+    // Use environment variable for WebSocket URL, fallback to localhost for development
+    const WS_BASE_URL = import.meta.env.VITE_WS_URL || "ws://127.0.0.1:3000";
+    const wsUrl = `${WS_BASE_URL}/ws/${roomId}`;
+
+    console.log(`WebSocket URL: ${wsUrl}`);
 
     const socket = new WebSocket(wsUrl, sessionId);
 
