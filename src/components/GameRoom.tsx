@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { connectToRoomWebSocket } from "../services/socket";
 import { getStoredSession } from "../services/session";
-import { RoomResponse } from '../services/api';
-import { Container, Stack, Title, Button, Center } from "@mantine/core";
+import { RoomResponse, addBotToRoom, removeBotFromRoom } from '../services/api';
+import { Container, Stack, Title, Button, Center, Group, Select, Badge, Text, Paper, ActionIcon } from "@mantine/core";
+import { IconRobot, IconTrash } from "@tabler/icons-react";
 import ChatBox from "./ChatBox";
 import PlayerList from "./PlayerList";
 import GameScreen from "./GameScreen";
@@ -41,6 +42,9 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         lastPlayedBy?: string,
     } | null>(null);
     const [selfUuid, setSelfUuid] = useState<string>("");
+    const [botUuids, setBotUuids] = useState<Set<string>>(new Set());
+    const [botDifficulty, setBotDifficulty] = useState<"easy" | "medium" | "hard">("easy");
+    const [addingBot, setAddingBot] = useState(false);
 
     useEffect(() => {
         const stored = getStoredSession();
@@ -71,10 +75,17 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
 
         PLAYERS_LIST: (message) => {
             const mapping = (message.payload as any).mapping as Record<string, string> | undefined;
+            const botUuidsFromServer = (message.payload as any).bot_uuids as string[] | undefined;
+
             if (mapping) {
                 setUuidToName(mapping);
                 const foundSelf = Object.keys(mapping).find((uuid) => mapping[uuid] === username);
                 if (foundSelf) setSelfUuid(foundSelf);
+
+                // Use bot UUIDs from server if available
+                if (botUuidsFromServer && Array.isArray(botUuidsFromServer)) {
+                    setBotUuids(new Set(botUuidsFromServer));
+                }
             }
         },
 
@@ -86,6 +97,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                 const newMapping = { ...currentMapping };
                 delete newMapping[leftPlayerUuid];
                 return newMapping;
+            });
+
+            // Clean up bot UUID if the leaving player is a bot
+            setBotUuids(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(leftPlayerUuid);
+                return newSet;
             });
         },
 
@@ -143,6 +161,45 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         },
         TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
         ERROR: (message) => console.error("Error from server:", (message.payload as any).message),
+
+        // Bot message handlers
+        BOT_ADDED: (message) => {
+            const botUuid = (message.payload as any).bot_uuid as string;
+            const botName = (message.payload as any).bot_name as string;
+            console.log(`Bot added: ${botName} (${botUuid})`);
+
+            setBotUuids(prev => new Set([...prev, botUuid]));
+
+            // Add system message to chat
+            setChatMessages(prevMessages => ([
+                ...prevMessages,
+                {
+                    senderUuid: "SYSTEM",
+                    content: `${botName} joined the room`
+                }
+            ]));
+        },
+
+        BOT_REMOVED: (message) => {
+            const botUuid = (message.payload as any).bot_uuid as string;
+            console.log(`Bot removed: ${botUuid}`);
+
+            setBotUuids(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(botUuid);
+                return newSet;
+            });
+
+            // Add system message to chat
+            const botName = uuidToName[botUuid] || "Bot";
+            setChatMessages(prevMessages => ([
+                ...prevMessages,
+                {
+                    senderUuid: "SYSTEM",
+                    content: `${botName} left the room`
+                }
+            ]));
+        },
     });
 
     const processMessage = (msg: string) => {
@@ -231,6 +288,55 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         }));
     };
 
+    const handleAddBot = useCallback(async () => {
+        // Use functional update to prevent race condition
+        let shouldProceed = false;
+        setAddingBot(prev => {
+            if (prev) return prev; // Already adding, don't proceed
+            shouldProceed = true;
+            return true;
+        });
+
+        if (!shouldProceed) return;
+
+        try {
+            const result = await addBotToRoom(roomId, botDifficulty);
+            if (result) {
+                console.log("Bot added successfully:", result);
+            } else {
+                console.error("Failed to add bot");
+                // Show error notification to user
+                setChatMessages(prevMessages => ([
+                    ...prevMessages,
+                    {
+                        senderUuid: "SYSTEM",
+                        content: "Failed to add bot. Room may be full or you may not be the host."
+                    }
+                ]));
+            }
+        } finally {
+            setAddingBot(false);
+        }
+    }, [roomId, botDifficulty]);
+
+    const handleRemoveBot = useCallback(async (botUuid: string) => {
+        try {
+            const success = await removeBotFromRoom(roomId, botUuid);
+            if (!success) {
+                console.error("Failed to remove bot");
+                setChatMessages(prevMessages => ([
+                    ...prevMessages,
+                    {
+                        senderUuid: "SYSTEM",
+                        content: "Failed to remove bot. You may not be the host."
+                    }
+                ]));
+            }
+        } catch (error) {
+            console.error("Error removing bot:", error);
+        }
+    }, [roomId]);
+
     // Check if current user is the host using UUID mapping
     // Find the UUID that maps to the current username and see if that UUID maps to the host
     const currentUserUuid = selfUuid || Object.keys(uuidToName).find(uuid => uuidToName[uuid] === username);
@@ -253,6 +359,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                 socket={socketRef.current}
                 initialGameData={gameData}
                 mapping={uuidToName}
+                botUuids={botUuids}
                 onReturnToLobby={handleReturnToLobby}
             />
         );
@@ -264,7 +371,66 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
             <Stack align="center" gap="lg" style={{ maxWidth: 1000, margin: '0 auto' }}>
                 <Title order={2} c="blue">Game Room {roomId}</Title>
 
-                <PlayerList players={Object.keys(uuidToName)} currentPlayer={username} host={hostName} mapping={uuidToName} />
+                <PlayerList players={Object.keys(uuidToName)} currentPlayer={username} host={hostName} mapping={uuidToName} botUuids={botUuids} />
+
+                {isHost && !gameStarted && (
+                    <Paper p="md" withBorder style={{ width: '100%', maxWidth: 600 }}>
+                        <Stack gap="md">
+                            <Group justify="space-between">
+                                <Text fw={600} size="sm">Bot Controls</Text>
+                                <Badge color="blue" variant="light" leftSection={<IconRobot size={14} />}>
+                                    {botUuids.size} Bot{botUuids.size !== 1 ? 's' : ''}
+                                </Badge>
+                            </Group>
+
+                            <Group gap="xs">
+                                <Select
+                                    value={botDifficulty}
+                                    onChange={(value) => setBotDifficulty(value as "easy" | "medium" | "hard")}
+                                    data={[
+                                        { value: 'easy', label: 'Easy' },
+                                        { value: 'medium', label: 'Medium' },
+                                        { value: 'hard', label: 'Hard' },
+                                    ]}
+                                    style={{ flex: 1 }}
+                                    disabled={addingBot}
+                                />
+                                <Button
+                                    onClick={handleAddBot}
+                                    loading={addingBot}
+                                    disabled={Object.keys(uuidToName).length >= 4}
+                                    leftSection={<IconRobot size={18} />}
+                                >
+                                    Add Bot
+                                </Button>
+                            </Group>
+
+                            {botUuids.size > 0 && (
+                                <Stack gap="xs">
+                                    <Text size="xs" c="dimmed">Current Bots:</Text>
+                                    {Array.from(botUuids).map(botUuid => (
+                                        <Paper key={botUuid} p="xs" withBorder>
+                                            <Group justify="space-between">
+                                                <Group gap="xs">
+                                                    <IconRobot size={16} />
+                                                    <Text size="sm">{uuidToName[botUuid] || botUuid}</Text>
+                                                </Group>
+                                                <ActionIcon
+                                                    color="red"
+                                                    variant="subtle"
+                                                    onClick={() => handleRemoveBot(botUuid)}
+                                                    size="sm"
+                                                >
+                                                    <IconTrash size={16} />
+                                                </ActionIcon>
+                                            </Group>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            )}
+                        </Stack>
+                    </Paper>
+                )}
 
                 {isHost && (
                     <Center>

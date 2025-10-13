@@ -205,6 +205,9 @@ Dynamic 4-player layout calculation:
 3. Handle errors appropriately with user feedback
 4. Update components to use new API functions
 
+### Adding Bot Support
+The backend supports AI bots via `POST /room/{room_id}/bot/add` endpoint. Bots appear as regular players in the game and play automatically.
+
 ### Styling Updates
 1. Use Mantine components and theming system for consistent UI
 2. Custom styles go in component-specific CSS files when needed
