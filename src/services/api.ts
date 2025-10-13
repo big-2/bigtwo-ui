@@ -81,3 +81,52 @@ export const getRoomDetails = async (roomId: string): Promise<RoomResponse | nul
         return null;
     }
 }
+
+// Bot API Types
+export interface AddBotRequest {
+    difficulty?: "easy" | "medium" | "hard";
+}
+
+export interface BotResponse {
+    uuid: string;
+    name: string;
+    difficulty: "easy" | "medium" | "hard";
+}
+
+// Bot management API
+export const addBotToRoom = async (
+    roomId: string,
+    difficulty: "easy" | "medium" | "hard" = "easy"
+): Promise<BotResponse | null> => {
+    try {
+        console.log(`Adding ${difficulty} bot to room:`, roomId);
+        const response = await axios.post(`${API_URL}/room/${roomId}/bot`, { difficulty });
+        console.log("Bot added:", response.data);
+        return response.data;
+    } catch (error) {
+        console.error("Error adding bot:", error);
+        if (axios.isAxiosError(error) && error.response) {
+            console.error("Response status:", error.response.status);
+            console.error("Response data:", error.response.data);
+            // Throw error with status for better error messages
+            throw new Error(`${error.response.status}: ${JSON.stringify(error.response.data)}`);
+        }
+        return null;
+    }
+};
+
+export const removeBotFromRoom = async (roomId: string, botUuid: string): Promise<boolean> => {
+    try {
+        console.log("Removing bot from room:", roomId, botUuid);
+        await axios.delete(`${API_URL}/room/${roomId}/bot/${botUuid}`);
+        console.log("Bot removed successfully");
+        return true;
+    } catch (error) {
+        console.error("Error removing bot:", error);
+        if (axios.isAxiosError(error) && error.response) {
+            console.error("Response status:", error.response.status);
+            console.error("Response data:", error.response.data);
+        }
+        return false;
+    }
+};

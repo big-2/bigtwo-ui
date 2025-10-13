@@ -20,7 +20,9 @@ export type MessageType =
     | "START_GAME"
     | "GAME_STARTED"
     | "GAME_WON"
-    | "GAME_RESET";
+    | "GAME_RESET"
+    | "BOT_ADDED"
+    | "BOT_REMOVED";
 
 /**
  * Model for chat messages.
@@ -156,6 +158,29 @@ export interface GameResetMessage {
 }
 export interface GameResetPayload {
     // Empty payload - just signals that game should reset to lobby
+}
+/**
+ * Model for bot added messages.
+ */
+export interface BotAddedMessage {
+    type: "BOT_ADDED";
+    payload: BotAddedPayload;
+    meta?: WebSocketMessageMeta;
+}
+export interface BotAddedPayload {
+    bot_uuid: string;
+    bot_name: string;
+}
+/**
+ * Model for bot removed messages.
+ */
+export interface BotRemovedMessage {
+    type: "BOT_REMOVED";
+    payload: BotRemovedPayload;
+    meta?: WebSocketMessageMeta;
+}
+export interface BotRemovedPayload {
+    bot_uuid: string;
 }
 /**
  * Base model for all WebSocket messages.
