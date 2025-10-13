@@ -110,7 +110,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             .map(playerUuid => ({
                 name: playerUuid,
                 cards: [],
-                cardCount: 13,
+                cardCount: 13, // Default value, will be overridden by GAME_STARTED payload if available
                 isCurrentPlayer: false,
                 isCurrentTurn: false,
                 hasPassed: false,
@@ -179,6 +179,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             const currentTurn = message.payload.current_turn as string;
             const cards = message.payload.cards as string[];
             const playerList = message.payload.player_list as string[];
+            const cardCounts = (message.payload as any).card_counts as Record<string, number> | undefined;
 
             const lastCards = (message.payload as any).last_played_cards as string[] | undefined;
             const lastPlayer = (message.payload as any).last_played_by as string | undefined;
@@ -193,6 +194,15 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     Array.isArray(lastCards) ? lastCards : [],
                     lastPlayer || "",
                 );
+
+                // Override card counts with server-provided values if available
+                if (cardCounts) {
+                    nextState.players = nextState.players.map(player => ({
+                        ...player,
+                        cardCount: cardCounts[player.name] ?? player.cardCount,
+                    }));
+                }
+
                 return {
                     ...nextState,
                     uuidToName: prev.uuidToName,

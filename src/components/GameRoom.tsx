@@ -75,23 +75,16 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
 
         PLAYERS_LIST: (message) => {
             const mapping = (message.payload as any).mapping as Record<string, string> | undefined;
+            const botUuidsFromServer = (message.payload as any).bot_uuids as string[] | undefined;
+
             if (mapping) {
                 setUuidToName(mapping);
                 const foundSelf = Object.keys(mapping).find((uuid) => mapping[uuid] === username);
                 if (foundSelf) setSelfUuid(foundSelf);
 
-                // Infer bot UUIDs from player names (bots have "Bot" in their names)
-                // This helps restore bot badges on page refresh
-                const inferredBotUuids = Object.entries(mapping)
-                    .filter(([, name]) => name.includes('Bot'))
-                    .map(([uuid]) => uuid);
-
-                if (inferredBotUuids.length > 0) {
-                    setBotUuids(prev => {
-                        const newSet = new Set(prev);
-                        inferredBotUuids.forEach(uuid => newSet.add(uuid));
-                        return newSet;
-                    });
+                // Use bot UUIDs from server if available
+                if (botUuidsFromServer && Array.isArray(botUuidsFromServer)) {
+                    setBotUuids(new Set(botUuidsFromServer));
                 }
             }
         },

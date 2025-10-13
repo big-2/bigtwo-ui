@@ -98,6 +98,7 @@ export interface MovePlayedMessage {
 export interface MovePlayedPayload {
     player: string;
     cards: string[];
+    remaining_cards: number;
 }
 /**
  * Model for players list messages.
@@ -110,6 +111,7 @@ export interface PlayersListMessage {
 export interface PlayersListPayload {
     players: string[];
     mapping: { [uuid: string]: string };
+    bot_uuids: string[];
 }
 /**
  * Model for turn change messages.
@@ -134,6 +136,7 @@ export interface GameStartedPayload {
     current_turn: string;
     cards: string[];
     player_list: string[];
+    card_counts: { [uuid: string]: number };
     last_played_cards?: string[];
     last_played_by?: string;
 }
