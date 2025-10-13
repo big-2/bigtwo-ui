@@ -108,8 +108,6 @@ export const addBotToRoom = async (
         if (axios.isAxiosError(error) && error.response) {
             console.error("Response status:", error.response.status);
             console.error("Response data:", error.response.data);
-            // Throw error with status for better error messages
-            throw new Error(`${error.response.status}: ${JSON.stringify(error.response.data)}`);
         }
         return null;
     }

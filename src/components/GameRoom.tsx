@@ -79,6 +79,20 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                 setUuidToName(mapping);
                 const foundSelf = Object.keys(mapping).find((uuid) => mapping[uuid] === username);
                 if (foundSelf) setSelfUuid(foundSelf);
+
+                // Infer bot UUIDs from player names (bots have "Bot" in their names)
+                // This helps restore bot badges on page refresh
+                const inferredBotUuids = Object.entries(mapping)
+                    .filter(([, name]) => name.includes('Bot'))
+                    .map(([uuid]) => uuid);
+
+                if (inferredBotUuids.length > 0) {
+                    setBotUuids(prev => {
+                        const newSet = new Set(prev);
+                        inferredBotUuids.forEach(uuid => newSet.add(uuid));
+                        return newSet;
+                    });
+                }
             }
         },
 
@@ -90,6 +104,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                 const newMapping = { ...currentMapping };
                 delete newMapping[leftPlayerUuid];
                 return newMapping;
+            });
+
+            // Clean up bot UUID if the leaving player is a bot
+            setBotUuids(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(leftPlayerUuid);
+                return newSet;
             });
         },
 
@@ -274,42 +295,28 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         }));
     };
 
-    const handleAddBot = async () => {
+    const handleAddBot = useCallback(async () => {
         if (addingBot) return;
 
         setAddingBot(true);
-        try {
-            const result = await addBotToRoom(roomId, botDifficulty);
-            if (result) {
-                console.log("Bot added successfully:", result);
-            } else {
-                console.error("Failed to add bot");
-                // Show error notification to user
-                setChatMessages(prevMessages => ([
-                    ...prevMessages,
-                    {
-                        senderUuid: "SYSTEM",
-                        content: "Failed to add bot. Room may be full or you may not be the host."
-                    }
-                ]));
-            }
-        } catch (error) {
-            console.error("Error adding bot:", error);
-            // Show specific error message
-            const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+        const result = await addBotToRoom(roomId, botDifficulty);
+        if (result) {
+            console.log("Bot added successfully:", result);
+        } else {
+            console.error("Failed to add bot");
+            // Show error notification to user
             setChatMessages(prevMessages => ([
                 ...prevMessages,
                 {
                     senderUuid: "SYSTEM",
-                    content: `Failed to add bot: ${errorMsg}`
+                    content: "Failed to add bot. Room may be full or you may not be the host."
                 }
             ]));
-        } finally {
-            setAddingBot(false);
         }
-    };
+        setAddingBot(false);
+    }, [addingBot, roomId, botDifficulty]);
 
-    const handleRemoveBot = async (botUuid: string) => {
+    const handleRemoveBot = useCallback(async (botUuid: string) => {
         try {
             const success = await removeBotFromRoom(roomId, botUuid);
             if (!success) {
@@ -325,7 +332,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         } catch (error) {
             console.error("Error removing bot:", error);
         }
-    };
+    }, [roomId]);
 
     // Check if current user is the host using UUID mapping
     // Find the UUID that maps to the current username and see if that UUID maps to the host
@@ -399,20 +406,22 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                                 <Stack gap="xs">
                                     <Text size="xs" c="dimmed">Current Bots:</Text>
                                     {Array.from(botUuids).map(botUuid => (
-                                        <Group key={botUuid} justify="space-between" p="xs" style={{ backgroundColor: 'var(--mantine-color-gray-0)', borderRadius: 4 }}>
-                                            <Group gap="xs">
-                                                <IconRobot size={16} />
-                                                <Text size="sm">{uuidToName[botUuid] || botUuid}</Text>
+                                        <Paper key={botUuid} p="xs" withBorder>
+                                            <Group justify="space-between">
+                                                <Group gap="xs">
+                                                    <IconRobot size={16} />
+                                                    <Text size="sm">{uuidToName[botUuid] || botUuid}</Text>
+                                                </Group>
+                                                <ActionIcon
+                                                    color="red"
+                                                    variant="subtle"
+                                                    onClick={() => handleRemoveBot(botUuid)}
+                                                    size="sm"
+                                                >
+                                                    <IconTrash size={16} />
+                                                </ActionIcon>
                                             </Group>
-                                            <ActionIcon
-                                                color="red"
-                                                variant="subtle"
-                                                onClick={() => handleRemoveBot(botUuid)}
-                                                size="sm"
-                                            >
-                                                <IconTrash size={16} />
-                                            </ActionIcon>
-                                        </Group>
+                                        </Paper>
                                     ))}
                                 </Stack>
                             )}

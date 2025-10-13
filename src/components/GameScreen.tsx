@@ -230,6 +230,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         return { ...p, hasPassed: true };
                     }
 
+                    // For current player, use the actual cards array as source of truth
                     if (player === uuid) {
                         const remainingCards = p.cards.filter(card => !cards.includes(card));
                         return {
@@ -240,6 +241,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         };
                     }
 
+                    // For opponents, decrement count optimistically
+                    // Note: This assumes server and client stay in sync. If desyncs occur,
+                    // consider adding periodic state validation from the backend.
                     const updatedCount = Math.max(0, p.cardCount - cards.length);
                     return {
                         ...p,
