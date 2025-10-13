@@ -183,6 +183,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             const lastCards = (message.payload as any).last_played_cards as string[] | undefined;
             const lastPlayer = (message.payload as any).last_played_by as string | undefined;
 
+            // Reset game state to ensure opponent card counts are correctly initialized
             setGameState(prev => {
                 const nextState = createGameState(
                     cards,
@@ -216,6 +217,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         MOVE_PLAYED: (message) => {
             const player = message.payload.player as string;
             const cards = message.payload.cards as string[];
+            // Use server-provided card count if available (recommended backend change)
+            const serverCardCount = (message.payload as any).remaining_cards as number | undefined;
 
             setGameState(prev => ({
                 ...prev,
@@ -241,10 +244,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         };
                     }
 
-                    // For opponents, decrement count optimistically
-                    // Note: This assumes server and client stay in sync. If desyncs occur,
-                    // consider adding periodic state validation from the backend.
-                    const updatedCount = Math.max(0, p.cardCount - cards.length);
+                    // For opponents, prefer server-provided count if available, otherwise calculate
+                    // Use server count if provided, otherwise fall back to calculation
+                    const updatedCount = serverCardCount !== undefined
+                        ? serverCardCount
+                        : Math.max(0, p.cardCount - cards.length);
+
                     return {
                         ...p,
                         cardCount: updatedCount,

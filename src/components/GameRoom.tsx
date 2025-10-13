@@ -296,25 +296,35 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     };
 
     const handleAddBot = useCallback(async () => {
-        if (addingBot) return;
+        // Use functional update to prevent race condition
+        let shouldProceed = false;
+        setAddingBot(prev => {
+            if (prev) return prev; // Already adding, don't proceed
+            shouldProceed = true;
+            return true;
+        });
 
-        setAddingBot(true);
-        const result = await addBotToRoom(roomId, botDifficulty);
-        if (result) {
-            console.log("Bot added successfully:", result);
-        } else {
-            console.error("Failed to add bot");
-            // Show error notification to user
-            setChatMessages(prevMessages => ([
-                ...prevMessages,
-                {
-                    senderUuid: "SYSTEM",
-                    content: "Failed to add bot. Room may be full or you may not be the host."
-                }
-            ]));
+        if (!shouldProceed) return;
+
+        try {
+            const result = await addBotToRoom(roomId, botDifficulty);
+            if (result) {
+                console.log("Bot added successfully:", result);
+            } else {
+                console.error("Failed to add bot");
+                // Show error notification to user
+                setChatMessages(prevMessages => ([
+                    ...prevMessages,
+                    {
+                        senderUuid: "SYSTEM",
+                        content: "Failed to add bot. Room may be full or you may not be the host."
+                    }
+                ]));
+            }
+        } finally {
+            setAddingBot(false);
         }
-        setAddingBot(false);
-    }, [addingBot, roomId, botDifficulty]);
+    }, [roomId, botDifficulty]);
 
     const handleRemoveBot = useCallback(async (botUuid: string) => {
         try {
