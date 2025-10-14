@@ -92,7 +92,9 @@ export const useSession = (): UseSessionReturn => {
         if (!currentSession) return false;
 
         try {
-            const response = await fetch('http://localhost:3000/session/validate', {
+            // Use environment variable for API URL, fallback to localhost for development
+            const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+            const response = await fetch(`${API_URL}/session/validate`, {
                 headers: {
                     'X-Session-ID': currentSession.session_id
                 }
