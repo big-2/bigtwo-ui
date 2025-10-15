@@ -1,3 +1,4 @@
+import { getNormalizedWsUrl } from '../utils/config';
 import { getSessionId } from './session';
 
 export const connectToRoomWebSocket = (roomId: string, playerName: string, onMessage: (msg: string) => void): WebSocket => {
@@ -7,13 +8,16 @@ export const connectToRoomWebSocket = (roomId: string, playerName: string, onMes
         throw new Error('No session available. Please refresh the page.');
     }
 
-    console.log(`Connecting to WebSocket: room=${roomId}, player=${playerName}`);
+    if (import.meta.env.DEV) {
+        console.log(`Connecting to WebSocket: room=${roomId}, player=${playerName}`);
+    }
 
-    // Use environment variable for WebSocket URL, fallback to localhost for development
-    const WS_BASE_URL = import.meta.env.VITE_WS_URL || "ws://127.0.0.1:3000";
+    const WS_BASE_URL = getNormalizedWsUrl();
     const wsUrl = `${WS_BASE_URL}/ws/${roomId}`;
 
-    console.log(`WebSocket URL: ${wsUrl}`);
+    if (import.meta.env.DEV) {
+        console.log(`WebSocket URL: ${wsUrl}`);
+    }
 
     const socket = new WebSocket(wsUrl, sessionId);
 

@@ -1,9 +1,9 @@
 import axios from "axios";
 import { components } from "../types";
+import { getNormalizedApiUrl } from "../utils/config";
 import { clearSession } from "./session";
 
-// Use environment variable for API URL, fallback to localhost for development
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = getNormalizedApiUrl();
 
 export type RoomResponse = components["schemas"]["RoomResponse"];
 

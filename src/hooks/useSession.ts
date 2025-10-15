@@ -6,6 +6,7 @@ import {
     clearSession,
     UserSession
 } from '../services/session';
+import { getNormalizedApiUrl } from '../utils/config';
 
 interface UseSessionReturn {
     session: UserSession | null;
@@ -93,7 +94,7 @@ export const useSession = (): UseSessionReturn => {
 
         try {
             // Use environment variable for API URL, fallback to localhost for development
-            const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+            const API_URL = getNormalizedApiUrl();
             const response = await fetch(`${API_URL}/session/validate`, {
                 headers: {
                     'X-Session-ID': currentSession.session_id

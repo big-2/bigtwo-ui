@@ -4,13 +4,14 @@ import { MantineProvider, createTheme } from "@mantine/core";
 import App from "./App";
 import { SessionProvider } from "./contexts/SessionContext";
 import { ThemeProvider, useThemeContext } from "./contexts/ThemeContext";
+import { validateEnvironment } from "./utils/config";
 import "./index.css"; // Ensure global styles are applied
 import "@mantine/core/styles.css";
 
 // Component that bridges our ThemeContext with MantineProvider
 const AppWithTheme = () => {
     const { theme } = useThemeContext();
-    
+
     // Create comprehensive theme configurations for light and dark modes
     const mantineTheme = createTheme({
         primaryColor: 'blue',
@@ -72,13 +73,15 @@ const AppWithTheme = () => {
         white: theme === 'light' ? '#ffffff' : '#1a1b1e',
         black: theme === 'light' ? '#000000' : '#ffffff',
     });
-    
+
     return (
         <MantineProvider theme={mantineTheme} forceColorScheme={theme}>
             <App />
         </MantineProvider>
     );
 };
+
+validateEnvironment();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <BrowserRouter>

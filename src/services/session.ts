@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Use environment variable for API URL, fallback to localhost for development
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+import { getNormalizedApiUrl } from '../utils/config';
+
+const API_URL = getNormalizedApiUrl();
 const SESSION_STORAGE_KEY = 'session_id';
 const PLAYER_UUID_STORAGE_KEY = 'player_uuid';
 
