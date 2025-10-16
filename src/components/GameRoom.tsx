@@ -2,8 +2,12 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { connectToRoomWebSocket } from "../services/socket";
 import { getStoredSession } from "../services/session";
 import { RoomResponse, addBotToRoom, removeBotFromRoom } from '../services/api';
-import { Container, Stack, Title, Button, Center, Group, Select, Badge, Text, Paper, ActionIcon } from "@mantine/core";
-import { IconRobot, IconTrash } from "@tabler/icons-react";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+// TODO: replace Mantine Select with a Tailwind variant
+import { cn } from "../lib/utils";
+import { IconRobot } from "@tabler/icons-react";
 import ChatBox from "./ChatBox";
 import PlayerList from "./PlayerList";
 import GameScreen from "./GameScreen";
@@ -367,92 +371,104 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
 
     // Otherwise show the home/room interface
     return (
-        <Container size="lg" py="xl" style={{ minHeight: 'calc(100vh - 60px)' }}>
-            <Stack align="center" gap="lg" style={{ maxWidth: 1000, margin: '0 auto' }}>
-                <Title order={2} c="blue">Game Room {roomId}</Title>
+        <div className="flex h-[calc(100vh-60px)] w-full flex-col overflow-hidden px-4 py-6">
+            <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden">
+                <header className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-blue-600">Game Room {roomId}</h2>
+                    <Badge>
+                        {Object.keys(uuidToName).length}/4 players
+                    </Badge>
+                </header>
 
-                <PlayerList players={Object.keys(uuidToName)} currentPlayer={username} host={hostName} mapping={uuidToName} botUuids={botUuids} />
+                <div className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-6 overflow-hidden md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                    <div className="flex flex-col gap-6 overflow-auto pr-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Players</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <PlayerList players={Object.keys(uuidToName)} currentPlayer={username} host={hostName} mapping={uuidToName} botUuids={botUuids} />
+                            </CardContent>
+                        </Card>
 
-                {isHost && !gameStarted && (
-                    <Paper p="md" withBorder style={{ width: '100%', maxWidth: 600 }}>
-                        <Stack gap="md">
-                            <Group justify="space-between">
-                                <Text fw={600} size="sm">Bot Controls</Text>
-                                <Badge color="blue" variant="light" leftSection={<IconRobot size={14} />}>
-                                    {botUuids.size} Bot{botUuids.size !== 1 ? 's' : ''}
-                                </Badge>
-                            </Group>
+                        {isHost && !gameStarted && (
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle>Bot Controls</CardTitle>
+                                    <Badge variant="secondary" className="flex items-center gap-1">
+                                        <IconRobot size={16} />
+                                        {botUuids.size} Bot{botUuids.size !== 1 ? "s" : ""}
+                                    </Badge>
+                                </CardHeader>
+                                <CardContent className="flex flex-col gap-4">
+                                    <div className="flex gap-3">
+                                        {/* Select placeholder */}
+                                        <select
+                                            className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-900"
+                                            value={botDifficulty}
+                                            onChange={(event) => setBotDifficulty(event.target.value as "easy" | "medium" | "hard")}
+                                            disabled={addingBot}
+                                        >
+                                            <option value="easy">Easy</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="hard">Hard</option>
+                                        </select>
+                                        <Button
+                                            onClick={handleAddBot}
+                                            disabled={addingBot || Object.keys(uuidToName).length >= 4}
+                                            className="min-w-[140px]"
+                                        >
+                                            <IconRobot size={18} className="mr-2" />
+                                            Add Bot
+                                        </Button>
+                                    </div>
 
-                            <Group gap="xs">
-                                <Select
-                                    value={botDifficulty}
-                                    onChange={(value) => setBotDifficulty(value as "easy" | "medium" | "hard")}
-                                    data={[
-                                        { value: 'easy', label: 'Easy' },
-                                        { value: 'medium', label: 'Medium' },
-                                        { value: 'hard', label: 'Hard' },
-                                    ]}
-                                    style={{ flex: 1 }}
-                                    disabled={addingBot}
-                                />
+                                    {botUuids.size > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-xs text-muted-foreground">Current bots</p>
+                                            {Array.from(botUuids).map(botUuid => (
+                                                <div key={botUuid} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        <IconRobot size={16} />
+                                                        {uuidToName[botUuid] || botUuid}
+                                                    </div>
+                                                    <button
+                                                        className="rounded-md px-2 py-1 text-sm text-red-500 hover:bg-red-500/10"
+                                                        onClick={() => handleRemoveBot(botUuid)}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {isHost && (
+                            <div className="flex justify-center">
                                 <Button
-                                    onClick={handleAddBot}
-                                    loading={addingBot}
-                                    disabled={Object.keys(uuidToName).length >= 4}
-                                    leftSection={<IconRobot size={18} />}
+                                    size="lg"
+                                    onClick={handleStartGame}
+                                    disabled={!canStartGame}
+                                    className={cn(
+                                        "min-w-[200px]",
+                                        canStartGame ? "bg-green-500 hover:bg-green-600" : "bg-slate-300 text-slate-500"
+                                    )}
                                 >
-                                    Add Bot
+                                    {canStartGame ? "Start Game" : "Waiting for players..."}
                                 </Button>
-                            </Group>
+                            </div>
+                        )}
+                    </div>
 
-                            {botUuids.size > 0 && (
-                                <Stack gap="xs">
-                                    <Text size="xs" c="dimmed">Current Bots:</Text>
-                                    {Array.from(botUuids).map(botUuid => (
-                                        <Paper key={botUuid} p="xs" withBorder>
-                                            <Group justify="space-between">
-                                                <Group gap="xs">
-                                                    <IconRobot size={16} />
-                                                    <Text size="sm">{uuidToName[botUuid] || botUuid}</Text>
-                                                </Group>
-                                                <ActionIcon
-                                                    color="red"
-                                                    variant="subtle"
-                                                    onClick={() => handleRemoveBot(botUuid)}
-                                                    size="sm"
-                                                >
-                                                    <IconTrash size={16} />
-                                                </ActionIcon>
-                                            </Group>
-                                        </Paper>
-                                    ))}
-                                </Stack>
-                            )}
-                        </Stack>
-                    </Paper>
-                )}
-
-                {isHost && (
-                    <Center>
-                        <Button
-                            size="lg"
-                            color={canStartGame ? 'green' : 'gray'}
-                            onClick={handleStartGame}
-                            disabled={!canStartGame}
-                            style={{
-                                width: 200,
-                                transform: canStartGame ? 'none' : 'none',
-                                transition: 'all 0.3s ease'
-                            }}
-                        >
-                            {canStartGame ? 'Start Game' : 'Waiting for Players...'}
-                        </Button>
-                    </Center>
-                )}
-
-                <ChatBox messages={displayMessages} onSendMessage={sendChatMessage} />
-            </Stack>
-        </Container>
+                    <div className="flex min-h-0 flex-col overflow-hidden">
+                        <ChatBox messages={displayMessages} onSendMessage={sendChatMessage} />
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
 

@@ -41,9 +41,14 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         });
     };
 
-    // Apply theme to the document when it changes
+    // Apply theme class to enable Tailwind dark mode
     useEffect(() => {
-        document.documentElement.setAttribute('data-theme', theme);
+        const root = document.documentElement;
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
     }, [theme]);
 
     return (
