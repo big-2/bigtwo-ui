@@ -78,7 +78,7 @@ const App: React.FC = () => {
                         </Alert>
                     )}
                     <Routes>
-                        <Route path="/" element={<Home onJoinRoom={handleJoinRoom} username={username} userUuid={userUuid} />} />
+                        <Route path="/" element={<Home onJoinRoom={handleJoinRoom} userUuid={userUuid} />} />
                         <Route path="/room/:roomId" element={<RoomContainer username={username} onGameStateChange={handleGameStateChange} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

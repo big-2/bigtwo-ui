@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = "http://localhost:3000";
+import { getNormalizedApiUrl } from '../utils/config';
+
+const API_URL = getNormalizedApiUrl();
 const SESSION_STORAGE_KEY = 'session_id';
 const PLAYER_UUID_STORAGE_KEY = 'player_uuid';
 

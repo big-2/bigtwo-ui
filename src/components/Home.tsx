@@ -4,11 +4,10 @@ import { Container, Card, Group, Title, Button, ActionIcon, Table, Text, Stack, 
 
 interface HomeProps {
     onJoinRoom: (roomId: string) => void;
-    username: string;
     userUuid: string;
 }
 
-const Home: React.FC<HomeProps> = ({ onJoinRoom, username, userUuid }) => {
+const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
     const [rooms, setRooms] = useState<RoomResponse[]>([]);
 
     const fetchRooms = async () => {

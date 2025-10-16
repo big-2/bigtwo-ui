@@ -1,3 +1,4 @@
+import { getNormalizedWsUrl } from '../utils/config';
 import { getSessionId } from './session';
 
 export const connectToRoomWebSocket = (roomId: string, playerName: string, onMessage: (msg: string) => void): WebSocket => {
@@ -7,10 +8,16 @@ export const connectToRoomWebSocket = (roomId: string, playerName: string, onMes
         throw new Error('No session available. Please refresh the page.');
     }
 
-    console.log(`Connecting to WebSocket: room=${roomId}, player=${playerName}`);
+    if (import.meta.env.DEV) {
+        console.log(`Connecting to WebSocket: room=${roomId}, player=${playerName}`);
+    }
 
-    // Connect to the dedicated WebSocket endpoint with JWT in subprotocol
-    const wsUrl = `ws://127.0.0.1:3000/ws/${roomId}`;
+    const WS_BASE_URL = getNormalizedWsUrl();
+    const wsUrl = `${WS_BASE_URL}/ws/${roomId}`;
+
+    if (import.meta.env.DEV) {
+        console.log(`WebSocket URL: ${wsUrl}`);
+    }
 
     const socket = new WebSocket(wsUrl, sessionId);
 
