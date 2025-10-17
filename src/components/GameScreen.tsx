@@ -351,9 +351,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     // Set up WebSocket message listener
     useEffect(() => {
         if (socket) {
-            socket.addEventListener("message", (event) => {
+            const messageHandler = (event: MessageEvent) => {
                 processMessage(event.data);
-            });
+            };
+
+            socket.addEventListener("message", messageHandler);
+
+            // Cleanup function to remove event listener
+            return () => {
+                socket.removeEventListener("message", messageHandler);
+            };
         }
     }, [socket]);
 
@@ -527,16 +534,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             return null;
         }
 
-        const getSuitColor = (suit: string) => {
+        const getSuitColorClass = (suit: string) => {
             switch (suit) {
                 case "H":
                 case "D":
-                    return "#ef4444";
+                    return "text-destructive";
                 case "S":
                 case "C":
-                    return "#111827";
+                    return "text-foreground";
                 default:
-                    return "#111827";
+                    return "text-foreground";
             }
         };
 
@@ -570,8 +577,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         return (
                             <div
                                 key={`${card}-${index}`}
-                                className="flex h-16 w-12 flex-col items-center justify-center rounded border-2 border-border bg-white text-base font-bold shadow-md dark:border-slate-700 dark:bg-slate-900"
-                                style={{ color: getSuitColor(suit) }}
+                                className={cn(
+                                    "flex h-16 w-12 flex-col items-center justify-center rounded border-2 border-border bg-white text-base font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
+                                    getSuitColorClass(suit)
+                                )}
                             >
                                 <span>{rank}</span>
                                 <span className="text-2xl">{getSuitSymbol(suit)}</span>
