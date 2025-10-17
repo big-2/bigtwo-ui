@@ -52,8 +52,8 @@ const App: React.FC = () => {
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
             <Header username={username} showBackButton={showBackButton} />
-            <main className="flex flex-1 justify-center">
-                <div className="flex w-full max-w-6xl flex-col px-4 pb-8">
+            <main className="flex min-h-0 flex-1 justify-center overflow-hidden">
+                <div className="flex min-h-0 w-full flex-1 flex-col">
                     {error && (
                         <div className="mx-auto mt-4 w-full max-w-xl">
                             <Alert variant="destructive">

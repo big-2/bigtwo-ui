@@ -54,4 +54,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 )
 Button.displayName = "Button"
 
+// Exported for styling variants reuse in other components
+// buttonVariants is intentionally exported for reuse in other components
 export { Button, buttonVariants }

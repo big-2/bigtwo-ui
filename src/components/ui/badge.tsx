@@ -33,4 +33,6 @@ function Badge({ className, variant, ...props }: BadgeProps) {
     )
 }
 
+// Exported for styling variants reuse in other components
+// badgeVariants is intentionally exported for reuse in other components
 export { Badge, badgeVariants }

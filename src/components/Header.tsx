@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useThemeContext } from "../contexts/ThemeContext";
-import { Group, Title, Button, Text, Badge, useMantineTheme } from "@mantine/core";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
@@ -11,66 +12,38 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ username, showBackButton = false }) => {
     const navigate = useNavigate();
-    const { theme } = useThemeContext();
-    const mantineTheme = useMantineTheme();
 
     const handleBack = () => {
         navigate("/");
     };
 
-    // Theme-responsive header styling
-    const headerStyle = {
-        backgroundColor: theme === 'light'
-            ? '#ffffff'
-            : mantineTheme.colors.dark[7],
-        borderBottom: `1px solid ${theme === 'light'
-            ? mantineTheme.colors.gray[2]
-            : mantineTheme.colors.dark[4]}`,
-        boxShadow: theme === 'light'
-            ? '0 1px 3px rgba(0, 0, 0, 0.1)'
-            : '0 1px 3px rgba(0, 0, 0, 0.3)',
-        position: 'sticky' as const,
-        top: 0,
-        zIndex: 100,
-        transition: 'all 0.3s ease'
-    };
-
     return (
-        <Group
-            justify="space-between"
-            p="md"
-            style={headerStyle}
-        >
-            <Title
-                order={2}
-                c={theme === 'light' ? 'blue.6' : 'blue.4'}
-                style={{ transition: 'color 0.3s ease' }}
-            >
-                Big Two Game
-            </Title>
-            <Group gap="md">
-                {showBackButton && (
-                    <Button
-                        onClick={handleBack}
-                        variant="light"
-                        color="blue"
-                    >
-                        Back to Home
-                    </Button>
-                )}
-                <Badge
-                    size="lg"
-                    variant={theme === 'light' ? 'light' : 'filled'}
-                    color="blue"
-                >
-                    <Text size="sm">
-                        Playing as: <Text component="span" fw={700}>{username}</Text>
-                    </Text>
-                </Badge>
-                <ThemeToggle />
-            </Group>
-        </Group>
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container flex h-14 items-center justify-between px-4">
+                <div className="flex items-center gap-4">
+                    {showBackButton && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleBack}
+                            className="gap-2"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            Back
+                        </Button>
+                    )}
+                    <h1 className="text-lg font-bold text-primary">Big Two</h1>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <Badge variant="secondary" className="hidden px-3 py-1 sm:inline-flex">
+                        {username}
+                    </Badge>
+                    <ThemeToggle />
+                </div>
+            </div>
+        </header>
     );
 };
 
-export default Header; 
+export default Header;

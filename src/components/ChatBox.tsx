@@ -1,5 +1,9 @@
-import React, { useState } from "react";
-import { Paper, Group, Text, ActionIcon, ScrollArea, TextInput, Button, Stack, Collapse } from "@mantine/core";
+import React, { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { ScrollArea } from "./ui/scroll-area";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+import { cn } from "../lib/utils";
 
 interface DisplayMessage {
     text: string;
@@ -13,7 +17,14 @@ interface ChatBoxProps {
 
 const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage }) => {
     const [chatInput, setChatInput] = useState<string>("");
-    const [isMinimized, setIsMinimized] = useState<boolean>(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages]);
 
     const handleSend = () => {
         if (chatInput.trim() === "") return;
@@ -28,63 +39,70 @@ const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage }) => {
         }
     };
 
+    const parseMessage = (text: string) => {
+        const match = text.match(/^(.*?):\s*(.*)$/);
+        if (match) {
+            return { sender: match[1], content: match[2] };
+        }
+        return { sender: "", content: text };
+    };
+
     return (
-        <Paper
-            shadow="md"
-            radius="md"
-            style={{
-                position: 'fixed',
-                bottom: 20,
-                right: 20,
-                width: 320,
-                overflow: 'hidden'
-            }}
-        >
-            <Group 
-                justify="space-between" 
-                p="sm" 
-                bg="blue" 
-                c="white"
-                style={{ cursor: 'pointer' }}
-                onClick={() => setIsMinimized(!isMinimized)}
-            >
-                <Text fw={600}>Chat</Text>
-                <ActionIcon variant="transparent" c="white" size="sm">
-                    {isMinimized ? "▲" : "▼"}
-                </ActionIcon>
-            </Group>
-            
-            <Collapse in={!isMinimized}>
-                <Stack gap="sm" p="sm">
-                    <ScrollArea h={200}>
-                        <Stack gap="xs">
-                            {messages.map((msg, index) => (
-                                <Text
+        <Card className="flex h-full flex-col">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">Chat</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col gap-3 overflow-hidden p-4 pt-0">
+                <ScrollArea className="flex-1 pr-4">
+                    <div ref={scrollRef} className="space-y-1">
+                        {messages.map((msg, index) => {
+                            const { sender, content } = parseMessage(msg.text);
+                            const isSystem = sender === "SYSTEM";
+
+                            return (
+                                <div
                                     key={index}
-                                    size="sm"
-                                    c={msg.isCurrentUser ? "blue" : "red"}
-                                    ta={msg.isCurrentUser ? "right" : "left"}
+                                    className={cn(
+                                        "rounded-md px-3 py-2 text-sm transition-colors",
+                                        index % 2 === 0 ? "bg-muted/30" : "bg-transparent"
+                                    )}
                                 >
-                                    {msg.text}
-                                </Text>
-                            ))}
-                        </Stack>
-                    </ScrollArea>
-                    
-                    <TextInput
+                                    {isSystem ? (
+                                        <p className="text-muted-foreground italic">
+                                            {content}
+                                        </p>
+                                    ) : (
+                                        <p>
+                                            <span className={cn(
+                                                "font-semibold",
+                                                msg.isCurrentUser ? "text-primary" : "text-foreground"
+                                            )}>
+                                                {sender}
+                                            </span>
+                                            <span className="text-muted-foreground">: </span>
+                                            <span className="text-foreground">{content}</span>
+                                        </p>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </ScrollArea>
+
+                <div className="flex gap-2">
+                    <Input
                         placeholder="Type a message..."
                         value={chatInput}
-                        onChange={(e) => setChatInput(e.currentTarget.value)}
+                        onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        size="sm"
+                        className="flex-1"
                     />
-                    
-                    <Button onClick={handleSend} size="sm" fullWidth>
+                    <Button onClick={handleSend} size="sm">
                         Send
                     </Button>
-                </Stack>
-            </Collapse>
-        </Paper>
+                </div>
+            </CardContent>
+        </Card>
     );
 };
 

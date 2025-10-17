@@ -188,21 +188,29 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         // PLAYERS_LIST: No longer needed - mapping is passed as prop from GameRoom
 
         GAME_STARTED: (message) => {
-            console.log("Game started!", message.payload);
-            const currentTurn = message.payload.current_turn as string;
-            const cards = message.payload.cards as string[];
-            const playerList = message.payload.player_list as string[];
-            const cardCounts = (message.payload as any).card_counts as Record<string, number> | undefined;
+            const payload = message.payload as {
+                current_turn?: string;
+                cards?: string[];
+                player_list?: string[];
+                card_counts?: Record<string, number>;
+                last_played_cards?: string[];
+                last_played_by?: string;
+            };
 
-            const lastCards = (message.payload as any).last_played_cards as string[] | undefined;
-            const lastPlayer = (message.payload as any).last_played_by as string | undefined;
+            if (!payload?.current_turn || !Array.isArray(payload.cards) || !Array.isArray(payload.player_list)) {
+                return;
+            }
+
+            const cardCounts = payload.card_counts;
+            const lastCards = payload.last_played_cards;
+            const lastPlayer = payload.last_played_by;
 
             // Reset game state to ensure opponent card counts are correctly initialized
             setGameState(prev => {
                 const nextState = createGameState(
-                    cards,
-                    currentTurn,
-                    playerList,
+                    Array.isArray(payload.cards) ? payload.cards : [],
+                    payload.current_turn || "",
+                    Array.isArray(payload.player_list) ? payload.player_list : [],
                     uuid,
                     Array.isArray(lastCards) ? lastCards : [],
                     lastPlayer || "",
@@ -224,7 +232,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         },
 
         TURN_CHANGE: (message) => {
-            const player = message.payload.player as string;
+            const payload = message.payload as { player?: string };
+            const player = payload?.player;
+            if (!player) {
+                return;
+            }
             setGameState(prev => ({
                 ...prev,
                 currentTurn: player,
@@ -238,10 +250,19 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         },
 
         MOVE_PLAYED: (message) => {
-            const player = message.payload.player as string;
-            const cards = message.payload.cards as string[];
+            const payload = message.payload as {
+                player?: string;
+                cards?: string[];
+                remaining_cards?: number;
+            };
+            const player = payload?.player;
+            const cards = payload?.cards;
             // Use server-provided card count if available (recommended backend change)
-            const serverCardCount = (message.payload as any).remaining_cards as number | undefined;
+            const serverCardCount = payload?.remaining_cards;
+
+            if (!player || !Array.isArray(cards)) {
+                return;
+            }
 
             setGameState(prev => ({
                 ...prev,
@@ -460,13 +481,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     };
 
     const renderTopCardBacks = (count?: number) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
             {Array.from({ length: Math.min(count ?? 0, 13) }).map((_, index) => (
                 <div
                     key={`top-card-${index}`}
                     className={cn(
-                        "h-16 w-12 rounded-md border border-blue-600/40 bg-blue-500/90 shadow",
-                        index > 0 && "-ml-3"
+                        "h-10 w-7 rounded border border-blue-600/40 bg-blue-500/90 shadow-sm",
+                        index > 0 && "-ml-2"
                     )}
                     style={{ zIndex: 13 - index }}
                 />
@@ -480,8 +501,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 <div
                     key={`side-card-${index}`}
                     className={cn(
-                        "h-5 w-16 rounded-md border border-blue-600/40 bg-blue-500/85 shadow",
-                        index > 0 && "-mt-2"
+                        "h-3 w-10 rounded border border-blue-600/40 bg-blue-500/85 shadow-sm",
+                        index > 0 && "-mt-1"
                     )}
                     style={{ zIndex: 13 - index }}
                 />
@@ -536,7 +557,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
         return (
             <div className="flex flex-col items-center gap-2">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                <span className="text-sm uppercase tracking-wide text-muted-foreground">
                     {gameState.lastPlayedBy === uuid
                         ? "You played:"
                         : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played:`}
@@ -549,11 +570,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         return (
                             <div
                                 key={`${card}-${index}`}
-                                className="flex h-16 w-12 flex-col items-center justify-center rounded-md border border-border bg-white text-sm font-semibold shadow-sm dark:border-slate-700 dark:bg-slate-900"
+                                className="flex h-16 w-12 flex-col items-center justify-center rounded border-2 border-border bg-white text-base font-bold shadow-md dark:border-slate-700 dark:bg-slate-900"
                                 style={{ color: getSuitColor(suit) }}
                             >
                                 <span>{rank}</span>
-                                <span className="text-lg">{getSuitSymbol(suit)}</span>
+                                <span className="text-2xl">{getSuitSymbol(suit)}</span>
                             </div>
                         );
                     })}
@@ -564,7 +585,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
     // Theme-responsive background styling
     const containerClassName = cn(
-        "min-h-screen w-full bg-gradient-to-br",
+        "flex h-full min-h-0 w-full justify-center bg-gradient-to-br",
         theme === "light"
             ? "from-slate-50 via-blue-50/60 to-blue-100/70"
             : "from-slate-950 via-slate-900 to-slate-800",
@@ -573,20 +594,20 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
     return (
         <div className={containerClassName}>
-            <div className="mx-auto flex h-screen max-w-7xl flex-col px-4 py-6">
+            <div className="flex h-full min-h-0 w-full flex-col px-2 py-1">
                 {/* Top Player */}
-                <section className="flex h-1/4 flex-col items-center justify-start gap-4">
-                    <div className="flex items-center gap-6">
+                <section className="flex flex-shrink-0 flex-col items-center justify-start gap-0.5 py-0.5">
+                    <div className="flex items-center gap-3">
                         <Badge
                             variant={gameState.currentTurn === playerPositions.top ? "secondary" : "outline"}
                             className={cn(
-                                "flex min-h-[48px] min-w-[140px] flex-col items-center justify-center rounded-xl px-5 py-3 text-center text-xs uppercase tracking-wide shadow-sm transition-all",
+                                "flex min-h-[32px] min-w-[100px] flex-col items-center justify-center rounded px-2.5 py-1 text-center text-xs uppercase tracking-wide shadow-sm transition-all",
                                 gameState.currentTurn === playerPositions.top && "animate-pulse border-primary/40 bg-primary/20"
                             )}
                         >
-                            <div className="flex flex-col items-center gap-1">
-                                {renderPlayerName(playerPositions.top, gameState.uuidToName, "sm")}
-                                <span className="text-[11px] font-medium text-muted-foreground">
+                            <div className="flex flex-col items-center gap-0">
+                                {renderPlayerName(playerPositions.top, gameState.uuidToName, "xs")}
+                                <span className="text-[9px] font-medium text-muted-foreground">
                                     {getCardCountLabel(topPlayer)}
                                 </span>
                                 {renderPassedTag(topPlayer?.hasPassed)}
@@ -597,19 +618,19 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 </section>
 
                 {/* Middle Row */}
-                <section className="flex flex-1 items-center justify-between gap-6 py-4">
+                <section className="flex min-h-0 flex-1 items-center justify-between gap-2 overflow-hidden py-0.5" style={{ minHeight: "180px", maxHeight: "280px" }}>
                     {/* Left Player */}
-                    <div className="flex w-48 flex-col items-center gap-3 rounded-xl bg-white/60 p-4 shadow-sm backdrop-blur dark:bg-slate-800/50">
+                    <div className="flex w-32 flex-col items-center gap-1.5 rounded bg-white/60 p-2 shadow-sm backdrop-blur dark:bg-slate-800/50">
                         <Badge
                             variant={gameState.currentTurn === playerPositions.left ? "secondary" : "outline"}
                             className={cn(
-                                "flex min-h-[48px] w-full flex-col items-center justify-center rounded-lg px-4 py-3 text-center text-xs uppercase tracking-wide",
+                                "flex min-h-[28px] w-full flex-col items-center justify-center rounded px-2 py-1 text-center text-xs uppercase tracking-wide",
                                 gameState.currentTurn === playerPositions.left && "animate-pulse border-primary/40 bg-primary/20"
                             )}
                         >
-                            <div className="flex flex-col items-center gap-1">
-                                {renderPlayerName(playerPositions.left, gameState.uuidToName)}
-                                <span className="text-[11px] font-medium text-muted-foreground">
+                            <div className="flex flex-col items-center gap-0">
+                                {renderPlayerName(playerPositions.left, gameState.uuidToName, "xs")}
+                                <span className="text-[9px] font-medium text-muted-foreground">
                                     {getCardCountLabel(leftPlayer)}
                                 </span>
                                 {renderPassedTag(leftPlayer?.hasPassed)}
@@ -620,23 +641,23 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
                     {/* Center Game Area */}
                     <div className="flex flex-1 flex-col items-center justify-center">
-                        <Card className="w-full max-w-md border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
+                        <Card className="w-full max-w-3xl border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
                             <CardContent className="flex flex-col items-center gap-4 p-6">
                                 {gameState.gameWon ? (
-                                    <div className="flex flex-col items-center gap-2">
-                                        <p className="text-xl font-bold text-emerald-500">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <p className="text-3xl font-bold text-emerald-500">
                                             🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`} 🎉
                                         </p>
-                                        <p className="text-base text-muted-foreground">Game Over</p>
+                                        <p className="text-xl text-muted-foreground">Game Over</p>
                                         {gameState.countdown > 0 && (
-                                            <p className="text-sm font-semibold text-blue-500">
+                                            <p className="text-lg font-semibold text-blue-500">
                                                 Returning to lobby in {gameState.countdown}...
                                             </p>
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center gap-4">
-                                        <p className="text-lg font-semibold">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <p className="text-xl font-semibold">
                                             {isCurrentTurn
                                                 ? "Your turn!"
                                                 : `${getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn`}
@@ -649,17 +670,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
 
                     {/* Right Player */}
-                    <div className="flex w-48 flex-col items-center gap-3 rounded-xl bg-white/60 p-4 shadow-sm backdrop-blur dark:bg-slate-800/50">
+                    <div className="flex w-32 flex-col items-center gap-1.5 rounded bg-white/60 p-2 shadow-sm backdrop-blur dark:bg-slate-800/50">
                         <Badge
                             variant={gameState.currentTurn === playerPositions.right ? "secondary" : "outline"}
                             className={cn(
-                                "flex min-h-[48px] w-full flex-col items-center justify-center rounded-lg px-4 py-3 text-center text-xs uppercase tracking-wide",
+                                "flex min-h-[28px] w-full flex-col items-center justify-center rounded px-2 py-1 text-center text-xs uppercase tracking-wide",
                                 gameState.currentTurn === playerPositions.right && "animate-pulse border-primary/40 bg-primary/20"
                             )}
                         >
-                            <div className="flex flex-col items-center gap-1">
-                                {renderPlayerName(playerPositions.right, gameState.uuidToName)}
-                                <span className="text-[11px] font-medium text-muted-foreground">
+                            <div className="flex flex-col items-center gap-0">
+                                {renderPlayerName(playerPositions.right, gameState.uuidToName, "xs")}
+                                <span className="text-[9px] font-medium text-muted-foreground">
                                     {getCardCountLabel(rightPlayer)}
                                 </span>
                                 {renderPassedTag(rightPlayer?.hasPassed)}
@@ -670,44 +691,43 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 </section>
 
                 {/* Bottom Player */}
-                <section className="mt-auto flex flex-col gap-4 pt-4">
+                <section className="mt-auto flex flex-shrink-0 flex-col gap-1.5 pt-1">
                     <div className="flex items-center justify-between">
-                        <div className="w-32" aria-hidden />
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSortCards("numerical")}
+                                title="Sort by rank (3 smallest, 2 biggest)"
+                                className="h-8 px-3 text-xs"
+                            >
+                                Rank
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSortCards("suit")}
+                                title="Sort by suit (♦♣♥♠)"
+                                className="h-8 px-3 text-xs"
+                            >
+                                Suit
+                            </Button>
+                        </div>
                         <Badge
                             variant={gameState.currentTurn === uuid ? "secondary" : "outline"}
                             className={cn(
-                                "flex min-h-[48px] min-w-[150px] flex-col items-center justify-center rounded-xl px-5 py-3 text-center text-xs uppercase tracking-wide",
+                                "flex min-h-[36px] min-w-[120px] flex-col items-center justify-center rounded-lg px-3 py-2 text-center text-xs uppercase tracking-wide",
                                 gameState.currentTurn === uuid && !gameState.gameWon && "animate-pulse border-primary/40 bg-primary/20"
                             )}
                         >
                             <span className="text-xs font-semibold">
                                 {gameState.uuidToName[uuid] || username}
                             </span>
-                            <span className="text-[11px] font-medium text-muted-foreground">
+                            <span className="text-[10px] font-medium text-muted-foreground">
                                 {getCardCountLabel(currentPlayer)}
                             </span>
                         </Badge>
-                        <div className="flex flex-col items-end gap-1 text-xs text-muted-foreground">
-                            <span className="uppercase tracking-wide">Sort</span>
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleSortCards("numerical")}
-                                    title="Sort by rank (3 smallest, 2 biggest)"
-                                >
-                                    Rank
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleSortCards("suit")}
-                                    title="Sort by suit (♦♣♥♠)"
-                                >
-                                    Suit
-                                </Button>
-                            </div>
-                        </div>
+                        <div className="w-32" aria-hidden />
                     </div>
 
                     <div className="flex justify-center">
@@ -719,9 +739,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         />
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-4">
+                    <div className="flex flex-wrap items-center justify-center gap-3 pb-1">
                         <Button
-                            className="min-w-[140px] text-base"
+                            className="min-w-[120px]"
                             size="lg"
                             onClick={handlePlayCards}
                             disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || gameState.gameWon}
@@ -733,17 +753,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         </Button>
                         <Button
                             variant="outline"
-                            className="min-w-[140px]"
+                            className="min-w-[120px]"
                             size="lg"
                             onClick={handleDeselectAll}
                             disabled={gameState.selectedCards.length === 0}
                             title={gameState.selectedCards.length === 0 ? "No cards selected" : "Deselect all selected cards"}
                         >
-                            Clear selection
+                            Clear
                         </Button>
                         <Button
                             variant="outline"
-                            className="min-w-[140px] border-orange-400 text-orange-600 hover:bg-orange-50 dark:border-orange-500 dark:text-orange-300 dark:hover:bg-orange-500/10"
+                            className="min-w-[120px] border-orange-400 text-orange-600 hover:bg-orange-50 dark:border-orange-500 dark:text-orange-300 dark:hover:bg-orange-500/10"
                             size="lg"
                             onClick={handlePass}
                             disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0 || gameState.gameWon}

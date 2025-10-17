@@ -13,6 +13,8 @@ interface CardProps {
     isDragging: boolean;
     isDropTarget: boolean;
     selectedCards: string[];
+    width: number;
+    height: number;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -26,7 +28,9 @@ const Card: React.FC<CardProps> = ({
     index,
     isDragging,
     isDropTarget,
-    selectedCards
+    selectedCards,
+    width,
+    height
 }) => {
     const suit = card.slice(-1);
     const rank = card.slice(0, -1);
@@ -84,14 +88,23 @@ const Card: React.FC<CardProps> = ({
         onDragLeave(e);
     };
 
+    // Fixed font sizes for player's cards (always larger)
+    const rankFontSize = 'text-lg';
+    const suitFontSize = 'text-3xl';
+
     return (
         <div
             className={cn(
-                "relative flex h-28 min-w-[80px] cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 bg-white transition-all duration-200 dark:bg-slate-900",
+                "relative flex cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 bg-white transition-all duration-200 dark:bg-slate-900",
                 isSelected ? "-translate-y-4 border-primary" : "border-slate-200 dark:border-slate-700",
                 isDragging && "opacity-80",
                 isDropTarget && "ring-2 ring-offset-2 ring-primary/60"
             )}
+            style={{
+                width: `${width}px`,
+                height: `${height}px`,
+                minWidth: `${width}px`
+            }}
             onClick={() => onClick(card)}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
@@ -103,13 +116,13 @@ const Card: React.FC<CardProps> = ({
             title={card}
         >
             <span
-                className="text-base font-bold"
+                className={cn(rankFontSize, "font-bold")}
                 style={{ color: getSuitColor(suit) }}
             >
                 {rank}
             </span>
             <span
-                className="text-2xl"
+                className={suitFontSize}
                 style={{ color: getSuitColor(suit) }}
             >
                 {getSuitSymbol(suit)}
@@ -145,6 +158,9 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
 
     // Debounce timer for drag leave
     const dragLeaveTimerRef = useRef<number | null>(null);
+
+    // Fixed card dimensions for player's hand - always larger and consistent
+    const cardDimensions = { width: 90, height: 126, gap: 12 };
 
     const handleDragStart = (card: string, index: number) => {
         setDraggedIndex(index);
@@ -288,7 +304,8 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     return (
         <div
             ref={handRef}
-            className="flex flex-wrap justify-center gap-3 rounded-xl border border-slate-200/60 bg-white/50 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40"
+            className="flex flex-nowrap justify-center rounded-xl border border-slate-200/60 bg-white/50 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40"
+            style={{ gap: `${cardDimensions.gap}px` }}
             onDragOver={handleHandDragOver}
             onDrop={handleHandDrop}
         >
@@ -311,12 +328,21 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
                         isDragging={isDragging}
                         isDropTarget={isDropTarget}
                         selectedCards={selectedCards}
+                        width={cardDimensions.width}
+                        height={cardDimensions.height}
                     />
                 );
             })}
 
             {dropTargetIndex === cards.length && (
-                <div className="flex h-28 min-w-[80px] items-center justify-center rounded-lg border-2 border-dashed border-primary/60 bg-primary/10 text-sm font-semibold text-primary">
+                <div
+                    className="flex items-center justify-center rounded-lg border-2 border-dashed border-primary/60 bg-primary/10 text-sm font-semibold text-primary"
+                    style={{
+                        width: `${cardDimensions.width}px`,
+                        height: `${cardDimensions.height}px`,
+                        minWidth: `${cardDimensions.width}px`
+                    }}
+                >
                     Drop here
                 </div>
             )}
