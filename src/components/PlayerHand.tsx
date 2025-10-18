@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import { Paper, Text, Group } from "@mantine/core";
+import { cn } from "../lib/utils";
+import { useThemeContext } from "../contexts/ThemeContext";
 
 interface CardProps {
     card: string;
@@ -13,6 +14,8 @@ interface CardProps {
     isDragging: boolean;
     isDropTarget: boolean;
     selectedCards: string[];
+    width: number;
+    height: number;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -26,21 +29,25 @@ const Card: React.FC<CardProps> = ({
     index,
     isDragging,
     isDropTarget,
-    selectedCards
+    selectedCards,
+    width,
+    height
 }) => {
+    const { theme } = useThemeContext();
+    const isDarkMode = theme === "dark";
     const suit = card.slice(-1);
     const rank = card.slice(0, -1);
 
-    const getSuitColor = (suit: string) => {
+    const getSuitColor = (suit: string, isDarkMode: boolean) => {
         switch (suit) {
             case 'H':
             case 'D':
                 return '#ff6b6b';
             case 'S':
             case 'C':
-                return '#000000';
+                return isDarkMode ? '#ffffff' : '#000000';
             default:
-                return '#000000';
+                return isDarkMode ? '#ffffff' : '#000000';
         }
     };
 
@@ -84,9 +91,23 @@ const Card: React.FC<CardProps> = ({
         onDragLeave(e);
     };
 
+    // Fixed font sizes for player's cards (always larger)
+    const rankFontSize = 'text-lg';
+    const suitFontSize = 'text-3xl';
+
     return (
-        <Paper
-            className={`card ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${isDropTarget ? 'drop-target' : ''}`}
+        <div
+            className={cn(
+                "relative flex cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 bg-white transition-all duration-200 dark:bg-slate-900",
+                isSelected ? "-translate-y-4 border-primary" : "border-slate-200 dark:border-slate-700",
+                isDragging && "opacity-80",
+                isDropTarget && "ring-2 ring-offset-2 ring-primary/60"
+            )}
+            style={{
+                width: `${width}px`,
+                height: `${height}px`,
+                minWidth: `${width}px`
+            }}
             onClick={() => onClick(card)}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
@@ -96,64 +117,26 @@ const Card: React.FC<CardProps> = ({
             data-suit={suit}
             data-batch-count={isSelected && isDragging ? selectedCards.length : undefined}
             title={card}
-            shadow="sm"
-            radius="md"
-            p="xs"
-            style={{ 
-                color: getSuitColor(suit),
-                cursor: 'pointer',
-                userSelect: 'none',
-                background: 'white',
-                border: isSelected ? '3px solid #2563eb' : '2px solid #ddd',
-                transform: isSelected ? 'translateY(-15px)' : 'translateY(0)',
-                transition: 'all 0.2s ease',
-                position: 'relative',
-                minWidth: '80px',
-                height: '110px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center'
-            }}
         >
-            <Group 
-                gap={0} 
-                style={{ 
-                    flexDirection: 'column', 
-                    alignItems: 'center',
-                    height: '100%',
-                    justifyContent: 'center'
-                }}
+            <span
+                className={cn(rankFontSize, "font-bold")}
+                style={{ color: getSuitColor(suit, isDarkMode) }}
             >
-                <Text 
-                    size="xl" 
-                    fw={700}
-                    style={{ 
-                        color: getSuitColor(suit),
-                        lineHeight: 1,
-                        fontSize: '18px'
-                    }}
-                >
-                    {rank}
-                </Text>
-                <Text 
-                    size="xl"
-                    style={{ 
-                        color: getSuitColor(suit),
-                        lineHeight: 1,
-                        fontSize: '24px'
-                    }}
-                >
-                    {getSuitSymbol(suit)}
-                </Text>
-            </Group>
-            {isDropTarget && <div className="drop-indicator" />}
+                {rank}
+            </span>
+            <span
+                className={suitFontSize}
+                style={{ color: getSuitColor(suit, isDarkMode) }}
+            >
+                {getSuitSymbol(suit)}
+            </span>
+            {isDropTarget && <div className="absolute inset-x-0 bottom-0 h-1 rounded-b bg-primary" />}
             {isSelected && isDragging && selectedCards.length > 1 && (
-                <div className="batch-indicator">
+                <div className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground shadow">
                     {selectedCards.length}
                 </div>
             )}
-        </Paper>
+        </div>
     );
 };
 
@@ -178,6 +161,9 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
 
     // Debounce timer for drag leave
     const dragLeaveTimerRef = useRef<number | null>(null);
+
+    // Fixed card dimensions for player's hand - always larger and consistent
+    const cardDimensions = { width: 90, height: 126, gap: 12 };
 
     const handleDragStart = (card: string, index: number) => {
         setDraggedIndex(index);
@@ -319,49 +305,51 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     };
 
     return (
-        <Group
-            className="player-hand"
+        <div
             ref={handRef}
+            className="flex flex-nowrap justify-center rounded-xl border border-slate-200/60 bg-white/50 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40"
+            style={{ gap: `${cardDimensions.gap}px` }}
             onDragOver={handleHandDragOver}
             onDrop={handleHandDrop}
-            gap="sm"
-            justify="center"
-            align="flex-end"
-            style={{
-                minHeight: '140px',
-                padding: '20px 15px 35px 15px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                margin: '10px 0',
-                flexWrap: 'nowrap',
-                overflowX: 'auto',
-                width: '100%'
-            }}
         >
-            {cards.map((card, index) => (
-                <Card
-                    key={`${card}-${index}`}
-                    card={card}
-                    isSelected={selectedCards.includes(card)}
-                    onClick={onCardClick}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                    onDragLeave={handleDragLeave}
-                    index={index}
-                    isDragging={draggedCards.includes(card)}
-                    isDropTarget={dropTargetIndex === index}
-                    selectedCards={selectedCards}
-                />
-            ))}
-            {/* Add a drop target for the rightmost position */}
+            {cards.map((card, index) => {
+                const isSelected = selectedCards.includes(card);
+                const isDragging = draggedCards.includes(card);
+                const isDropTarget = dropTargetIndex === index;
+
+                return (
+                    <Card
+                        key={card}
+                        card={card}
+                        isSelected={isSelected}
+                        onClick={onCardClick}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                        onDragLeave={handleDragLeave}
+                        index={index}
+                        isDragging={isDragging}
+                        isDropTarget={isDropTarget}
+                        selectedCards={selectedCards}
+                        width={cardDimensions.width}
+                        height={cardDimensions.height}
+                    />
+                );
+            })}
+
             {dropTargetIndex === cards.length && (
-                <div className="end-drop-target">
-                    <div className="drop-indicator"></div>
+                <div
+                    className="flex items-center justify-center rounded-lg border-2 border-dashed border-primary/60 bg-primary/10 text-sm font-semibold text-primary"
+                    style={{
+                        width: `${cardDimensions.width}px`,
+                        height: `${cardDimensions.height}px`,
+                        minWidth: `${cardDimensions.width}px`
+                    }}
+                >
+                    Drop here
                 </div>
             )}
-        </Group>
+        </div>
     );
 };
 

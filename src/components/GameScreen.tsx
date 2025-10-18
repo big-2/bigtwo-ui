@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { WebSocketMessage } from "../types.websocket";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType } from "../utils/cardSorting";
-import { Grid, Stack, Group, Text, Button, Card, Badge, Container, useMantineTheme } from "@mantine/core";
-import { IconRobot } from "@tabler/icons-react";
+import { Bot } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card, CardContent } from "./ui/card";
+import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
 
 interface GameScreenProps {
@@ -48,7 +51,6 @@ interface GameState {
 
 const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initialGameData, mapping, botUuids = new Set(), onReturnToLobby }) => {
     const { theme } = useThemeContext();
-    const mantineTheme = useMantineTheme();
 
     // Helper function to get display name from UUID or return the original value if it's already a username
     const getDisplayName = (uuidOrName: string, mapping: Record<string, string>) => {
@@ -61,11 +63,22 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         const isBot = botUuids.has(playerUuid);
 
         return (
-            <Group gap={4} justify="center">
-                {isBot && <IconRobot size={size === "xs" ? 12 : size === "sm" ? 14 : 16} />}
-                <Text size={size} fw={700}>{displayName || "Opponent"}</Text>
-                {isBot && <Badge size="xs" color="grape" variant="light">Bot</Badge>}
-            </Group>
+            <div className="flex items-center justify-center gap-1.5 text-foreground">
+                {isBot && <Bot className={cn("text-muted-foreground", size === "xs" ? "h-3 w-3" : size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4")} />}
+                <span className={cn("font-semibold", {
+                    "text-xs": size === "xs",
+                    "text-sm": size === "sm",
+                    "text-base": size === "md",
+                    "text-lg": size === "lg"
+                })}>
+                    {displayName || "Opponent"}
+                </span>
+                {isBot && (
+                    <Badge variant="secondary" className="px-1 py-0 text-[10px] uppercase tracking-wide">
+                        Bot
+                    </Badge>
+                )}
+            </div>
         );
     };
 
@@ -175,21 +188,29 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         // PLAYERS_LIST: No longer needed - mapping is passed as prop from GameRoom
 
         GAME_STARTED: (message) => {
-            console.log("Game started!", message.payload);
-            const currentTurn = message.payload.current_turn as string;
-            const cards = message.payload.cards as string[];
-            const playerList = message.payload.player_list as string[];
-            const cardCounts = (message.payload as any).card_counts as Record<string, number> | undefined;
+            const payload = message.payload as {
+                current_turn?: string;
+                cards?: string[];
+                player_list?: string[];
+                card_counts?: Record<string, number>;
+                last_played_cards?: string[];
+                last_played_by?: string;
+            };
 
-            const lastCards = (message.payload as any).last_played_cards as string[] | undefined;
-            const lastPlayer = (message.payload as any).last_played_by as string | undefined;
+            if (!payload?.current_turn || !Array.isArray(payload.cards) || !Array.isArray(payload.player_list)) {
+                return;
+            }
+
+            const cardCounts = payload.card_counts;
+            const lastCards = payload.last_played_cards;
+            const lastPlayer = payload.last_played_by;
 
             // Reset game state to ensure opponent card counts are correctly initialized
             setGameState(prev => {
                 const nextState = createGameState(
-                    cards,
-                    currentTurn,
-                    playerList,
+                    Array.isArray(payload.cards) ? payload.cards : [],
+                    payload.current_turn || "",
+                    Array.isArray(payload.player_list) ? payload.player_list : [],
                     uuid,
                     Array.isArray(lastCards) ? lastCards : [],
                     lastPlayer || "",
@@ -211,7 +232,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         },
 
         TURN_CHANGE: (message) => {
-            const player = message.payload.player as string;
+            const payload = message.payload as { player?: string };
+            const player = payload?.player;
+            if (!player) {
+                return;
+            }
             setGameState(prev => ({
                 ...prev,
                 currentTurn: player,
@@ -225,10 +250,19 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         },
 
         MOVE_PLAYED: (message) => {
-            const player = message.payload.player as string;
-            const cards = message.payload.cards as string[];
+            const payload = message.payload as {
+                player?: string;
+                cards?: string[];
+                remaining_cards?: number;
+            };
+            const player = payload?.player;
+            const cards = payload?.cards;
             // Use server-provided card count if available (recommended backend change)
-            const serverCardCount = (message.payload as any).remaining_cards as number | undefined;
+            const serverCardCount = payload?.remaining_cards;
+
+            if (!player || !Array.isArray(cards)) {
+                return;
+            }
 
             setGameState(prev => ({
                 ...prev,
@@ -317,9 +351,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     // Set up WebSocket message listener
     useEffect(() => {
         if (socket) {
-            socket.addEventListener("message", (event) => {
+            const messageHandler = (event: MessageEvent) => {
                 processMessage(event.data);
-            });
+            };
+
+            socket.addEventListener("message", messageHandler);
+
+            // Cleanup function to remove event listener
+            return () => {
+                socket.removeEventListener("message", messageHandler);
+            };
         }
     }, [socket]);
 
@@ -436,365 +477,319 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         }));
     };
 
-    // Theme-responsive background styling
-    const containerStyle = {
-        height: '100vh',
-        background: theme === 'light'
-            ? 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'
-            : `
-                linear-gradient(135deg, ${mantineTheme.colors.dark[7]} 0%, ${mantineTheme.colors.dark[6]} 100%),
-                linear-gradient(45deg, rgba(96, 165, 250, 0.05) 25%, transparent 25%), 
-                linear-gradient(-45deg, rgba(96, 165, 250, 0.05) 25%, transparent 25%), 
-                linear-gradient(45deg, transparent 75%, rgba(96, 165, 250, 0.05) 75%), 
-                linear-gradient(-45deg, transparent 75%, rgba(96, 165, 250, 0.05) 75%)
-              `,
-        backgroundSize: theme === 'light'
-            ? '100% 100%'
-            : '100% 100%, 80px 80px, 80px 80px, 80px 80px, 80px 80px',
-        backgroundPosition: theme === 'light'
-            ? '0 0'
-            : '0 0, 0 0, 40px 0, 40px -40px, 0px 40px',
-        padding: 0,
-        transition: 'background 0.3s ease'
+    const getCardCountLabel = (player?: Player) => {
+        if (!player) {
+            return "0 cards";
+        }
+        if (player.cardCount === 0 && gameState.gameWon) {
+            return "WIN";
+        }
+        return `${player.cardCount} cards`;
     };
 
-    return (
-        <Container
-            fluid
-            style={containerStyle}
-        >
-            <Grid
-                style={{ height: '100vh', margin: 0 }}
-                gutter={0}
-            >
-                {/* Top Player */}
-                <Grid.Col span={12} style={{ height: '25%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 10 }}>
-                    <Group gap="lg" align="center">
-                        <Badge
-                            color={gameState.currentTurn === playerPositions.top ? 'yellow' : 'gray'}
-                            size="lg"
-                            style={{
-                                animation: gameState.currentTurn === playerPositions.top ? 'pulse 2s infinite' : 'none',
-                                minHeight: '48px',
-                                padding: '12px 16px',
-                                borderRadius: '12px'
-                            }}
-                        >
-                            <Stack gap={0} align="center">
-                                {renderPlayerName(playerPositions.top, gameState.uuidToName)}
-                                <Text size="xs">
-                                    {topPlayer
-                                        ? topPlayer.cardCount === 0 && gameState.gameWon
-                                            ? "WIN"
-                                            : `${topPlayer.cardCount} cards`
-                                        : "0 cards"}
-                                </Text>
-                                {topPlayer?.hasPassed && (
-                                    <Text size="xs" c="dimmed" fw={600}>PASSED</Text>
-                                )}
-                            </Stack>
-                        </Badge>
-                        <Group gap={2}>
-                            {Array(Math.min(topPlayer?.cardCount ?? 0, 13)).fill(null).map((_, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        width: 45,
-                                        height: 60,
-                                        background: '#1c7ed6',
-                                        border: '1px solid #1864ab',
-                                        borderRadius: 6,
-                                        marginLeft: index > 0 ? -8 : 0,
-                                        position: 'relative',
-                                        zIndex: 13 - index
-                                    }}
-                                />
-                            ))}
-                        </Group>
-                    </Group>
-                </Grid.Col>
+    const renderTopCardBacks = (count?: number) => (
+        <div className="flex items-center gap-0.5">
+            {Array.from({ length: Math.min(count ?? 0, 13) }).map((_, index) => (
+                <div
+                    key={`top-card-${index}`}
+                    className={cn(
+                        "h-10 w-7 rounded border border-blue-600/40 bg-blue-500/90 shadow-sm",
+                        index > 0 && "-ml-2"
+                    )}
+                    style={{ zIndex: 13 - index }}
+                />
+            ))}
+        </div>
+    );
 
-                {/* Middle Row with Left Player, Center, Right Player */}
-                <Grid.Col span={12} style={{ height: '50%', display: 'flex' }}>
-                    {/* Left Player */}
-                    <div style={{ width: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-                        <Badge
-                            color={gameState.currentTurn === playerPositions.left ? 'yellow' : 'gray'}
-                            size="lg"
-                            mb="md"
-                            style={{
-                                animation: gameState.currentTurn === playerPositions.left ? 'pulse 2s infinite' : 'none',
-                                minHeight: '48px',
-                                padding: '12px 16px',
-                                borderRadius: '12px'
-                            }}
-                        >
-                            <Stack gap={0} align="center">
-                                {renderPlayerName(playerPositions.left, gameState.uuidToName)}
-                                <Text size="xs">
-                                    {leftPlayer
-                                        ? leftPlayer.cardCount === 0 && gameState.gameWon
-                                            ? "WIN"
-                                            : `${leftPlayer.cardCount} cards`
-                                        : "0 cards"}
-                                </Text>
-                                {leftPlayer?.hasPassed && (
-                                    <Text size="xs" c="dimmed" fw={600}>PASSED</Text>
+    const renderSideCardBacks = (count?: number) => (
+        <div className="flex flex-col items-center">
+            {Array.from({ length: Math.min(count ?? 0, 13) }).map((_, index) => (
+                <div
+                    key={`side-card-${index}`}
+                    className={cn(
+                        "h-3 w-10 rounded border border-blue-600/40 bg-blue-500/85 shadow-sm",
+                        index > 0 && "-mt-1"
+                    )}
+                    style={{ zIndex: 13 - index }}
+                />
+            ))}
+        </div>
+    );
+
+    const renderPassedTag = (hasPassed?: boolean) => {
+        if (!hasPassed) {
+            return null;
+        }
+
+        return (
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                Passed
+            </span>
+        );
+    };
+
+    const renderLastPlayedCards = () => {
+        if (gameState.lastPlayedCards.length === 0) {
+            return null;
+        }
+
+        const getSuitColorClass = (suit: string) => {
+            switch (suit) {
+                case "H":
+                case "D":
+                    return "text-destructive";
+                case "S":
+                case "C":
+                    return theme === "dark" ? "text-white" : "text-black";
+                default:
+                    return theme === "dark" ? "text-white" : "text-black";
+            }
+        };
+
+        const getSuitSymbol = (suit: string) => {
+            switch (suit) {
+                case "H":
+                    return "♥";
+                case "D":
+                    return "♦";
+                case "S":
+                    return "♠";
+                case "C":
+                    return "♣";
+                default:
+                    return suit;
+            }
+        };
+
+        return (
+            <div className="flex flex-col items-center gap-2">
+                <span className="text-sm uppercase tracking-wide text-muted-foreground">
+                    {gameState.lastPlayedBy === uuid
+                        ? "You played:"
+                        : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played:`}
+                </span>
+                <div className="flex gap-2">
+                    {gameState.lastPlayedCards.map((card, index) => {
+                        const suit = card.slice(-1);
+                        const rank = card.slice(0, -1);
+
+                        return (
+                            <div
+                                key={`${card}-${index}`}
+                                className={cn(
+                                    "flex h-16 w-12 flex-col items-center justify-center rounded border-2 border-border bg-white text-base font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
+                                    getSuitColorClass(suit)
                                 )}
-                            </Stack>
+                            >
+                                <span>{rank}</span>
+                                <span className="text-2xl">{getSuitSymbol(suit)}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    // Theme-responsive background styling
+    const containerClassName = cn(
+        "flex h-full min-h-0 w-full justify-center bg-gradient-to-br",
+        theme === "light"
+            ? "from-slate-50 via-blue-50/60 to-blue-100/70"
+            : "from-slate-950 via-slate-900 to-slate-800",
+        "transition-colors duration-300"
+    );
+
+    return (
+        <div className={containerClassName}>
+            <div className="flex h-full min-h-0 w-full flex-col px-2 py-1">
+                {/* Top Player */}
+                <section className="flex flex-shrink-0 flex-col items-center justify-start gap-0.5 py-0.5">
+                    <div className="flex items-center gap-3">
+                        <Badge
+                            variant={gameState.currentTurn === playerPositions.top ? "secondary" : "outline"}
+                            className={cn(
+                                "flex min-h-[32px] min-w-[100px] flex-col items-center justify-center rounded px-2.5 py-1 text-center text-xs uppercase tracking-wide shadow-sm transition-all",
+                                gameState.currentTurn === playerPositions.top && "animate-pulse border-primary/40 bg-primary/20"
+                            )}
+                        >
+                            <div className="flex flex-col items-center gap-0">
+                                {renderPlayerName(playerPositions.top, gameState.uuidToName, "xs")}
+                                <span className="text-[9px] font-medium text-muted-foreground">
+                                    {getCardCountLabel(topPlayer)}
+                                </span>
+                                {renderPassedTag(topPlayer?.hasPassed)}
+                            </div>
                         </Badge>
-                        <Stack gap={1}>
-                            {Array(Math.min(leftPlayer?.cardCount ?? 0, 13)).fill(null).map((_, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        width: 60,
-                                        height: 20,
-                                        background: '#1c7ed6',
-                                        border: '1px solid #1864ab',
-                                        borderRadius: 4,
-                                        marginTop: index > 0 ? -8 : 0,
-                                        position: 'relative',
-                                        zIndex: 13 - index
-                                    }}
-                                />
-                            ))}
-                        </Stack>
+                        {renderTopCardBacks(topPlayer?.cardCount)}
+                    </div>
+                </section>
+
+                {/* Middle Row */}
+                <section className="flex min-h-0 flex-1 items-center justify-between gap-2 overflow-hidden py-0.5" style={{ minHeight: "180px", maxHeight: "280px" }}>
+                    {/* Left Player */}
+                    <div className="flex w-32 flex-col items-center gap-1.5 rounded bg-white/60 p-2 shadow-sm backdrop-blur dark:bg-slate-800/50">
+                        <Badge
+                            variant={gameState.currentTurn === playerPositions.left ? "secondary" : "outline"}
+                            className={cn(
+                                "flex min-h-[28px] w-full flex-col items-center justify-center rounded px-2 py-1 text-center text-xs uppercase tracking-wide",
+                                gameState.currentTurn === playerPositions.left && "animate-pulse border-primary/40 bg-primary/20"
+                            )}
+                        >
+                            <div className="flex flex-col items-center gap-0">
+                                {renderPlayerName(playerPositions.left, gameState.uuidToName, "xs")}
+                                <span className="text-[9px] font-medium text-muted-foreground">
+                                    {getCardCountLabel(leftPlayer)}
+                                </span>
+                                {renderPassedTag(leftPlayer?.hasPassed)}
+                            </div>
+                        </Badge>
+                        {renderSideCardBacks(leftPlayer?.cardCount)}
                     </div>
 
                     {/* Center Game Area */}
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-                        <Card shadow="md" padding="lg" radius="md" style={{ minWidth: 300, textAlign: 'center' }}>
-                            {gameState.gameWon ? (
-                                <Stack align="center" gap="sm">
-                                    <Text size="xl" fw={700} c="green">
-                                        🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`} 🎉
-                                    </Text>
-                                    <Text size="lg" c="dimmed">Game Over</Text>
-                                    {gameState.countdown > 0 && (
-                                        <Text size="md" c="blue" fw={600}>
-                                            Returning to lobby in {gameState.countdown}...
-                                        </Text>
-                                    )}
-                                </Stack>
-                            ) : (
-                                <Stack align="center" gap="md">
-                                    <Text size="lg" fw={600}>
-                                        {isCurrentTurn ? "Your turn!" : `${getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn`}
-                                    </Text>
-
-                                    {/* Last played cards display */}
-                                    {gameState.lastPlayedCards.length > 0 && (
-                                        <Stack align="center" gap="xs">
-                                            <Text size="sm" c="dimmed">
-                                                {gameState.lastPlayedBy === uuid ? "You played:" : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played:`}
-                                            </Text>
-                                            <Group gap="xs">
-                                                {gameState.lastPlayedCards.map((card, index) => {
-                                                    const suit = card.slice(-1);
-                                                    const rank = card.slice(0, -1);
-
-                                                    const getSuitColor = (suit: string) => {
-                                                        switch (suit) {
-                                                            case 'H':
-                                                            case 'D':
-                                                                return '#ff6b6b';
-                                                            case 'S':
-                                                            case 'C':
-                                                                return '#000000';
-                                                            default:
-                                                                return '#000000';
-                                                        }
-                                                    };
-
-                                                    const getSuitSymbol = (suit: string) => {
-                                                        switch (suit) {
-                                                            case 'H': return '♥';
-                                                            case 'D': return '♦';
-                                                            case 'S': return '♠';
-                                                            case 'C': return '♣';
-                                                            default: return suit;
-                                                        }
-                                                    };
-
-                                                    return (
-                                                        <div
-                                                            key={index}
-                                                            style={{
-                                                                width: 40,
-                                                                height: 55,
-                                                                background: 'white',
-                                                                border: '1px solid #ddd',
-                                                                borderRadius: 4,
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                color: getSuitColor(suit),
-                                                                fontSize: '12px',
-                                                                fontWeight: 'bold'
-                                                            }}
-                                                        >
-                                                            <div>{rank}</div>
-                                                            <div style={{ fontSize: '16px' }}>{getSuitSymbol(suit)}</div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </Group>
-                                        </Stack>
-                                    )}
-                                </Stack>
-                            )}
+                    <div className="flex flex-1 flex-col items-center justify-center">
+                        <Card className="w-full max-w-3xl border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
+                            <CardContent className="flex flex-col items-center gap-4 p-6">
+                                {gameState.gameWon ? (
+                                    <div className="flex flex-col items-center gap-3">
+                                        <p className="text-3xl font-bold text-emerald-500">
+                                            🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`} 🎉
+                                        </p>
+                                        <p className="text-xl text-muted-foreground">Game Over</p>
+                                        {gameState.countdown > 0 && (
+                                            <p className="text-lg font-semibold text-blue-500">
+                                                Returning to lobby in {gameState.countdown}...
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-3">
+                                        <p className="text-xl font-semibold">
+                                            {isCurrentTurn
+                                                ? "Your turn!"
+                                                : `${getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn`}
+                                        </p>
+                                        {renderLastPlayedCards()}
+                                    </div>
+                                )}
+                            </CardContent>
                         </Card>
                     </div>
 
                     {/* Right Player */}
-                    <div style={{ width: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                    <div className="flex w-32 flex-col items-center gap-1.5 rounded bg-white/60 p-2 shadow-sm backdrop-blur dark:bg-slate-800/50">
                         <Badge
-                            color={gameState.currentTurn === playerPositions.right ? 'yellow' : 'gray'}
-                            size="lg"
-                            mb="md"
-                            style={{
-                                animation: gameState.currentTurn === playerPositions.right ? 'pulse 2s infinite' : 'none',
-                                minHeight: '48px',
-                                padding: '12px 16px',
-                                borderRadius: '12px'
-                            }}
+                            variant={gameState.currentTurn === playerPositions.right ? "secondary" : "outline"}
+                            className={cn(
+                                "flex min-h-[28px] w-full flex-col items-center justify-center rounded px-2 py-1 text-center text-xs uppercase tracking-wide",
+                                gameState.currentTurn === playerPositions.right && "animate-pulse border-primary/40 bg-primary/20"
+                            )}
                         >
-                            <Stack gap={0} align="center">
-                                {renderPlayerName(playerPositions.right, gameState.uuidToName)}
-                                <Text size="xs">
-                                    {rightPlayer
-                                        ? rightPlayer.cardCount === 0 && gameState.gameWon
-                                            ? "WIN"
-                                            : `${rightPlayer.cardCount} cards`
-                                        : "0 cards"}
-                                </Text>
-                                {rightPlayer?.hasPassed && (
-                                    <Text size="xs" c="dimmed" fw={600}>PASSED</Text>
-                                )}
-                            </Stack>
-                        </Badge>
-                        <Stack gap={1}>
-                            {Array(Math.min(rightPlayer?.cardCount ?? 0, 13)).fill(null).map((_, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        width: 60,
-                                        height: 20,
-                                        background: '#1c7ed6',
-                                        border: '1px solid #1864ab',
-                                        borderRadius: 4,
-                                        marginTop: index > 0 ? -8 : 0,
-                                        position: 'relative',
-                                        zIndex: 13 - index
-                                    }}
-                                />
-                            ))}
-                        </Stack>
-                    </div>
-                </Grid.Col>
-
-                {/* Bottom Player (Current Player) */}
-                <Grid.Col span={12} style={{ height: '25%' }}>
-                    <Stack gap="xs" p="sm">
-                        {/* Top row with player info centered and sort controls on right */}
-                        <Group justify="space-between" align="center">
-                            <div style={{ width: 120 }}></div> {/* Spacer for balance */}
-
-                            <Badge
-                                color={gameState.currentTurn === uuid ? 'yellow' : 'gray'}
-                                size="lg"
-                                style={{
-                                    animation: gameState.currentTurn === uuid ? 'pulse 2s infinite' : 'none',
-                                    minHeight: '48px',
-                                    padding: '12px 16px',
-                                    borderRadius: '12px'
-                                }}
-                            >
-                                <Stack gap={0} align="center">
-                                    <Text size="xs" fw={700}>{gameState.uuidToName[uuid] || username}</Text>
-                                    <Text size="xs">
-                                        {currentPlayer
-                                            ? currentPlayer.cardCount === 0 && gameState.gameWon
-                                                ? "WIN"
-                                                : `${currentPlayer.cardCount} cards`
-                                            : "0 cards"}
-                                    </Text>
-                                </Stack>
-                            </Badge>
-
-                            <div>
-                                <Text size="xs" c="dimmed" mb={4}>Sort</Text>
-                                <Group gap="xs">
-                                    <Button
-                                        size="xs"
-                                        variant="light"
-                                        onClick={() => handleSortCards('numerical')}
-                                        title="Sort by rank (3 smallest, 2 biggest)"
-                                    >
-                                        Rank
-                                    </Button>
-                                    <Button
-                                        size="xs"
-                                        variant="light"
-                                        onClick={() => handleSortCards('suit')}
-                                        title="Sort by suit (♦♣♥♠)"
-                                    >
-                                        Suit
-                                    </Button>
-                                </Group>
+                            <div className="flex flex-col items-center gap-0">
+                                {renderPlayerName(playerPositions.right, gameState.uuidToName, "xs")}
+                                <span className="text-[9px] font-medium text-muted-foreground">
+                                    {getCardCountLabel(rightPlayer)}
+                                </span>
+                                {renderPassedTag(rightPlayer?.hasPassed)}
                             </div>
-                        </Group>
+                        </Badge>
+                        {renderSideCardBacks(rightPlayer?.cardCount)}
+                    </div>
+                </section>
 
-                        {/* Player's Hand */}
+                {/* Bottom Player */}
+                <section className="mt-auto flex flex-shrink-0 flex-col gap-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSortCards("numerical")}
+                                title="Sort by rank (3 smallest, 2 biggest)"
+                                className="h-8 px-3 text-xs"
+                            >
+                                Rank
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSortCards("suit")}
+                                title="Sort by suit (♦♣♥♠)"
+                                className="h-8 px-3 text-xs"
+                            >
+                                Suit
+                            </Button>
+                        </div>
+                        <Badge
+                            variant={gameState.currentTurn === uuid ? "secondary" : "outline"}
+                            className={cn(
+                                "flex min-h-[36px] min-w-[120px] flex-col items-center justify-center rounded-lg px-3 py-2 text-center text-xs uppercase tracking-wide",
+                                gameState.currentTurn === uuid && !gameState.gameWon && "animate-pulse border-primary/40 bg-primary/20"
+                            )}
+                        >
+                            <span className="text-xs font-semibold">
+                                {gameState.uuidToName[uuid] || username}
+                            </span>
+                            <span className="text-[10px] font-medium text-muted-foreground">
+                                {getCardCountLabel(currentPlayer)}
+                            </span>
+                        </Badge>
+                        <div className="w-32" aria-hidden />
+                    </div>
+
+                    <div className="flex justify-center">
                         <PlayerHand
                             cards={currentPlayer?.cards || []}
                             selectedCards={gameState.selectedCards}
                             onCardClick={handleCardClick}
                             onCardsReorder={handleCardsReorder}
                         />
+                    </div>
 
-                        {/* Game Action Buttons - Centered below hand */}
-                        <Group justify="center" gap="lg" mt="sm">
-                            <Button
-                                size="lg"
-                                color={theme === 'dark' && gameState.selectedCards.length > 0 && isCurrentTurn && !gameState.gameWon ? 'green' : undefined}
-                                onClick={handlePlayCards}
-                                disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || gameState.gameWon}
-                                style={{ minWidth: 120 }}
-                            >
-                                Play
-                                {gameState.selectedCards.length > 0 && (
-                                    <Text component="span" size="sm" ml={4}>({gameState.selectedCards.length})</Text>
-                                )}
-                            </Button>
-                            <Button
-                                size="lg"
-                                variant="light"
-                                onClick={handleDeselectAll}
-                                disabled={gameState.selectedCards.length === 0}
-                                title={gameState.selectedCards.length === 0 ? "No cards selected" : "Deselect all selected cards"}
-                                style={{ minWidth: 120 }}
-                            >
-                                Clear selection
-                            </Button>
-                            <Button
-                                size="lg"
-                                variant="light"
-                                color="orange"
-                                onClick={handlePass}
-                                disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
-                                title={gameState.gameWon ? "Game is over" : !isCurrentTurn ? "Not your turn" : gameState.lastPlayedCards.length === 0 ? "Cannot pass on first move" : "Pass your turn"}
-                                style={{ minWidth: 120 }}
-                            >
-                                Pass
-                            </Button>
-                        </Group>
-                    </Stack>
-                </Grid.Col>
-            </Grid>
-        </Container>
+                    <div className="flex flex-wrap items-center justify-center gap-3 pb-1">
+                        <Button
+                            className="min-w-[120px]"
+                            size="lg"
+                            onClick={handlePlayCards}
+                            disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || gameState.gameWon}
+                        >
+                            Play
+                            {gameState.selectedCards.length > 0 && (
+                                <span className="ml-2 text-sm font-medium">({gameState.selectedCards.length})</span>
+                            )}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="min-w-[120px]"
+                            size="lg"
+                            onClick={handleDeselectAll}
+                            disabled={gameState.selectedCards.length === 0}
+                            title={gameState.selectedCards.length === 0 ? "No cards selected" : "Deselect all selected cards"}
+                        >
+                            Clear
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="min-w-[120px] border-orange-400 text-orange-600 hover:bg-orange-50 dark:border-orange-500 dark:text-orange-300 dark:hover:bg-orange-500/10"
+                            size="lg"
+                            onClick={handlePass}
+                            disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
+                            title={gameState.gameWon
+                                ? "Game is over"
+                                : !isCurrentTurn
+                                    ? "Not your turn"
+                                    : gameState.lastPlayedCards.length === 0
+                                        ? "Cannot pass on first move"
+                                        : "Pass your turn"}
+                        >
+                            Pass
+                        </Button>
+                    </div>
+                </section>
+            </div>
+        </div>
     );
 };
 

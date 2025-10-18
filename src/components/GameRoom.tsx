@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { connectToRoomWebSocket } from "../services/socket";
 import { getStoredSession } from "../services/session";
-import { RoomResponse, addBotToRoom, removeBotFromRoom } from '../services/api';
-import { Container, Stack, Title, Button, Center, Group, Select, Badge, Text, Paper, ActionIcon } from "@mantine/core";
-import { IconRobot, IconTrash } from "@tabler/icons-react";
+import { RoomResponse, addBotToRoom, removeBotFromRoom } from "../services/api";
+import { Button } from "./ui/button";
+import { cn } from "../lib/utils";
 import ChatBox from "./ChatBox";
 import PlayerList from "./PlayerList";
 import GameScreen from "./GameScreen";
@@ -33,6 +33,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     const [chatMessages, setChatMessages] = useState<UserChatMessage[]>([]);
     const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
+    const [hostUuid, setHostUuid] = useState<string | undefined>(undefined);
     const [gameStarted, setGameStarted] = useState(false);
     const [gameData, setGameData] = useState<{
         cards: string[],
@@ -61,8 +62,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     // WebSocket message handlers
     const messageHandlers = useRef<Record<string, MessageHandler>>({
         CHAT: (message) => {
-            const senderUuid = (message.payload as any).sender_uuid as string;
-            const content = (message.payload as any).content as string;
+            const payload = message.payload as { sender_uuid?: string; content?: string };
+            const senderUuid = payload?.sender_uuid;
+            const content = payload?.content;
+            if (!senderUuid || typeof content !== "string") {
+                return;
+            }
 
             setChatMessages(prevMessages => ([
                 ...prevMessages,
@@ -74,23 +79,38 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         },
 
         PLAYERS_LIST: (message) => {
-            const mapping = (message.payload as any).mapping as Record<string, string> | undefined;
-            const botUuidsFromServer = (message.payload as any).bot_uuids as string[] | undefined;
+            const payload = message.payload as { mapping?: Record<string, string>; bot_uuids?: string[] };
+            const mapping = payload?.mapping;
+            const botUuidsFromServer = payload?.bot_uuids;
 
             if (mapping) {
                 setUuidToName(mapping);
                 const foundSelf = Object.keys(mapping).find((uuid) => mapping[uuid] === username);
                 if (foundSelf) setSelfUuid(foundSelf);
 
+                setHostUuid((currentHostUuid) => {
+                    if (currentHostUuid && mapping[currentHostUuid]) {
+                        return currentHostUuid;
+                    }
+
+                    const derivedHost = Object.entries(mapping).find(([, name]) => name === hostName)?.[0];
+                    return derivedHost ?? currentHostUuid;
+                });
+
                 // Use bot UUIDs from server if available
-                if (botUuidsFromServer && Array.isArray(botUuidsFromServer)) {
+                if (Array.isArray(botUuidsFromServer)) {
                     setBotUuids(new Set(botUuidsFromServer));
                 }
             }
         },
 
         LEAVE: (message) => {
-            const leftPlayerUuid = (message.payload as any).player as string;
+            const payload = message.payload as { player?: string };
+            const leftPlayerUuid = payload?.player;
+            if (!leftPlayerUuid) {
+                return;
+            }
+
             console.log(`Player left: ${leftPlayerUuid}`);
 
             setUuidToName(currentMapping => {
@@ -108,10 +128,16 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         },
 
         HOST_CHANGE: (message) => {
-            const newHost = (message.payload as any).host as string;
+            const payload = message.payload as { host?: string };
+            const newHost = payload?.host;
+            if (!newHost) {
+                return;
+            }
+
             console.log(`New host: ${newHost}`);
             const hostDisplayName = uuidToName[newHost] || (newHost === selfUuid ? username : newHost);
             setHostName(hostDisplayName);
+            setHostUuid(newHost);
 
             // Add system message to chat
             const targetName = newHost === selfUuid ? username : hostDisplayName;
@@ -128,19 +154,24 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
             ]));
         },
         GAME_STARTED: (message) => {
-            console.log("GAME_STARTED message received", message.payload);
-            const cards = (message.payload as any).cards as string[];
-            const currentTurn = (message.payload as any).current_turn as string;
-            const playerList = (message.payload as any).player_list as string[];
-            const lastPlayedCards = (message.payload as any).last_played_cards as string[] | undefined;
-            const lastPlayedBy = (message.payload as any).last_played_by as string | undefined;
+            const payload = message.payload as {
+                cards?: string[];
+                current_turn?: string;
+                player_list?: string[];
+                last_played_cards?: string[];
+                last_played_by?: string;
+            };
+
+            if (!Array.isArray(payload?.cards) || !Array.isArray(payload?.player_list) || !payload?.current_turn) {
+                return;
+            }
 
             setGameData({
-                cards,
-                currentTurn,
-                playerList,
-                lastPlayedCards,
-                lastPlayedBy,
+                cards: payload.cards,
+                currentTurn: payload.current_turn,
+                playerList: payload.player_list,
+                lastPlayedCards: payload.last_played_cards,
+                lastPlayedBy: payload.last_played_by,
             });
             setGameStarted(true);
         },
@@ -148,10 +179,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         // Game message handlers
         MOVE: () => console.log("MOVE message received"),
         MOVE_PLAYED: (message) => {
-            const playerUuid = (message.payload as any).player as string;
-            const cards = (message.payload as any).cards as string[];
+            const payload = message.payload as { player?: string; cards?: unknown };
+            const playerUuid = payload?.player;
+            const cards = Array.isArray(payload?.cards) ? (payload?.cards as string[]) : undefined;
 
-            if (Array.isArray(cards) && cards.length > 0) {
+            if (cards && cards.length > 0 && playerUuid) {
                 setGameData(prev => prev ? {
                     ...prev,
                     lastPlayedCards: cards,
@@ -160,12 +192,21 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
             }
         },
         TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
-        ERROR: (message) => console.error("Error from server:", (message.payload as any).message),
+        ERROR: (message) => {
+            const payload = message.payload as { message?: string };
+            console.error("Error from server:", payload?.message);
+        },
 
         // Bot message handlers
         BOT_ADDED: (message) => {
-            const botUuid = (message.payload as any).bot_uuid as string;
-            const botName = (message.payload as any).bot_name as string;
+            const payload = message.payload as { bot_uuid?: string; bot_name?: string };
+            const botUuid = payload?.bot_uuid;
+            const botName = payload?.bot_name ?? "Bot";
+
+            if (!botUuid) {
+                return;
+            }
+
             console.log(`Bot added: ${botName} (${botUuid})`);
 
             setBotUuids(prev => new Set([...prev, botUuid]));
@@ -181,7 +222,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         },
 
         BOT_REMOVED: (message) => {
-            const botUuid = (message.payload as any).bot_uuid as string;
+            const payload = message.payload as { bot_uuid?: string };
+            const botUuid = payload?.bot_uuid;
+
+            if (!botUuid) {
+                return;
+            }
+
             console.log(`Bot removed: ${botUuid}`);
 
             setBotUuids(prev => {
@@ -337,12 +384,31 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         }
     }, [roomId]);
 
+    const handleKickPlayer = useCallback((playerUuid: string) => {
+        console.log("Kick player clicked", playerUuid);
+        setChatMessages(prevMessages => ([
+            ...prevMessages,
+            {
+                senderUuid: "SYSTEM",
+                content: "Player removal is coming soon."
+            }
+        ]));
+    }, []);
+
     // Check if current user is the host using UUID mapping
     // Find the UUID that maps to the current username and see if that UUID maps to the host
-    const currentUserUuid = selfUuid || Object.keys(uuidToName).find(uuid => uuidToName[uuid] === username);
-    const hostUuid = Object.keys(uuidToName).find(uuid => uuidToName[uuid] === hostName);
-    const isHost = currentUserUuid && hostUuid && currentUserUuid === hostUuid;
-    const canStartGame = Object.keys(uuidToName).length === 4;
+    const playerUuids = useMemo(() => Object.keys(uuidToName), [uuidToName]);
+    const currentUserUuid = selfUuid || playerUuids.find(uuid => uuidToName[uuid] === username);
+    const derivedHostUuid = useMemo(() => {
+        if (hostUuid) {
+            return hostUuid;
+        }
+
+        return playerUuids.find(uuid => uuidToName[uuid] === hostName);
+    }, [hostUuid, playerUuids, uuidToName, hostName]);
+    const isHost = Boolean(currentUserUuid && derivedHostUuid && currentUserUuid === derivedHostUuid);
+    const canStartGame = playerUuids.length === 4;
+    const canAddBot = !gameStarted && playerUuids.length < 4;
 
     const handleReturnToLobby = () => {
         console.log("Returning to lobby after game");
@@ -367,92 +433,54 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
 
     // Otherwise show the home/room interface
     return (
-        <Container size="lg" py="xl" style={{ minHeight: 'calc(100vh - 60px)' }}>
-            <Stack align="center" gap="lg" style={{ maxWidth: 1000, margin: '0 auto' }}>
-                <Title order={2} c="blue">Game Room {roomId}</Title>
+        <div className="flex h-[calc(100vh-60px)] w-full flex-col overflow-hidden px-4 py-6">
+            <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden">
+                <header className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-blue-600">Game Room {roomId}</h2>
+                </header>
 
-                <PlayerList players={Object.keys(uuidToName)} currentPlayer={username} host={hostName} mapping={uuidToName} botUuids={botUuids} />
+                <div className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-6 overflow-hidden md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                    <div className="flex flex-col gap-6 overflow-auto pr-2">
+                        <PlayerList
+                            players={playerUuids}
+                            mapping={uuidToName}
+                            botUuids={botUuids}
+                            currentUserUuid={currentUserUuid}
+                            currentUsername={username}
+                            hostUuid={derivedHostUuid}
+                            isHost={isHost}
+                            addingBot={addingBot}
+                            botDifficulty={botDifficulty}
+                            canAddBot={canAddBot}
+                            onBotDifficultyChange={setBotDifficulty}
+                            onAddBot={handleAddBot}
+                            onRemoveBot={handleRemoveBot}
+                            onKickPlayer={handleKickPlayer}
+                        />
 
-                {isHost && !gameStarted && (
-                    <Paper p="md" withBorder style={{ width: '100%', maxWidth: 600 }}>
-                        <Stack gap="md">
-                            <Group justify="space-between">
-                                <Text fw={600} size="sm">Bot Controls</Text>
-                                <Badge color="blue" variant="light" leftSection={<IconRobot size={14} />}>
-                                    {botUuids.size} Bot{botUuids.size !== 1 ? 's' : ''}
-                                </Badge>
-                            </Group>
-
-                            <Group gap="xs">
-                                <Select
-                                    value={botDifficulty}
-                                    onChange={(value) => setBotDifficulty(value as "easy" | "medium" | "hard")}
-                                    data={[
-                                        { value: 'easy', label: 'Easy' },
-                                        { value: 'medium', label: 'Medium' },
-                                        { value: 'hard', label: 'Hard' },
-                                    ]}
-                                    style={{ flex: 1 }}
-                                    disabled={addingBot}
-                                />
+                        {isHost && (
+                            <div className="flex justify-center">
                                 <Button
-                                    onClick={handleAddBot}
-                                    loading={addingBot}
-                                    disabled={Object.keys(uuidToName).length >= 4}
-                                    leftSection={<IconRobot size={18} />}
+                                    size="lg"
+                                    onClick={handleStartGame}
+                                    disabled={!canStartGame}
+                                    className={cn(
+                                        "min-w-[200px]",
+                                        canStartGame ? "bg-green-500 hover:bg-green-600" : "bg-slate-300 text-slate-500"
+                                    )}
                                 >
-                                    Add Bot
+                                    {canStartGame ? "Start Game" : "Waiting for players..."}
                                 </Button>
-                            </Group>
+                            </div>
+                        )}
+                    </div>
 
-                            {botUuids.size > 0 && (
-                                <Stack gap="xs">
-                                    <Text size="xs" c="dimmed">Current Bots:</Text>
-                                    {Array.from(botUuids).map(botUuid => (
-                                        <Paper key={botUuid} p="xs" withBorder>
-                                            <Group justify="space-between">
-                                                <Group gap="xs">
-                                                    <IconRobot size={16} />
-                                                    <Text size="sm">{uuidToName[botUuid] || botUuid}</Text>
-                                                </Group>
-                                                <ActionIcon
-                                                    color="red"
-                                                    variant="subtle"
-                                                    onClick={() => handleRemoveBot(botUuid)}
-                                                    size="sm"
-                                                >
-                                                    <IconTrash size={16} />
-                                                </ActionIcon>
-                                            </Group>
-                                        </Paper>
-                                    ))}
-                                </Stack>
-                            )}
-                        </Stack>
-                    </Paper>
-                )}
-
-                {isHost && (
-                    <Center>
-                        <Button
-                            size="lg"
-                            color={canStartGame ? 'green' : 'gray'}
-                            onClick={handleStartGame}
-                            disabled={!canStartGame}
-                            style={{
-                                width: 200,
-                                transform: canStartGame ? 'none' : 'none',
-                                transition: 'all 0.3s ease'
-                            }}
-                        >
-                            {canStartGame ? 'Start Game' : 'Waiting for Players...'}
-                        </Button>
-                    </Center>
-                )}
-
-                <ChatBox messages={displayMessages} onSendMessage={sendChatMessage} />
-            </Stack>
-        </Container>
+                    <div className="flex min-h-0 flex-col overflow-hidden">
+                        <ChatBox messages={displayMessages} onSendMessage={sendChatMessage} />
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
 

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background -->
+  <rect width="128" height="128" rx="16" fill="#1a1a1a"/>
+
+  <!-- Card shape -->
+  <rect x="24" y="16" width="80" height="96" rx="8" fill="white"/>
+
+  <!-- Top left "2" -->
+  <text x="36" y="40" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#000">2</text>
+
+  <!-- Top left spade -->
+  <text x="36" y="56" font-family="Arial, sans-serif" font-size="16" fill="#000">♠</text>
+
+  <!-- Center large spade -->
+  <text x="64" y="76" font-family="Arial, sans-serif" font-size="48" fill="#000" text-anchor="middle">♠</text>
+
+  <!-- Bottom right "2" (rotated) -->
+  <text x="92" y="108" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#000" transform="rotate(180 92 100)">2</text>
+
+  <!-- Bottom right spade (rotated) -->
+  <text x="92" y="92" font-family="Arial, sans-serif" font-size="16" fill="#000" transform="rotate(180 92 86)">♠</text>
+</svg>

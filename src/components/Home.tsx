@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { createRoom, getRooms, RoomResponse } from "../services/api";
-import { Container, Card, Group, Title, Button, ActionIcon, Table, Text, Stack, ScrollArea } from "@mantine/core";
+import { RefreshCw } from "lucide-react";
+import { Card, CardContent } from "./ui/card";
+import { Button } from "./ui/button";
+import { ScrollArea } from "./ui/scroll-area";
+import { Badge } from "./ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { cn } from "../lib/utils";
 
 interface HomeProps {
     onJoinRoom: (roomId: string) => void;
@@ -28,76 +34,78 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
     }
 
     return (
-        <Container size={600} py="xl" style={{ minHeight: 'calc(100vh - 60px)' }}>
-            <div style={{ textAlign: 'center', width: '100%' }}>
-                <Card shadow="md" padding="xl" radius="md" style={{ display: 'inline-block', textAlign: 'left', width: '100%', maxWidth: 560 }}>
-                    <Stack gap="lg">
-                        <Group justify="space-between" align="center">
-                            <Title order={2}>Available Rooms</Title>
-                            <ActionIcon
-                                onClick={fetchRooms}
-                                variant="light"
-                                size="lg"
-                                title="Refresh rooms"
-                                style={{ '&:hover': { transform: 'rotate(180deg)', transition: 'transform 0.2s' } }}
-                            >
-                                ↻
-                            </ActionIcon>
-                        </Group>
-
+        <div className="flex min-h-[calc(100vh-60px)] items-start justify-center px-4 py-8">
+            <Card className="w-full max-w-[600px]">
+                <CardContent className="space-y-6 p-8">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold">Available Rooms</h2>
                         <Button
-                            onClick={handleCreateRoom}
-                            color="green"
-                            size="md"
-                            fullWidth
+                            onClick={fetchRooms}
+                            variant="outline"
+                            size="icon"
+                            title="Refresh rooms"
+                            className="transition-transform hover:rotate-180"
                         >
-                            Create Room
+                            <RefreshCw className="h-5 w-5" />
                         </Button>
+                    </div>
 
-                        <ScrollArea h={400}>
-                            {rooms.length === 0 ? (
-                                <Text ta="center" c="dimmed" py="xl" fs="italic">
-                                    No available rooms. Create one!
-                                </Text>
-                            ) : (
-                                <Table striped highlightOnHover>
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Room ID</Table.Th>
-                                            <Table.Th>Status</Table.Th>
-                                            <Table.Th>Players</Table.Th>
-                                            <Table.Th>Action</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
-                                        {rooms.map((room) => (
-                                            <Table.Tr key={room.id}>
-                                                <Table.Td>{room.id}</Table.Td>
-                                                <Table.Td>
-                                                    <Text c={room.status === 'waiting' ? 'green' : 'orange'}>
-                                                        {room.status}
-                                                    </Text>
-                                                </Table.Td>
-                                                <Table.Td>{room.player_count}/4</Table.Td>
-                                                <Table.Td>
-                                                    <Button
-                                                        onClick={() => onJoinRoom(room.id)}
-                                                        size="sm"
-                                                        variant="light"
-                                                    >
-                                                        Join
-                                                    </Button>
-                                                </Table.Td>
-                                            </Table.Tr>
-                                        ))}
-                                    </Table.Tbody>
-                                </Table>
-                            )}
-                        </ScrollArea>
-                    </Stack>
-                </Card>
-            </div>
-        </Container>
+                    <Button
+                        onClick={handleCreateRoom}
+                        className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                        size="lg"
+                    >
+                        Create Room
+                    </Button>
+
+                    <ScrollArea className="h-[400px] rounded-md border">
+                        {rooms.length === 0 ? (
+                            <p className="py-12 text-center italic text-muted-foreground">
+                                No available rooms. Create one!
+                            </p>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Room ID</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Players</TableHead>
+                                        <TableHead>Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {rooms.map((room) => (
+                                        <TableRow key={room.id}>
+                                            <TableCell className="font-medium">{room.id}</TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={room.status === 'waiting' ? 'default' : 'secondary'}
+                                                    className={cn(
+                                                        room.status === 'waiting' && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                                                    )}
+                                                >
+                                                    {room.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>{room.player_count}/4</TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    onClick={() => onJoinRoom(room.id)}
+                                                    size="sm"
+                                                    variant="secondary"
+                                                >
+                                                    Join
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 

@@ -36,18 +36,21 @@ npm install
 - **React Router DOM** for client-side routing
 - **Axios** for REST API communication
 - **Native WebSocket API** for real-time game communication
-- **Mantine UI** component library with theming
-- **@tabler/icons-react** for icons
-- **@emotion/react** for CSS-in-JS styling
+- **Tailwind CSS** for utility-first styling
+- **shadcn/ui** component library (built on Radix UI primitives)
+- **lucide-react** for icons
+- **class-variance-authority** and **tailwind-merge** for component variants
 
 ### Application Structure
 ```
 src/
 ├── components/          # React components organized by feature
+│   └── ui/             # shadcn/ui components (button, card, badge, alert, etc.)
 ├── contexts/           # React contexts for global state
 ├── services/           # API and WebSocket communication layers
 ├── hooks/              # Custom React hooks
 ├── utils/              # Helper functions and utilities
+├── lib/                # Utility functions (cn for class merging)
 ├── types.d.ts          # Generated types from backend OpenAPI spec
 ├── types.websocket.d.ts # Generated WebSocket message types
 └── App.tsx             # Main application component with routing
@@ -61,7 +64,7 @@ src/
 - Main application entry point with routing logic
 - Manages global error states and game state transitions
 - Handles navigation between lobby and game rooms
-- Wraps application in `ThemeProvider` and manages session context
+- Manages session context and dark mode theming
 
 #### GameRoom.tsx (src/components/GameRoom.tsx:29)
 - Central component for the game room experience
@@ -90,6 +93,34 @@ src/
 - **Header.tsx**: Navigation header with user info and back button
 - **RoomContainer.tsx**: Wrapper component managing room details and game state
 
+## Styling Architecture
+
+### Tailwind CSS Configuration
+- **Config file**: `tailwind.config.js` with custom theme extensions
+- **Dark mode**: Class-based strategy (`darkMode: ["class"]`)
+- **CSS variables**: HSL-based color system for theme consistency
+- **Plugins**: `tailwindcss-animate` for animations
+
+### Component Styling Patterns
+- **Utility-first**: Use Tailwind classes directly in JSX
+- **Class merging**: Use `cn()` utility from `lib/utils.ts` to conditionally merge classes
+- **Component variants**: Use `class-variance-authority` (cva) for complex component variations
+- **shadcn/ui components**: Pre-styled, accessible components in `components/ui/`
+
+### Color System
+The app uses CSS variables for theming with HSL values:
+- `--background`, `--foreground`: Base colors
+- `--primary`, `--secondary`, `--accent`: Brand colors
+- `--muted`, `--destructive`: Semantic colors
+- `--card`, `--border`, `--input`: UI element colors
+- All colors support light/dark mode variants
+
+### Dark Mode Implementation
+- Toggle via `ThemeContext` which adds/removes `dark` class on document root
+- Tailwind's `dark:` variant for dark mode styles
+- All colors defined with CSS variables that change based on theme
+- Persistent preference stored in localStorage
+
 ## State Management
 
 ### Context Providers
@@ -104,7 +135,7 @@ Manages user authentication and session state:
 #### ThemeContext (src/contexts/ThemeContext.tsx:13)
 Manages dark/light theme switching:
 - Persistent theme preference in localStorage
-- Document-level CSS custom property updates
+- Toggles `dark` class on document root for Tailwind dark mode
 - Theme toggle functionality
 - Used by: Components needing theme-aware styling
 
@@ -191,7 +222,8 @@ Dynamic 4-player layout calculation:
 1. Create component in appropriate `components/` subdirectory
 2. Import and use existing contexts (`SessionContext`, `ThemeContext`)
 3. Follow existing naming patterns and TypeScript interfaces
-4. Use CSS modules or component-specific CSS files
+4. Use Tailwind utility classes for styling
+5. For reusable UI components, consider adding to `components/ui/` following shadcn patterns
 
 ### Handling New WebSocket Messages
 1. Add message type to `types.websocket.d.ts` (usually auto-generated)
@@ -209,11 +241,20 @@ Dynamic 4-player layout calculation:
 The backend supports AI bots via `POST /room/{room_id}/bot/add` endpoint. Bots appear as regular players in the game and play automatically.
 
 ### Styling Updates
-1. Use Mantine components and theming system for consistent UI
-2. Custom styles go in component-specific CSS files when needed
-3. Global styles and CSS variables in `index.css`
-4. Theme-aware styles use Mantine's MantineProvider and CSS custom properties
-5. Follow Mantine design system patterns and spacing
+1. Use Tailwind utility classes for styling components
+2. Use shadcn/ui components from `components/ui/` for common UI elements
+3. Global styles and CSS custom properties in `index.css`
+4. Dark mode support via Tailwind's `dark:` variant (class-based strategy)
+5. Use `cn()` utility from `lib/utils.ts` to merge Tailwind classes conditionally
+6. Component variants managed with `class-variance-authority` (cva)
+7. Follow shadcn/ui component patterns for consistency
+
+### Adding shadcn/ui Components
+To add new shadcn/ui components:
+```bash
+npx shadcn@latest add <component-name>
+```
+This will automatically add the component to `src/components/ui/` with proper styling and TypeScript types.
 
 ## Testing Strategy
 
@@ -223,6 +264,28 @@ Currently the frontend relies on manual testing and integration testing with the
 - **Game progression**: Full game from start to win condition
 - **Real-time features**: WebSocket message handling and UI updates
 - **Card interactions**: Drag-and-drop, selection, sorting functionality
+
+## UI Framework Migration
+
+The frontend is currently migrating from Mantine UI to Tailwind CSS + shadcn/ui:
+
+### Migration Status
+- **In Progress**: Components are being gradually migrated to use Tailwind and shadcn/ui
+- **Coexistence**: Both Mantine and Tailwind dependencies may be present during migration
+- **Target**: Complete migration to Tailwind + shadcn/ui for better customization and smaller bundle size
+
+### Why Tailwind + shadcn/ui?
+- **Utility-first**: More flexible and customizable styling approach
+- **Smaller bundle**: No runtime CSS-in-JS overhead
+- **Better DX**: Faster development with utility classes
+- **Copy-paste components**: shadcn/ui components are owned by the project, not a dependency
+- **Better TypeScript**: Full type safety with component variants via CVA
+
+### During Migration
+- Prefer using Tailwind classes for new components
+- Use shadcn/ui components from `components/ui/` when available
+- Existing Mantine components will be gradually replaced
+- Run `npx shadcn@latest add <component>` to add new UI components
 
 ## Build and Deployment
 
