@@ -52,7 +52,7 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
 
                     <Button
                         onClick={handleCreateRoom}
-                        className="w-full bg-green-600 hover:bg-green-700"
+                        className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
                         size="lg"
                     >
                         Create Room
@@ -81,7 +81,7 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                                                 <Badge
                                                     variant={room.status === 'waiting' ? 'default' : 'secondary'}
                                                     className={cn(
-                                                        room.status === 'waiting' && "bg-green-600 hover:bg-green-700"
+                                                        room.status === 'waiting' && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
                                                     )}
                                                 >
                                                     {room.status}

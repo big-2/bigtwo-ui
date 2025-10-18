@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { WebSocketMessage } from "../types.websocket";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType } from "../utils/cardSorting";
-import { IconRobot } from "@tabler/icons-react";
+import { Bot } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -64,7 +64,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
         return (
             <div className="flex items-center justify-center gap-1.5 text-foreground">
-                {isBot && <IconRobot className={cn("text-muted-foreground", size === "xs" ? "h-3 w-3" : size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4")} />}
+                {isBot && <Bot className={cn("text-muted-foreground", size === "xs" ? "h-3 w-3" : size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4")} />}
                 <span className={cn("font-semibold", {
                     "text-xs": size === "xs",
                     "text-sm": size === "sm",
@@ -541,9 +541,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     return "text-destructive";
                 case "S":
                 case "C":
-                    return "text-foreground";
+                    return theme === "dark" ? "text-white" : "text-black";
                 default:
-                    return "text-foreground";
+                    return theme === "dark" ? "text-white" : "text-black";
             }
         };
 

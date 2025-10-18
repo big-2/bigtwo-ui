@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { cn } from "../lib/utils";
+import { useThemeContext } from "../contexts/ThemeContext";
 
 interface CardProps {
     card: string;
@@ -32,19 +33,21 @@ const Card: React.FC<CardProps> = ({
     width,
     height
 }) => {
+    const { theme } = useThemeContext();
+    const isDarkMode = theme === "dark";
     const suit = card.slice(-1);
     const rank = card.slice(0, -1);
 
-    const getSuitColor = (suit: string) => {
+    const getSuitColor = (suit: string, isDarkMode: boolean) => {
         switch (suit) {
             case 'H':
             case 'D':
                 return '#ff6b6b';
             case 'S':
             case 'C':
-                return '#000000';
+                return isDarkMode ? '#ffffff' : '#000000';
             default:
-                return '#000000';
+                return isDarkMode ? '#ffffff' : '#000000';
         }
     };
 
@@ -117,13 +120,13 @@ const Card: React.FC<CardProps> = ({
         >
             <span
                 className={cn(rankFontSize, "font-bold")}
-                style={{ color: getSuitColor(suit) }}
+                style={{ color: getSuitColor(suit, isDarkMode) }}
             >
                 {rank}
             </span>
             <span
                 className={suitFontSize}
-                style={{ color: getSuitColor(suit) }}
+                style={{ color: getSuitColor(suit, isDarkMode) }}
             >
                 {getSuitSymbol(suit)}
             </span>

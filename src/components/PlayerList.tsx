@@ -1,5 +1,5 @@
 import React from "react";
-import { IconRobot, IconTrash } from "@tabler/icons-react";
+import { Bot, Trash2 } from "lucide-react";
 
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -82,7 +82,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                         <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="flex items-center gap-1">
-                                <IconRobot size={16} />
+                                <Bot className="h-4 w-4" />
                                 {botUuids.size} bot{botUuids.size === 1 ? "" : "s"}
                             </Badge>
                         </div>
@@ -137,7 +137,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                             )}
                         >
                             <div className="flex items-center gap-3">
-                                {isBot && <IconRobot aria-hidden className="h-4 w-4 text-muted-foreground" />}
+                                {isBot && <Bot aria-hidden className="h-4 w-4 text-muted-foreground" />}
                                 <span className="text-sm font-medium text-foreground">{displayName}</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -151,7 +151,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                         onClick={() => handleRemovePlayer(uuid, isBot)}
                                         aria-label={isBot ? `Remove bot ${displayName}` : `Remove player ${displayName}`}
                                     >
-                                        <IconTrash className="h-4 w-4" />
+                                        <Trash2 className="h-4 w-4" />
                                         <span className="sr-only">Remove</span>
                                     </Button>
                                 )}
