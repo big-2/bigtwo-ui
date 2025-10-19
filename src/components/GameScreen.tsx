@@ -552,10 +552,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         ? "You played:"
                         : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played:`}
                 </span>
-                <span className="block text-[10px] uppercase tracking-wide text-muted-foreground md:hidden">
+                <span className="block max-w-[4rem] truncate text-[10px] uppercase tracking-wide text-muted-foreground md:hidden">
                     {gameState.lastPlayedBy === uuid
                         ? "You"
-                        : getDisplayName(gameState.lastPlayedBy, gameState.uuidToName).slice(0, 8)}
+                        : getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)}
                 </span>
                 <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                     {gameState.lastPlayedCards.map((card, index) => {
@@ -708,7 +708,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 {/* Middle Row - Mobile layout */}
                 <section className="flex min-h-[200px] flex-1 items-center gap-1 overflow-y-auto py-2 md:hidden">
                     {/* Left Player - Mobile compact (rotated vertically) */}
-                    <div className="flex flex-shrink-0 items-center justify-center" style={{ writingMode: 'vertical-rl' }}>
+                    <div className="flex flex-shrink-0 items-center justify-center writing-mode-vertical-rl">
                         <Badge
                             variant={gameState.currentTurn === playerPositions.left ? "secondary" : "outline"}
                             className={cn(
@@ -720,7 +720,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 {leftPlayer?.cardCount || 0}
                             </Badge>
                             <div className="flex items-center gap-0.5">
-                                <span className="font-semibold">{getDisplayName(playerPositions.left, gameState.uuidToName).slice(0, 8)}</span>
+                                <span className="max-w-[4rem] truncate font-semibold">{getDisplayName(playerPositions.left, gameState.uuidToName)}</span>
                                 {botUuids.has(playerPositions.left) && (
                                     <Badge variant="secondary" className="px-1 py-0 text-[8px] uppercase">Bot</Badge>
                                 )}
@@ -761,7 +761,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
 
                     {/* Right Player - Mobile compact (rotated vertically) */}
-                    <div className="flex flex-shrink-0 items-center justify-center" style={{ writingMode: 'vertical-rl' }}>
+                    <div className="flex flex-shrink-0 items-center justify-center writing-mode-vertical-rl">
                         <Badge
                             variant={gameState.currentTurn === playerPositions.right ? "secondary" : "outline"}
                             className={cn(
@@ -774,8 +774,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 {rightPlayer?.cardCount || 0}
                             </Badge>
                             <div className="flex items-center gap-0.5">
-                                <span className="font-semibold">
-                                    {getDisplayName(playerPositions.right, gameState.uuidToName).slice(0, 8)}
+                                <span className="max-w-[4rem] truncate font-semibold">
+                                    {getDisplayName(playerPositions.right, gameState.uuidToName)}
                                 </span>
                                 {botUuids.has(playerPositions.right) && (
                                     <Badge variant="secondary" className="px-1 py-0 text-[8px] uppercase">Bot</Badge>
@@ -858,7 +858,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 gameState.currentTurn === uuid && !gameState.gameWon && "animate-pulse border-primary/40 bg-primary/20"
                             )}
                         >
-                            <span className="truncate">{(gameState.uuidToName[uuid] || username).slice(0, 10)}</span>
+                            <span className="max-w-[5rem] truncate">{gameState.uuidToName[uuid] || username}</span>
                             <Badge variant="outline" className="h-4 px-1 text-[9px]">
                                 {currentPlayer?.cardCount || 0}
                             </Badge>

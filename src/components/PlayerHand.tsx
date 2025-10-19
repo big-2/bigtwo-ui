@@ -1,6 +1,21 @@
 import React, { useState, useRef } from "react";
 import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
+import { useIsMobile } from "../hooks/useMediaQuery";
+
+// Card dimension constants for responsive sizing
+const CARD_DIMENSIONS = {
+  mobile: {
+    width: 55,
+    height: 77,
+    gap: -35, // Negative gap creates overlapping effect to save space
+  },
+  desktop: {
+    width: 90,
+    height: 126,
+    gap: 12,
+  },
+} as const;
 
 interface CardProps {
     card: string;
@@ -159,28 +174,15 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
     const [isDragBatch, setIsDragBatch] = useState<boolean>(false);
     const handRef = useRef<HTMLDivElement>(null);
-    const [isMobile, setIsMobile] = useState<boolean>(false);
+
+    // Use media query hook for mobile detection (aligns with Tailwind's md breakpoint)
+    const isMobile = useIsMobile();
 
     // Debounce timer for drag leave
     const dragLeaveTimerRef = useRef<number | null>(null);
 
-    // Check if we're on mobile (screen width < 768px)
-    React.useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
-
-    // Responsive card dimensions
-    // Mobile: smaller cards with negative gap for overlapping
-    // Desktop: larger cards with normal spacing
-    const cardDimensions = isMobile
-        ? { width: 55, height: 77, gap: -35 }  // Overlapping by 35px on mobile
-        : { width: 90, height: 126, gap: 12 };
+    // Responsive card dimensions based on screen size
+    const cardDimensions = isMobile ? CARD_DIMENSIONS.mobile : CARD_DIMENSIONS.desktop;
 
     const handleDragStart = (card: string, index: number) => {
         setDraggedIndex(index);
