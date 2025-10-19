@@ -91,22 +91,23 @@ const Card: React.FC<CardProps> = ({
         onDragLeave(e);
     };
 
-    // Fixed font sizes for player's cards (always larger)
-    const rankFontSize = 'text-lg';
-    const suitFontSize = 'text-3xl';
+    // Responsive font sizes based on card height
+    const rankFontSize = height < 90 ? 'text-sm' : 'text-lg';
+    const suitFontSize = height < 90 ? 'text-xl' : 'text-3xl';
 
     return (
         <div
             className={cn(
                 "relative flex cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 bg-white transition-all duration-200 dark:bg-slate-900",
-                isSelected ? "-translate-y-4 border-primary" : "border-slate-200 dark:border-slate-700",
+                isSelected ? "-translate-y-4 border-primary shadow-lg" : "border-slate-200 dark:border-slate-700",
                 isDragging && "opacity-80",
                 isDropTarget && "ring-2 ring-offset-2 ring-primary/60"
             )}
             style={{
                 width: `${width}px`,
                 height: `${height}px`,
-                minWidth: `${width}px`
+                minWidth: `${width}px`,
+                zIndex: isSelected ? 100 : 10 + index
             }}
             onClick={() => onClick(card)}
             onDragStart={handleDragStart}
@@ -158,12 +159,28 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
     const [isDragBatch, setIsDragBatch] = useState<boolean>(false);
     const handRef = useRef<HTMLDivElement>(null);
+    const [isMobile, setIsMobile] = useState<boolean>(false);
 
     // Debounce timer for drag leave
     const dragLeaveTimerRef = useRef<number | null>(null);
 
-    // Fixed card dimensions for player's hand - always larger and consistent
-    const cardDimensions = { width: 90, height: 126, gap: 12 };
+    // Check if we're on mobile (screen width < 768px)
+    React.useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Responsive card dimensions
+    // Mobile: smaller cards with negative gap for overlapping
+    // Desktop: larger cards with normal spacing
+    const cardDimensions = isMobile
+        ? { width: 55, height: 77, gap: -35 }  // Overlapping by 35px on mobile
+        : { width: 90, height: 126, gap: 12 };
 
     const handleDragStart = (card: string, index: number) => {
         setDraggedIndex(index);
@@ -307,8 +324,16 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     return (
         <div
             ref={handRef}
-            className="flex flex-nowrap justify-center rounded-xl border border-slate-200/60 bg-white/50 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40"
-            style={{ gap: `${cardDimensions.gap}px` }}
+            className={cn(
+                "flex w-full flex-nowrap overflow-x-auto rounded-xl border border-slate-200/60 bg-white/50 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40",
+                isMobile ? "justify-start" : "justify-center"
+            )}
+            style={{
+                gap: `${cardDimensions.gap}px`,
+                // On mobile with overlapping, need padding to prevent cut-off
+                paddingLeft: isMobile ? '20px' : undefined,
+                paddingRight: isMobile ? '20px' : undefined
+            }}
             onDragOver={handleHandDragOver}
             onDrop={handleHandDrop}
         >
