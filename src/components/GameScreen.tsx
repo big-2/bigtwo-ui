@@ -303,6 +303,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
         GAME_WON: (message) => {
             const winner = message.payload.winner as string;
+            const winningHand = Array.isArray(message.payload.winning_hand)
+                ? (message.payload.winning_hand as string[])
+                : [];
             console.log(`Game won by ${winner}!`);
 
             setGameState(prev => {
@@ -317,6 +320,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     players: updatedPlayers,
                     gameWon: true,
                     winner: winner,
+                    lastPlayedCards: winningHand.length > 0 ? winningHand : prev.lastPlayedCards,
+                    lastPlayedBy: winner,
                     countdown: 5, // Start 5-second countdown
                 };
             });
@@ -515,11 +520,15 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         );
     };
 
-    const renderLastPlayedCards = () => {
+    const renderLastPlayedCards = (options: {
+        labelOverride?: string;
+        mobileLabelOverride?: string;
+    } = {}) => {
         if (gameState.lastPlayedCards.length === 0) {
             return null;
         }
 
+        const { labelOverride, mobileLabelOverride } = options;
         const getSuitColorClass = (suit: string) => {
             switch (suit) {
                 case "H":
@@ -548,17 +557,18 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             }
         };
 
+        const displayName = getDisplayName(gameState.lastPlayedBy, gameState.uuidToName);
+        const isSelfPlay = gameState.lastPlayedBy === uuid;
+        const desktopLabel = labelOverride ?? (isSelfPlay ? "You played:" : `${displayName} played:`);
+        const mobileLabel = mobileLabelOverride ?? (isSelfPlay ? "You" : displayName.slice(0, 8));
+
         return (
             <div className="flex flex-col items-center gap-2">
                 <span className="hidden text-sm uppercase tracking-wide text-muted-foreground md:block">
-                    {gameState.lastPlayedBy === uuid
-                        ? "You played:"
-                        : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played:`}
+                    {desktopLabel}
                 </span>
-                <span className="block max-w-[4rem] truncate text-[10px] uppercase tracking-wide text-muted-foreground md:hidden">
-                    {gameState.lastPlayedBy === uuid
-                        ? "You"
-                        : getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)}
+                <span className="block text-[10px] uppercase tracking-wide text-muted-foreground md:hidden">
+                    {mobileLabel}
                 </span>
                 <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                     {gameState.lastPlayedCards.map((card, index) => {
@@ -667,6 +677,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                             🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`} 🎉
                                         </p>
                                         <p className="text-xl text-muted-foreground">Game Over</p>
+                                        {gameState.lastPlayedBy === gameState.winner && renderLastPlayedCards({
+                                            labelOverride: gameState.winner === uuid
+                                                ? "Your winning hand:"
+                                                : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s winning hand:`,
+                                            mobileLabelOverride: gameState.winner === uuid
+                                                ? "You"
+                                                : getDisplayName(gameState.winner, gameState.uuidToName).slice(0, 8),
+                                        })}
                                         {gameState.countdown > 0 && (
                                             <p className="text-lg font-semibold text-blue-500">
                                                 Returning to lobby in {gameState.countdown}...
