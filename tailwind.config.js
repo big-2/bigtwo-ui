@@ -56,6 +56,15 @@ export default {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    function({ addUtilities }) {
+      addUtilities({
+        '.writing-mode-vertical-rl': {
+          'writing-mode': 'vertical-rl',
+        },
+      })
+    },
+  ],
 }
 
