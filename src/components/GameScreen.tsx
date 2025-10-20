@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { WebSocketMessage } from "../types.websocket";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType } from "../utils/cardSorting";
@@ -379,8 +379,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     const currentPlayer = gameState.players.find(p => p.name === uuid);
     const isCurrentTurn = gameState.currentTurn === uuid && !gameState.gameWon;
 
-    // Get player positions based on player list
-    const playerPositions = getPlayerPositions(gameState.playerList, uuid);
+    // Get player positions based on player list (memoized to prevent unnecessary recalculations)
+    const playerPositions = useMemo(
+        () => getPlayerPositions(gameState.playerList, uuid),
+        [gameState.playerList, uuid]
+    );
     const topPlayer = playerPositions.top ? gameState.players.find(p => p.name === playerPositions.top) : undefined;
     const leftPlayer = playerPositions.left ? gameState.players.find(p => p.name === playerPositions.left) : undefined;
     const rightPlayer = playerPositions.right ? gameState.players.find(p => p.name === playerPositions.right) : undefined;

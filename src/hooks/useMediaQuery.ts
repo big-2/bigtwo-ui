@@ -6,15 +6,17 @@ import { useState, useEffect } from 'react';
  * @returns boolean indicating if the media query matches
  */
 export const useMediaQuery = (query: string): boolean => {
-  const [matches, setMatches] = useState(false);
+  const [matches, setMatches] = useState(() => {
+    // Initialize from window.matchMedia to prevent hydration mismatch
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia(query).matches;
+  });
 
   useEffect(() => {
     const media = window.matchMedia(query);
 
-    // Set initial value
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
+    // Set initial value (in case window wasn't available during useState init)
+    setMatches(media.matches);
 
     // Create listener for changes
     const listener = () => setMatches(media.matches);
@@ -23,7 +25,7 @@ export const useMediaQuery = (query: string): boolean => {
     media.addEventListener('change', listener);
 
     return () => media.removeEventListener('change', listener);
-  }, [matches, query]);
+  }, [query]); // Only query in dependencies, not matches
 
   return matches;
 };
