@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { WebSocketMessage } from "../types.websocket";
 import PlayerHand from "./PlayerHand";
-import { sortSelectedCards, SortType } from "../utils/cardSorting";
+import { sortSelectedCards, SortType, findCardsByRank } from "../utils/cardSorting";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 
 interface GameScreenProps {
     username: string; // display name for current client
@@ -46,10 +47,14 @@ interface GameState {
     winner: string; // Track who won the game
     countdown: number; // Countdown seconds after game won
     uuidToName: Record<string, string>; // UUID to username mapping
+    focusedCardIndex: number | null; // Track which card has keyboard focus (cursor)
 }
 
 const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initialGameData, mapping, botUuids = new Set(), onReturnToLobby }) => {
     const { theme } = useThemeContext();
+
+    // Track cycling state for cards with same rank
+    const rankCycleIndexRef = useRef<Record<string, number>>({});
 
     // Helper function to get display name from UUID or return the original value if it's already a username
     const getDisplayName = (uuidOrName: string, mapping: Record<string, string>) => {
@@ -140,6 +145,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             winner: "",
             countdown: 0,
             uuidToName: {},
+            focusedCardIndex: null,
         };
     };
 
@@ -170,6 +176,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             winner: "",
             countdown: 0,
             uuidToName: mapping,
+            focusedCardIndex: null,
         };
     });
 
@@ -262,11 +269,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 return;
             }
 
-            setGameState(prev => ({
-                ...prev,
-                lastPlayedCards: cards.length > 0 ? cards : prev.lastPlayedCards,
-                lastPlayedBy: cards.length > 0 ? player : prev.lastPlayedBy,
-                players: prev.players.map(p => {
+            setGameState(prev => {
+                const isCurrentPlayerMove = player === uuid && cards.length > 0;
+                const updatedPlayers = prev.players.map(p => {
                     if (p.name !== player) {
                         return p;
                     }
@@ -297,8 +302,23 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         cardCount: updatedCount,
                         hasPassed: false,
                     };
-                }),
-            }));
+                });
+
+                // Reset focusedCardIndex when current player's cards change, or if it's out of bounds
+                const newCardCount = isCurrentPlayerMove
+                    ? updatedPlayers.find(p => p.isCurrentPlayer)?.cardCount || 0
+                    : prev.players.find(p => p.isCurrentPlayer)?.cardCount || 0;
+                const shouldResetFocus = isCurrentPlayerMove ||
+                    (prev.focusedCardIndex !== null && prev.focusedCardIndex >= newCardCount);
+
+                return {
+                    ...prev,
+                    lastPlayedCards: cards.length > 0 ? cards : prev.lastPlayedCards,
+                    lastPlayedBy: cards.length > 0 ? player : prev.lastPlayedBy,
+                    players: updatedPlayers,
+                    focusedCardIndex: shouldResetFocus ? null : prev.focusedCardIndex,
+                };
+            });
         },
 
         GAME_WON: (message) => {
@@ -418,6 +438,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             return {
                 ...prev,
                 players: updatedPlayers,
+                // Reset focus when cards are reordered to prevent stale index
+                focusedCardIndex: null,
             };
         });
     };
@@ -443,6 +465,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 ...prev,
                 players: updatedPlayers,
                 selectedCards: [], // Clear selection after sorting
+                focusedCardIndex: null, // Reset focus when cards are reordered
             };
         });
     };
@@ -462,7 +485,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         setGameState(prev => ({
             ...prev,
             selectedCards: [],
+            focusedCardIndex: 0, // Reset focus to first card after playing
         }));
+        // Reset rank cycle tracking when playing cards
+        rankCycleIndexRef.current = {};
     };
 
     const handlePass = () => {
@@ -481,7 +507,248 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             ...prev,
             selectedCards: [],
         }));
+        // Reset rank cycle tracking when clearing selection
+        rankCycleIndexRef.current = {};
     };
+
+    const handleEscape = () => {
+        setGameState(prev => ({
+            ...prev,
+            focusedCardIndex: null,
+        }));
+    };
+
+    // Keyboard shortcut handlers
+    const handleRankKeyPress = useCallback((rank: string) => {
+        const currentPlayerCards = currentPlayer?.cards || [];
+        const matchingCards = findCardsByRank(currentPlayerCards, rank);
+
+        if (matchingCards.length === 0) {
+            return; // No cards with this rank
+        }
+
+        // Get current cycle index for this rank (default to 0)
+        const currentIndex = rankCycleIndexRef.current[rank] || 0;
+
+        // Stack behavior: if we've cycled through all cards, pop the first one
+        if (currentIndex >= matchingCards.length) {
+            const firstCardToRemove = matchingCards[0];
+
+            setGameState(prev => ({
+                ...prev,
+                selectedCards: prev.selectedCards.filter(card => card !== firstCardToRemove),
+            }));
+
+            // Reset cycle to start from index 0 again
+            rankCycleIndexRef.current[rank] = 0;
+            return;
+        }
+
+        // Select the card at the current cycle index
+        const cardToSelect = matchingCards[currentIndex];
+        const cardIndexInHand = currentPlayerCards.indexOf(cardToSelect);
+
+        setGameState(prev => {
+            const isAlreadySelected = prev.selectedCards.includes(cardToSelect);
+
+            if (!isAlreadySelected) {
+                return {
+                    ...prev,
+                    selectedCards: [...prev.selectedCards, cardToSelect],
+                    focusedCardIndex: cardIndexInHand, // Move cursor to selected card
+                };
+            }
+
+            return {
+                ...prev,
+                focusedCardIndex: cardIndexInHand, // Move cursor even if already selected
+            };
+        });
+
+        // Increment cycle index for next press
+        rankCycleIndexRef.current[rank] = currentIndex + 1;
+    }, [currentPlayer?.cards]);
+
+    const handleArrowKeyScroll = useCallback((direction: "left" | "right", heldRank: string | null) => {
+        const currentPlayerCards = currentPlayer?.cards || [];
+        if (currentPlayerCards.length === 0) return;
+
+        // Case 1: Holding a rank key - scroll through cards of that rank
+        if (heldRank) {
+            const matchingCards = findCardsByRank(currentPlayerCards, heldRank);
+
+            if (matchingCards.length === 0) return;
+
+            // Get current cycle index
+            const currentIndex = rankCycleIndexRef.current[heldRank] || 0;
+
+            // Calculate new index based on direction
+            let newIndex = currentIndex;
+            if (direction === "right") {
+                newIndex = Math.min(currentIndex + 1, matchingCards.length);
+            } else if (direction === "left") {
+                newIndex = Math.max(currentIndex - 1, 0);
+            }
+
+            // Update cycle index
+            rankCycleIndexRef.current[heldRank] = newIndex;
+
+            // If index went beyond available cards, don't change selection
+            if (newIndex >= matchingCards.length) {
+                return;
+            }
+
+            // Deselect all cards with this rank, then select only the one at new index
+            const cardAtNewIndex = matchingCards[newIndex];
+            const cardIndexInHand = currentPlayerCards.indexOf(cardAtNewIndex);
+
+            setGameState(prev => {
+                const filteredSelection = prev.selectedCards.filter(
+                    card => !matchingCards.includes(card)
+                );
+
+                return {
+                    ...prev,
+                    selectedCards: [...filteredSelection, cardAtNewIndex],
+                    focusedCardIndex: cardIndexInHand,
+                };
+            });
+        } else {
+            // Case 2: Standalone arrow key navigation - just move cursor
+            setGameState(prev => {
+                let newIndex: number;
+
+                if (prev.focusedCardIndex === null) {
+                    // No cursor yet: start from leftmost (right) or rightmost (left)
+                    newIndex = direction === "right" ? 0 : currentPlayerCards.length - 1;
+                } else {
+                    // Move cursor based on direction
+                    newIndex = direction === "right"
+                        ? prev.focusedCardIndex + 1
+                        : prev.focusedCardIndex - 1;
+
+                    // Boundary check - don't wrap
+                    if (newIndex < 0 || newIndex >= currentPlayerCards.length) {
+                        return prev;
+                    }
+                }
+
+                return {
+                    ...prev,
+                    focusedCardIndex: newIndex,
+                };
+            });
+        }
+    }, [currentPlayer?.cards]);
+
+    const handleSpacebarPress = useCallback(() => {
+        const currentPlayerCards = currentPlayer?.cards || [];
+
+        setGameState(prev => {
+            // If no card is focused, do nothing
+            if (prev.focusedCardIndex === null || prev.focusedCardIndex >= currentPlayerCards.length) {
+                return prev;
+            }
+
+            const focusedCard = currentPlayerCards[prev.focusedCardIndex];
+
+            // Toggle selection
+            if (prev.selectedCards.includes(focusedCard)) {
+                return {
+                    ...prev,
+                    selectedCards: prev.selectedCards.filter(c => c !== focusedCard),
+                };
+            } else {
+                return {
+                    ...prev,
+                    selectedCards: [...prev.selectedCards, focusedCard],
+                };
+            }
+        });
+    }, [currentPlayer?.cards]);
+
+    const handleUpArrowPress = useCallback(() => {
+        const currentPlayerCards = currentPlayer?.cards || [];
+
+        setGameState(prev => {
+            // If no card is focused, do nothing
+            if (prev.focusedCardIndex === null || prev.focusedCardIndex >= currentPlayerCards.length) {
+                return prev;
+            }
+
+            const focusedCard = currentPlayerCards[prev.focusedCardIndex];
+
+            // Select card (only if not already selected)
+            if (!prev.selectedCards.includes(focusedCard)) {
+                return {
+                    ...prev,
+                    selectedCards: [...prev.selectedCards, focusedCard],
+                };
+            }
+
+            return prev;
+        });
+    }, [currentPlayer?.cards]);
+
+    const handleDownArrowPress = useCallback(() => {
+        const currentPlayerCards = currentPlayer?.cards || [];
+
+        setGameState(prev => {
+            // If no card is focused, do nothing
+            if (prev.focusedCardIndex === null || prev.focusedCardIndex >= currentPlayerCards.length) {
+                return prev;
+            }
+
+            const focusedCard = currentPlayerCards[prev.focusedCardIndex];
+
+            // Deselect card (only if selected)
+            if (prev.selectedCards.includes(focusedCard)) {
+                return {
+                    ...prev,
+                    selectedCards: prev.selectedCards.filter(c => c !== focusedCard),
+                };
+            }
+
+            return prev;
+        });
+    }, [currentPlayer?.cards]);
+
+    // Detect if desktop (md breakpoint = 768px)
+    const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+
+    useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+
+        const handleResize = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                setIsDesktop(window.innerWidth >= 768);
+            }, 100);
+        };
+
+        window.addEventListener("resize", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            clearTimeout(timeoutId);
+        };
+    }, []);
+
+    // Integrate keyboard shortcuts hook
+    useKeyboardShortcuts({
+        onRankKey: handleRankKeyPress,
+        onArrowKey: handleArrowKeyScroll,
+        onUpArrow: handleUpArrowPress,
+        onDownArrow: handleDownArrowPress,
+        onSpacebar: handleSpacebarPress,
+        onEnter: handlePlayCards,
+        onBackspace: handleDeselectAll,
+        onPass: handlePass,
+        onEscape: handleEscape,
+        isEnabled: isDesktop,
+        isCurrentTurn: isCurrentTurn,
+        gameWon: gameState.gameWon,
+        canPass: gameState.lastPlayedCards.length > 0,
+    });
 
     const getCardCountLabel = (player?: Player) => {
         if (!player) {
@@ -890,6 +1157,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         <PlayerHand
                             cards={currentPlayer?.cards || []}
                             selectedCards={gameState.selectedCards}
+                            focusedCardIndex={gameState.focusedCardIndex}
                             onCardClick={handleCardClick}
                             onCardsReorder={handleCardsReorder}
                         />
@@ -930,7 +1198,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                     ? "Not your turn"
                                     : gameState.lastPlayedCards.length === 0
                                         ? "Cannot pass on first move"
-                                        : "Pass your turn"}
+                                        : "Pass your turn (or press P key)"}
                         >
                             Pass
                         </Button>
