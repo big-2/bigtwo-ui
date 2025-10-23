@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 interface KeyboardState {
     currentKey: string | null;
     isHolding: boolean;
-    holdDuration: number;
 }
 
 interface UseKeyboardShortcutsOptions {
@@ -21,6 +20,10 @@ interface UseKeyboardShortcutsOptions {
     gameWon: boolean; // Disable when game is won
     canPass: boolean; // Can pass (requires lastPlayedCards.length > 0)
 }
+
+// Arrow key repeat timing constants
+const ARROW_KEY_REPEAT_INTERVAL = 100; // Repeat every 100ms
+const ARROW_KEY_INITIAL_DELAY = 300; // Initial delay of 300ms before repeating
 
 // Map keyboard keys to card ranks
 const KEY_TO_RANK: Record<string, string> = {
@@ -48,7 +51,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
     const keyboardStateRef = useRef<KeyboardState>({
         currentKey: null,
         isHolding: false,
-        holdDuration: 0,
     });
     const arrowRepeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const arrowRepeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -98,7 +100,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                     keyboardStateRef.current = {
                         currentKey: rank,
                         isHolding: true,
-                        holdDuration: 0,
                     };
                     latestOnRankKey(rank);
                 }
@@ -139,9 +140,9 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                                 if (heldArrowKeyRef.current === direction) {
                                     latestOnArrowKey(direction, heldRankKeyRef.current);
                                 }
-                            }, 100); // Repeat every 100ms
+                            }, ARROW_KEY_REPEAT_INTERVAL);
                         }
-                    }, 300); // Initial delay of 300ms
+                    }, ARROW_KEY_INITIAL_DELAY);
                 }
             }
 
@@ -196,7 +197,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                 keyboardStateRef.current = {
                     currentKey: null,
                     isHolding: false,
-                    holdDuration: 0,
                 };
             }
 

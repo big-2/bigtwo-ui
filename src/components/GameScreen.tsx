@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { WebSocketMessage } from "../types.websocket";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType, findCardsByRank } from "../utils/cardSorting";
@@ -269,11 +269,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 return;
             }
 
-            setGameState(prev => ({
-                ...prev,
-                lastPlayedCards: cards.length > 0 ? cards : prev.lastPlayedCards,
-                lastPlayedBy: cards.length > 0 ? player : prev.lastPlayedBy,
-                players: prev.players.map(p => {
+            setGameState(prev => {
+                const isCurrentPlayerMove = player === uuid && cards.length > 0;
+                const updatedPlayers = prev.players.map(p => {
                     if (p.name !== player) {
                         return p;
                     }
@@ -304,8 +302,23 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         cardCount: updatedCount,
                         hasPassed: false,
                     };
-                }),
-            }));
+                });
+
+                // Reset focusedCardIndex when current player's cards change, or if it's out of bounds
+                const newCardCount = isCurrentPlayerMove
+                    ? updatedPlayers.find(p => p.isCurrentPlayer)?.cardCount || 0
+                    : prev.players.find(p => p.isCurrentPlayer)?.cardCount || 0;
+                const shouldResetFocus = isCurrentPlayerMove ||
+                    (prev.focusedCardIndex !== null && prev.focusedCardIndex >= newCardCount);
+
+                return {
+                    ...prev,
+                    lastPlayedCards: cards.length > 0 ? cards : prev.lastPlayedCards,
+                    lastPlayedBy: cards.length > 0 ? player : prev.lastPlayedBy,
+                    players: updatedPlayers,
+                    focusedCardIndex: shouldResetFocus ? null : prev.focusedCardIndex,
+                };
+            });
         },
 
         GAME_WON: (message) => {
@@ -425,6 +438,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             return {
                 ...prev,
                 players: updatedPlayers,
+                // Reset focus when cards are reordered to prevent stale index
+                focusedCardIndex: null,
             };
         });
     };
@@ -450,6 +465,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 ...prev,
                 players: updatedPlayers,
                 selectedCards: [], // Clear selection after sorting
+                focusedCardIndex: null, // Reset focus when cards are reordered
             };
         });
     };
@@ -471,6 +487,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             selectedCards: [],
             focusedCardIndex: 0, // Reset focus to first card after playing
         }));
+        // Reset rank cycle tracking when playing cards
+        rankCycleIndexRef.current = {};
     };
 
     const handlePass = () => {
@@ -501,7 +519,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     };
 
     // Keyboard shortcut handlers
-    const handleRankKeyPress = (rank: string) => {
+    const handleRankKeyPress = useCallback((rank: string) => {
         const currentPlayerCards = currentPlayer?.cards || [];
         const matchingCards = findCardsByRank(currentPlayerCards, rank);
 
@@ -549,9 +567,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
         // Increment cycle index for next press
         rankCycleIndexRef.current[rank] = currentIndex + 1;
-    };
+    }, [currentPlayer?.cards]);
 
-    const handleArrowKeyScroll = (direction: "left" | "right", heldRank: string | null) => {
+    const handleArrowKeyScroll = useCallback((direction: "left" | "right", heldRank: string | null) => {
         const currentPlayerCards = currentPlayer?.cards || [];
         if (currentPlayerCards.length === 0) return;
 
@@ -621,9 +639,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 };
             });
         }
-    };
+    }, [currentPlayer?.cards]);
 
-    const handleSpacebarPress = () => {
+    const handleSpacebarPress = useCallback(() => {
         const currentPlayerCards = currentPlayer?.cards || [];
 
         setGameState(prev => {
@@ -647,9 +665,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 };
             }
         });
-    };
+    }, [currentPlayer?.cards]);
 
-    const handleUpArrowPress = () => {
+    const handleUpArrowPress = useCallback(() => {
         const currentPlayerCards = currentPlayer?.cards || [];
 
         setGameState(prev => {
@@ -670,9 +688,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
             return prev;
         });
-    };
+    }, [currentPlayer?.cards]);
 
-    const handleDownArrowPress = () => {
+    const handleDownArrowPress = useCallback(() => {
         const currentPlayerCards = currentPlayer?.cards || [];
 
         setGameState(prev => {
@@ -693,18 +711,26 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
             return prev;
         });
-    };
+    }, [currentPlayer?.cards]);
 
     // Detect if desktop (md breakpoint = 768px)
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
     useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+
         const handleResize = () => {
-            setIsDesktop(window.innerWidth >= 768);
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                setIsDesktop(window.innerWidth >= 768);
+            }, 100);
         };
 
         window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            clearTimeout(timeoutId);
+        };
     }, []);
 
     // Integrate keyboard shortcuts hook
