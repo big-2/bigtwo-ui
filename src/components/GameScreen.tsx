@@ -8,6 +8,15 @@ import { Card, CardContent } from "./ui/card";
 import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { HelpCircle } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "./ui/dialog";
 
 interface GameScreenProps {
     username: string; // display name for current client
@@ -872,6 +881,86 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
     return (
         <div className={containerClassName}>
+            {/* Keyboard Shortcuts Help Button - Fixed position in top-right corner */}
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="fixed right-2 top-2 z-50 h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:h-10 md:w-10"
+                        title="Keyboard shortcuts"
+                    >
+                        <HelpCircle className="h-4 w-4 md:h-5 md:w-5" />
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Keyboard Shortcuts</DialogTitle>
+                        <DialogDescription>
+                            Use these shortcuts to play more efficiently (desktop only)
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                        {/* Card Selection */}
+                        <div>
+                            <h4 className="mb-2 font-semibold text-sm">Card Selection</h4>
+                            <div className="space-y-1.5 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Move cursor left/right</span>
+                                    <div className="flex gap-1">
+                                        <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">←</kbd>
+                                        <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">→</kbd>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Select focused card</span>
+                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">↑</kbd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Deselect focused card</span>
+                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">↓</kbd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Toggle selection</span>
+                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Space</kbd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Clear focus</span>
+                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Esc</kbd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Clear selection</span>
+                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Backspace</kbd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Select card by rank</span>
+                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">2-9, T (10), J, Q, K, A</kbd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Cycle through same rank</span>
+                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Press again</kbd>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div>
+                            <h4 className="mb-2 font-semibold text-sm">Actions</h4>
+                            <div className="space-y-1.5 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Play selected cards</span>
+                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Enter</kbd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Pass turn</span>
+                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">P</kbd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <div className="flex h-full min-h-0 w-full flex-col px-2 py-1">
                 {/* Top Player - Desktop layout */}
                 <section className="hidden flex-shrink-0 flex-col items-center justify-start gap-0.5 py-0.5 md:flex">
