@@ -20,6 +20,7 @@ const CARD_DIMENSIONS = {
 interface CardProps {
     card: string;
     isSelected: boolean;
+    isFocused: boolean;
     onClick: (card: string) => void;
     onDragStart: (card: string, index: number) => void;
     onDragOver: (e: React.DragEvent, index: number) => void;
@@ -36,6 +37,7 @@ interface CardProps {
 const Card: React.FC<CardProps> = ({
     card,
     isSelected,
+    isFocused,
     onClick,
     onDragStart,
     onDragOver,
@@ -115,6 +117,7 @@ const Card: React.FC<CardProps> = ({
             className={cn(
                 "relative flex cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 bg-white transition-all duration-200 dark:bg-slate-900",
                 isSelected ? "-translate-y-4 border-primary shadow-lg" : "border-slate-200 dark:border-slate-700",
+                isFocused && "ring-[3px] ring-amber-500 ring-offset-2 dark:ring-amber-400",
                 isDragging && "opacity-80",
                 isDropTarget && "ring-2 ring-offset-2 ring-primary/60"
             )}
@@ -159,6 +162,7 @@ const Card: React.FC<CardProps> = ({
 interface PlayerHandProps {
     cards: string[];
     selectedCards: string[];
+    focusedCardIndex?: number | null;
     onCardClick: (card: string) => void;
     onCardsReorder: (newOrder: string[]) => void;
 }
@@ -166,6 +170,7 @@ interface PlayerHandProps {
 const PlayerHand: React.FC<PlayerHandProps> = ({
     cards,
     selectedCards,
+    focusedCardIndex = null,
     onCardClick,
     onCardsReorder
 }) => {
@@ -341,6 +346,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
         >
             {cards.map((card, index) => {
                 const isSelected = selectedCards.includes(card);
+                const isFocused = focusedCardIndex === index;
                 const isDragging = draggedCards.includes(card);
                 const isDropTarget = dropTargetIndex === index;
 
@@ -349,6 +355,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
                         key={card}
                         card={card}
                         isSelected={isSelected}
+                        isFocused={isFocused}
                         onClick={onCardClick}
                         onDragStart={handleDragStart}
                         onDragOver={handleDragOver}

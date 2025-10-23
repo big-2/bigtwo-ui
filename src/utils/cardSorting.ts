@@ -134,4 +134,19 @@ export function sortSelectedCards(
     });
 
     return result;
+}
+
+// Find all cards in hand that match a given rank, sorted by suit (lowest to highest)
+export function findCardsByRank(cards: string[], rank: string): string[] {
+    const matchingCards = cards.filter(card => {
+        const parsed = parseCard(card);
+        return parsed.rank === rank;
+    });
+
+    // Sort by suit: D < C < H < S
+    return matchingCards.sort((a, b) => {
+        const cardA = parseCard(a);
+        const cardB = parseCard(b);
+        return getSuitValue(cardA.suit) - getSuitValue(cardB.suit);
+    });
 } 
