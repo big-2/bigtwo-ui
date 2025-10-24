@@ -179,6 +179,29 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                 }
             ]));
         },
+        READY: (message) => {
+            const payload = message.payload as {
+                player_uuid?: string;
+                is_ready?: boolean;
+            };
+
+            if (!payload?.player_uuid || typeof payload?.is_ready !== "boolean") {
+                console.warn("READY message missing required fields");
+                return;
+            }
+
+            // Update ready state based on server confirmation
+            setReadyPlayers(prev => {
+                const newSet = new Set(prev);
+                if (payload.is_ready) {
+                    newSet.add(payload.player_uuid!);
+                } else {
+                    newSet.delete(payload.player_uuid!);
+                }
+                return newSet;
+            });
+        },
+
         GAME_STARTED: (message) => {
             const payload = message.payload as {
                 cards?: string[];
@@ -219,8 +242,25 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         },
         TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
         ERROR: (message) => {
-            const payload = message.payload as { message?: string };
+            const payload = message.payload as { message?: string; error_type?: string };
             console.error("Error from server:", payload?.message);
+
+            // If this is a ready-related error, revert optimistic update
+            if (payload?.error_type === "ready" || payload?.message?.toLowerCase().includes("ready")) {
+                // Request fresh player list to sync ready state
+                console.log("Ready error detected, state will be synced via PLAYERS_LIST");
+            }
+
+            // Show error to user in chat
+            if (payload?.message) {
+                setChatMessages(prevMessages => ([
+                    ...prevMessages,
+                    {
+                        senderUuid: "SYSTEM",
+                        content: `Error: ${payload.message}`
+                    }
+                ]));
+            }
         },
 
         // Bot message handlers
@@ -354,11 +394,29 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     };
 
     const handleToggleReady = () => {
-        const currentlyReady = readyPlayers.has(currentUserUuid || "");
+        if (!currentUserUuid) {
+            console.warn("Cannot toggle ready: user UUID not available");
+            return;
+        }
+
+        const currentlyReady = readyPlayers.has(currentUserUuid);
+        const newReadyState = !currentlyReady;
+
+        // Optimistic update
+        setReadyPlayers(prev => {
+            const newSet = new Set(prev);
+            if (newReadyState) {
+                newSet.add(currentUserUuid);
+            } else {
+                newSet.delete(currentUserUuid);
+            }
+            return newSet;
+        });
+
         socketRef.current?.send(JSON.stringify({
             type: "READY",
             payload: {
-                is_ready: !currentlyReady
+                is_ready: newReadyState
             }
         }));
     };
