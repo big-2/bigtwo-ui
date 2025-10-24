@@ -23,7 +23,8 @@ export type MessageType =
     | "GAME_WON"
     | "GAME_RESET"
     | "BOT_ADDED"
-    | "BOT_REMOVED";
+    | "BOT_REMOVED"
+    | "STATS_UPDATED";
 
 /**
  * Model for chat messages.
@@ -199,6 +200,30 @@ export interface ReadyMessage {
 }
 export interface ReadyPayload {
     is_ready: boolean;
+}
+/**
+ * Model for stats updated messages.
+ */
+export interface StatsUpdatedMessage {
+    type: "STATS_UPDATED";
+    payload: StatsUpdatedPayload;
+    meta?: WebSocketMessageMeta;
+}
+export interface StatsUpdatedPayload {
+    room_stats: {
+        room_id: string;
+        games_played: number;
+        player_stats: {
+            [uuid: string]: {
+                uuid: string;
+                games_played: number;
+                wins: number;
+                total_score: number;
+                current_win_streak: number;
+                best_win_streak: number;
+            };
+        };
+    };
 }
 /**
  * Base model for all WebSocket messages.

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { connectToRoomWebSocket } from "../services/socket";
 import { getStoredSession } from "../services/session";
-import { RoomResponse, addBotToRoom, removeBotFromRoom } from "../services/api";
+import { RoomResponse, addBotToRoom, removeBotFromRoom, getRoomStats } from "../services/api";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import ChatBox from "./ChatBox";
 import PlayerList from "./PlayerList";
 import GameScreen from "./GameScreen";
 import { WebSocketMessage } from "../types.websocket";
+import { RoomStats } from "../types.stats";
 
 interface UserChatMessage {
     senderUuid: string;
@@ -47,6 +48,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     const [readyPlayers, setReadyPlayers] = useState<Set<string>>(new Set());
     const [botDifficulty, setBotDifficulty] = useState<"easy" | "medium" | "hard">("easy");
     const [addingBot, setAddingBot] = useState(false);
+    const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
 
     useEffect(() => {
         const stored = getStoredSession();
@@ -59,6 +61,21 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     useEffect(() => {
         onGameStateChange?.(gameStarted);
     }, [gameStarted, onGameStateChange]);
+
+    // Fetch initial stats when room loads
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const stats = await getRoomStats(roomId);
+                setRoomStats(stats);
+            } catch (error) {
+                console.error('Failed to load room stats:', error);
+                // Don't block UI if stats fail to load
+            }
+        };
+
+        fetchStats();
+    }, [roomId]);
 
     // WebSocket message handlers
     const messageHandlers = useRef<Record<string, MessageHandler>>({
@@ -313,6 +330,15 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                 }
             ]));
         },
+
+        STATS_UPDATED: (message) => {
+            const payload = message.payload as { room_stats?: RoomStats };
+            const stats = payload?.room_stats;
+
+            if (stats) {
+                setRoomStats(stats);
+            }
+        },
     });
 
     const processMessage = (msg: string) => {
@@ -553,6 +579,8 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                             addingBot={addingBot}
                             botDifficulty={botDifficulty}
                             canAddBot={canAddBot}
+                            playerStats={roomStats?.player_stats}
+                            gamesPlayed={roomStats?.games_played || 0}
                             onBotDifficultyChange={setBotDifficulty}
                             onAddBot={handleAddBot}
                             onRemoveBot={handleRemoveBot}
