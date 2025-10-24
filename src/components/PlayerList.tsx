@@ -13,6 +13,7 @@ interface PlayerListProps {
     players: string[];
     mapping: Record<string, string>;
     botUuids: Set<string>;
+    readyPlayers: Set<string>;
     currentUserUuid?: string;
     currentUsername: string;
     hostUuid?: string;
@@ -24,12 +25,14 @@ interface PlayerListProps {
     onAddBot: () => void;
     onRemoveBot: (botUuid: string) => void;
     onKickPlayer: (playerUuid: string) => void;
+    onToggleReady: () => void;
 }
 
 const PlayerList: React.FC<PlayerListProps> = ({
     players,
     mapping,
     botUuids,
+    readyPlayers,
     currentUserUuid,
     currentUsername,
     hostUuid,
@@ -41,6 +44,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
     onAddBot,
     onRemoveBot,
     onKickPlayer,
+    onToggleReady,
 }) => {
     const getDisplayName = (uuid: string) => {
         if (mapping[uuid]) {
@@ -127,6 +131,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     const isBot = botUuids.has(uuid);
                     const isCurrentUser = uuid === currentUserUuid || displayName === currentUsername;
                     const isHostPlayer = uuid === hostUuid;
+                    const isReady = readyPlayers.has(uuid);
 
                     return (
                         <div
@@ -144,6 +149,31 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                 {isHostPlayer && <Badge variant="secondary">Host</Badge>}
                                 {isCurrentUser && <Badge>You</Badge>}
                                 {isBot && <Badge variant="outline">Bot</Badge>}
+
+                                {/* Ready state: Show button for current user, badge for others */}
+                                {isCurrentUser && !isBot ? (
+                                    <Button
+                                        variant={isReady ? "outline" : "default"}
+                                        size="sm"
+                                        onClick={onToggleReady}
+                                        className={cn(
+                                            "ml-2 min-w-[80px]",
+                                            isReady && "border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
+                                        )}
+                                    >
+                                        {isReady ? "✓ Ready" : "Ready Up"}
+                                    </Button>
+                                ) : !isBot ? (
+                                    <Badge
+                                        variant={isReady ? "default" : "outline"}
+                                        className={cn(
+                                            isReady ? "bg-green-600 hover:bg-green-600" : "text-muted-foreground"
+                                        )}
+                                    >
+                                        {isReady ? "✓ Ready" : "Not Ready"}
+                                    </Badge>
+                                ) : null}
+
                                 {isHost && !isCurrentUser && (
                                     <Button
                                         variant="ghost"

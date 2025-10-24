@@ -881,13 +881,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
     return (
         <div className={containerClassName}>
-            {/* Keyboard Shortcuts Help Button - Fixed position in top-right corner */}
+            {/* Keyboard Shortcuts Help Button - Fixed position in top-right corner (desktop only) */}
             <Dialog>
                 <DialogTrigger asChild>
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="fixed right-2 top-2 z-50 h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:h-10 md:w-10"
+                        className="fixed right-2 top-2 z-50 hidden h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:flex md:h-10 md:w-10"
                         title="Keyboard shortcuts"
                     >
                         <HelpCircle className="h-4 w-4 md:h-5 md:w-5" />

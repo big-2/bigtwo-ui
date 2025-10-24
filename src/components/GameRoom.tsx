@@ -44,6 +44,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     } | null>(null);
     const [selfUuid, setSelfUuid] = useState<string>("");
     const [botUuids, setBotUuids] = useState<Set<string>>(new Set());
+    const [readyPlayers, setReadyPlayers] = useState<Set<string>>(new Set());
     const [botDifficulty, setBotDifficulty] = useState<"easy" | "medium" | "hard">("easy");
     const [addingBot, setAddingBot] = useState(false);
 
@@ -79,27 +80,46 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         },
 
         PLAYERS_LIST: (message) => {
-            const payload = message.payload as { mapping?: Record<string, string>; bot_uuids?: string[] };
+            const payload = message.payload as {
+                mapping?: Record<string, string>;
+                bot_uuids?: string[];
+                ready_players?: string[];
+                host_uuid?: string | null;
+            };
             const mapping = payload?.mapping;
             const botUuidsFromServer = payload?.bot_uuids;
+            const readyPlayersFromServer = payload?.ready_players;
+            const hostUuidFromServer = payload?.host_uuid;
 
             if (mapping) {
                 setUuidToName(mapping);
                 const foundSelf = Object.keys(mapping).find((uuid) => mapping[uuid] === username);
                 if (foundSelf) setSelfUuid(foundSelf);
 
-                setHostUuid((currentHostUuid) => {
-                    if (currentHostUuid && mapping[currentHostUuid]) {
-                        return currentHostUuid;
-                    }
+                // Update host UUID from server if provided
+                if (hostUuidFromServer) {
+                    setHostUuid(hostUuidFromServer);
+                    setHostName(mapping[hostUuidFromServer] || hostUuidFromServer);
+                } else {
+                    // Fallback to deriving from host name (for backwards compatibility)
+                    setHostUuid((currentHostUuid) => {
+                        if (currentHostUuid && mapping[currentHostUuid]) {
+                            return currentHostUuid;
+                        }
 
-                    const derivedHost = Object.entries(mapping).find(([, name]) => name === hostName)?.[0];
-                    return derivedHost ?? currentHostUuid;
-                });
+                        const derivedHost = Object.entries(mapping).find(([, name]) => name === hostName)?.[0];
+                        return derivedHost ?? currentHostUuid;
+                    });
+                }
 
                 // Use bot UUIDs from server if available
                 if (Array.isArray(botUuidsFromServer)) {
                     setBotUuids(new Set(botUuidsFromServer));
+                }
+
+                // Update ready players from server
+                if (Array.isArray(readyPlayersFromServer)) {
+                    setReadyPlayers(new Set(readyPlayersFromServer));
                 }
             }
         },
@@ -128,22 +148,28 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         },
 
         HOST_CHANGE: (message) => {
-            const payload = message.payload as { host?: string };
-            const newHost = payload?.host;
-            if (!newHost) {
+            const payload = message.payload as { host?: string; host_uuid?: string };
+            const newHostName = payload?.host;
+            const newHostUuid = payload?.host_uuid;
+
+            if (!newHostUuid) {
+                console.warn("HOST_CHANGE message missing host_uuid");
                 return;
             }
 
-            console.log(`New host: ${newHost}`);
-            const hostDisplayName = uuidToName[newHost] || (newHost === selfUuid ? username : newHost);
-            setHostName(hostDisplayName);
-            setHostUuid(newHost);
+            console.log(`New host: ${newHostName} (${newHostUuid})`);
+
+            // Update host state with UUID from server
+            setHostUuid(newHostUuid);
+            if (newHostName) {
+                setHostName(newHostName);
+            }
 
             // Add system message to chat
-            const targetName = newHost === selfUuid ? username : hostDisplayName;
-            const systemMessage = newHost === selfUuid
+            const displayName = uuidToName[newHostUuid] || newHostName || newHostUuid;
+            const systemMessage = newHostUuid === selfUuid
                 ? "You are now the host of this room."
-                : `${targetName} is now the host of this room.`;
+                : `${displayName} is now the host of this room.`;
 
             setChatMessages(prevMessages => ([
                 ...prevMessages,
@@ -327,6 +353,16 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         }));
     };
 
+    const handleToggleReady = () => {
+        const currentlyReady = readyPlayers.has(currentUserUuid || "");
+        socketRef.current?.send(JSON.stringify({
+            type: "READY",
+            payload: {
+                is_ready: !currentlyReady
+            }
+        }));
+    };
+
     const handleStartGame = () => {
         console.log("Start game button clicked");
         socketRef.current?.send(JSON.stringify({
@@ -407,7 +443,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
         return playerUuids.find(uuid => uuidToName[uuid] === hostName);
     }, [hostUuid, playerUuids, uuidToName, hostName]);
     const isHost = Boolean(currentUserUuid && derivedHostUuid && currentUserUuid === derivedHostUuid);
-    const canStartGame = playerUuids.length === 4;
+
+    // Calculate if all human (non-bot) players are ready
+    const humanPlayers = playerUuids.filter(uuid => !botUuids.has(uuid));
+    const readyHumanPlayers = humanPlayers.filter(uuid => readyPlayers.has(uuid));
+    const allHumansReady = humanPlayers.length > 0 && humanPlayers.length === readyHumanPlayers.length;
+
+    const canStartGame = playerUuids.length === 4 && allHumansReady;
     const canAddBot = !gameStarted && playerUuids.length < 4;
 
     const handleReturnToLobby = () => {
@@ -445,6 +487,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                             players={playerUuids}
                             mapping={uuidToName}
                             botUuids={botUuids}
+                            readyPlayers={readyPlayers}
                             currentUserUuid={currentUserUuid}
                             currentUsername={username}
                             hostUuid={derivedHostUuid}
@@ -456,6 +499,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                             onAddBot={handleAddBot}
                             onRemoveBot={handleRemoveBot}
                             onKickPlayer={handleKickPlayer}
+                            onToggleReady={handleToggleReady}
                         />
 
                         {isHost && (
@@ -469,7 +513,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                                         canStartGame ? "bg-green-500 hover:bg-green-600" : "bg-slate-300 text-slate-500"
                                     )}
                                 >
-                                    {canStartGame ? "Start Game" : "Waiting for players..."}
+                                    {playerUuids.length < 4
+                                        ? "Waiting for players..."
+                                        : !allHumansReady
+                                            ? "Waiting for players to ready..."
+                                            : "Start Game"}
                                 </Button>
                             </div>
                         )}
