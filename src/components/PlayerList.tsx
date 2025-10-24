@@ -156,9 +156,10 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                         variant={isReady ? "outline" : "default"}
                                         size="sm"
                                         onClick={onToggleReady}
+                                        aria-label={isReady ? "Mark as not ready" : "Mark as ready"}
                                         className={cn(
                                             "ml-2 min-w-[80px]",
-                                            isReady && "border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
+                                            isReady && "border-green-600 text-green-600 hover:bg-green-600/10 dark:hover:bg-green-600/20 hover:text-green-700 dark:hover:text-green-500"
                                         )}
                                     >
                                         {isReady ? "✓ Ready" : "Ready Up"}
