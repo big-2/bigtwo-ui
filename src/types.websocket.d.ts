@@ -18,6 +18,7 @@ export type MessageType =
     | "TURN_CHANGE"
     | "ERROR"
     | "START_GAME"
+    | "READY"
     | "GAME_STARTED"
     | "GAME_WON"
     | "GAME_RESET"
@@ -64,6 +65,7 @@ export interface HostChangeMessage {
 }
 export interface HostChangePayload {
     host: string;
+    host_uuid: string;
 }
 /**
  * Model for leave messages.
@@ -112,6 +114,8 @@ export interface PlayersListPayload {
     players: string[];
     mapping: { [uuid: string]: string };
     bot_uuids: string[];
+    ready_players: string[];
+    host_uuid?: string | null;
 }
 /**
  * Model for turn change messages.
@@ -184,6 +188,17 @@ export interface BotRemovedMessage {
 }
 export interface BotRemovedPayload {
     bot_uuid: string;
+}
+/**
+ * Model for ready messages.
+ */
+export interface ReadyMessage {
+    type: "READY";
+    payload: ReadyPayload;
+    meta?: WebSocketMessageMeta;
+}
+export interface ReadyPayload {
+    is_ready: boolean;
 }
 /**
  * Base model for all WebSocket messages.

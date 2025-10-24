@@ -32,7 +32,12 @@ const Header: React.FC<HeaderProps> = ({ username, showBackButton = false }) => 
                             Back
                         </Button>
                     )}
-                    <h1 className="text-lg font-bold text-primary">Big Two</h1>
+                    <h1
+                        className="text-lg font-bold text-primary cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={handleBack}
+                    >
+                        Big Two
+                    </h1>
                 </div>
 
                 <div className="flex items-center gap-3">
