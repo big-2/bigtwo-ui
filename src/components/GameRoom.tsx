@@ -548,6 +548,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
 
     const handleReturnToLobby = () => {
         console.log("Returning to lobby after game");
+
+        // Notify backend to reset game state and clear ready states
+        socketRef.current?.send(JSON.stringify({
+            type: "GAME_RESET",
+            payload: {}
+        }));
+
         setGameStarted(false);
         setGameData(null);
     };
