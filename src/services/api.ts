@@ -2,6 +2,7 @@ import axios from "axios";
 import { components } from "../types";
 import { getNormalizedApiUrl } from "../utils/config";
 import { clearSession } from "./session";
+import { RoomStats } from "../types.stats";
 
 const API_URL = getNormalizedApiUrl();
 
@@ -127,5 +128,23 @@ export const removeBotFromRoom = async (roomId: string, botUuid: string): Promis
             console.error("Response data:", error.response.data);
         }
         return false;
+    }
+};
+
+/**
+ * Fetch current stats for a room
+ * GET /room/{room_id}/stats
+ */
+export const getRoomStats = async (roomId: string): Promise<RoomStats | null> => {
+    try {
+        const response = await axios.get<RoomStats>(`${API_URL}/room/${roomId}/stats`);
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+            // No stats yet for this room
+            return null;
+        }
+        console.error('Failed to fetch room stats:', error);
+        throw error;
     }
 };
