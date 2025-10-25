@@ -70,7 +70,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                 setRoomStats(stats);
             } catch (error) {
                 console.error('Failed to load room stats:', error);
-                // Don't block UI if stats fail to load
+                // Set default empty stats state on error (non-404 errors)
+                // 404 is expected for rooms with no games played yet
+                setRoomStats({
+                    room_id: roomId,
+                    games_played: 0,
+                    player_stats: {}
+                });
             }
         };
 
@@ -335,9 +341,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
             const payload = message.payload as { room_stats?: RoomStats };
             const stats = payload?.room_stats;
 
-            if (stats) {
-                setRoomStats(stats);
+            // Validate the payload before updating state
+            if (!stats?.room_id || stats.room_id !== roomId) {
+                console.warn("STATS_UPDATED message has invalid or mismatched room_id");
+                return;
             }
+
+            setRoomStats(stats);
         },
     });
 

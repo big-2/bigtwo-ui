@@ -9,6 +9,7 @@ import { PlayerStats } from "../types.stats";
 
 type BotDifficulty = "easy" | "medium" | "hard";
 const MAX_PLAYERS = 4;
+const MIN_WIN_STREAK_DISPLAY = 2;
 
 interface PlayerListProps {
     players: string[];
@@ -144,7 +145,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     const isHostPlayer = uuid === hostUuid;
                     const isReady = readyPlayers.has(uuid);
                     const stats = playerStats?.[uuid];
-                    const showWinStreak = stats && stats.current_win_streak >= 2;
+                    const showWinStreak = stats && stats.current_win_streak >= MIN_WIN_STREAK_DISPLAY;
 
                     return (
                         <div
@@ -197,14 +198,14 @@ const PlayerList: React.FC<PlayerListProps> = ({
                             )}
 
                             {/* Status badges section - fixed width */}
-                            <div className="flex items-center gap-2 flex-shrink-0" style={{ width: '160px', justifyContent: 'flex-end' }}>
+                            <div className="flex items-center gap-2 flex-shrink-0 w-40 justify-end">
                                 {isHostPlayer && <Badge variant="secondary" className="w-14 justify-center">Host</Badge>}
                                 {isCurrentUser && <Badge className="w-14 justify-center">You</Badge>}
                                 {isBot && <Badge variant="outline" className="w-14 justify-center">Bot</Badge>}
                             </div>
 
                             {/* Ready section - fixed width */}
-                            <div className="flex items-center gap-2 flex-shrink-0" style={{ width: '140px', justifyContent: 'flex-end' }}>
+                            <div className="flex items-center gap-2 flex-shrink-0 w-[140px] justify-end">
                                 {isCurrentUser && !isBot ? (
                                     <Button
                                         variant={isReady ? "outline" : "default"}
