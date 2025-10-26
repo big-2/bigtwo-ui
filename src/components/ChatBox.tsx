@@ -17,13 +17,11 @@ interface ChatBoxProps {
 
 const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage }) => {
     const [chatInput, setChatInput] = useState<string>("");
-    const scrollRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
     const handleSend = () => {
@@ -54,7 +52,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage }) => {
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-3 overflow-hidden p-4 pt-0">
                 <ScrollArea className="flex-1 pr-4">
-                    <div ref={scrollRef} className="space-y-1">
+                    <div className="space-y-1">
                         {messages.map((msg, index) => {
                             const { sender, content } = parseMessage(msg.text);
                             const isSystem = sender === "SYSTEM";
@@ -86,6 +84,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage }) => {
                                 </div>
                             );
                         })}
+                        <div ref={messagesEndRef} />
                     </div>
                 </ScrollArea>
 
