@@ -9,6 +9,7 @@ import PlayerList from "./PlayerList";
 import GameScreen from "./GameScreen";
 import { WebSocketMessage } from "../types.websocket";
 import { RoomStats } from "../types.stats";
+import { Copy, Check } from "lucide-react";
 
 interface UserChatMessage {
     senderUuid: string;
@@ -48,6 +49,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [botDifficulty, setBotDifficulty] = useState<"easy" | "medium" | "hard">("easy");
     const [addingBot, setAddingBot] = useState(false);
     const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
+    const [linkCopied, setLinkCopied] = useState(false);
 
     useEffect(() => {
         const stored = getStoredSession();
@@ -553,6 +555,17 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         setGameData(null);
     };
 
+    const handleCopyRoomLink = async () => {
+        const roomUrl = `${window.location.origin}/room/${roomId}`;
+        try {
+            await navigator.clipboard.writeText(roomUrl);
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 2000);
+        } catch (error) {
+            console.error("Failed to copy link:", error);
+        }
+    };
+
     // If game has started, show the GameScreen (only after we know self uuid for consistent identity)
     if (gameStarted && gameData && (selfUuid || Object.keys(uuidToName).find((uuid) => uuidToName[uuid] === username))) {
         return (
@@ -572,8 +585,31 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     return (
         <div className="flex h-[calc(100vh-60px)] w-full flex-col overflow-hidden px-4 py-6">
             <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden">
-                <header className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-blue-600">Game Room {roomId}</h2>
+                <header className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 shadow-sm dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
+                    <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                            <h2 className="text-3xl font-bold text-blue-700 dark:text-blue-400">
+                                {roomId}
+                            </h2>
+                            <p className="text-sm text-blue-600/70 dark:text-blue-400/70">Game Room</p>
+                        </div>
+                        <button
+                            onClick={handleCopyRoomLink}
+                            className="flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2.5 text-sm font-medium text-blue-700 transition-all hover:bg-blue-50 hover:shadow-md active:scale-95 dark:border-blue-700 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70"
+                        >
+                            {linkCopied ? (
+                                <>
+                                    <Check className="h-4 w-4" />
+                                    <span>Link Copied!</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-4 w-4" />
+                                    <span>Invite Friends</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </header>
 
                 <div className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-6 overflow-hidden md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

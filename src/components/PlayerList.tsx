@@ -151,13 +151,15 @@ const PlayerList: React.FC<PlayerListProps> = ({
                         <div
                             key={uuid}
                             className={cn(
-                                "flex items-center rounded-lg border border-slate-200 bg-card px-3 py-2 gap-2 min-h-12",
+                                "flex items-center rounded-lg border border-slate-200 bg-card px-3 py-2 gap-2 h-12",
                                 isCurrentUser && "border-primary/60 bg-primary/5"
                             )}
                         >
-                            {/* Player name - flexible width */}
+                            {/* Player name - flexible width with fixed bot icon space */}
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                                {isBot && <Bot aria-hidden className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                                <div className="w-4 h-4 flex-shrink-0">
+                                    {isBot && <Bot aria-hidden className="h-4 w-4 text-muted-foreground" />}
+                                </div>
                                 <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
                             </div>
 
@@ -197,11 +199,17 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                 </div>
                             )}
 
-                            {/* Status badges section - fixed width */}
-                            <div className="flex items-center gap-2 flex-shrink-0 w-40 justify-end">
-                                {isHostPlayer && <Badge variant="secondary" className="w-14 justify-center">Host</Badge>}
-                                {isCurrentUser && <Badge className="w-14 justify-center">You</Badge>}
-                                {isBot && <Badge variant="outline" className="w-14 justify-center">Bot</Badge>}
+                            {/* Status badges section - fixed width with grid */}
+                            <div className="flex items-center gap-2 flex-shrink-0 w-[180px] justify-end">
+                                <div className="w-[58px]">
+                                    {isHostPlayer && <Badge variant="secondary" className="w-full justify-center">Host</Badge>}
+                                </div>
+                                <div className="w-[58px]">
+                                    {isCurrentUser && <Badge className="w-full justify-center">You</Badge>}
+                                </div>
+                                <div className="w-[58px]">
+                                    {isBot && <Badge variant="outline" className="w-full justify-center">Bot</Badge>}
+                                </div>
                             </div>
 
                             {/* Ready section - fixed width */}
