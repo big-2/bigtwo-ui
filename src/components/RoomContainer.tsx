@@ -5,10 +5,9 @@ import { joinRoom, RoomResponse } from "../services/api";
 
 interface RoomContainerProps {
     username: string;
-    onGameStateChange?: (gameStarted: boolean) => void;
 }
 
-const RoomContainer: React.FC<RoomContainerProps> = ({ username, onGameStateChange }) => {
+const RoomContainer: React.FC<RoomContainerProps> = ({ username }) => {
     const { roomId } = useParams<{ roomId: string }>();
     const [joinStatus, setJoinStatus] = useState<'loading' | 'success' | 'failed'>('loading');
     const [roomDetails, setRoomDetails] = useState<RoomResponse | null>(null);
@@ -72,7 +71,6 @@ const RoomContainer: React.FC<RoomContainerProps> = ({ username, onGameStateChan
             roomId={roomId}
             username={username}
             roomDetails={roomDetails}
-            onGameStateChange={onGameStateChange}
         />
     ) : null;
 };

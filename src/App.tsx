@@ -9,7 +9,6 @@ import "./index.css"; // Ensure global styles are included
 
 const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
-    const [gameStarted, setGameStarted] = useState(false);
     const { username, userUuid, isLoading } = useSessionContext();
     const navigate = useNavigate();
     const location = useLocation();
@@ -17,7 +16,7 @@ const App: React.FC = () => {
     // Reset game state when leaving room
     useEffect(() => {
         if (!location.pathname.includes('/room/')) {
-            setGameStarted(false);
+            setError(null);
         }
     }, [location.pathname]);
 
@@ -25,21 +24,12 @@ const App: React.FC = () => {
     const handleJoinRoom = async (roomId: string) => {
         try {
             setError(null);
-            setGameStarted(false); // Reset game state when joining a new room
             navigate(`/room/${roomId}`);
         } catch (error) {
             setError("An unexpected error occurred. Please try again.");
             console.error("Error joining room:", error);
         }
     };
-
-    // Handle game state changes from room
-    const handleGameStateChange = (started: boolean) => {
-        setGameStarted(started);
-    };
-
-    // Show back button only if we're on the room page AND game hasn't started
-    const showBackButton = location.pathname.includes('/room/') && !gameStarted;
 
     if (isLoading) {
         return (
@@ -51,7 +41,7 @@ const App: React.FC = () => {
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
-            <Header username={username} showBackButton={showBackButton} />
+            <Header username={username} />
             <main className="flex min-h-0 flex-1 justify-center overflow-hidden">
                 <div className="flex min-h-0 w-full flex-1 flex-col">
                     {error && (
@@ -63,7 +53,7 @@ const App: React.FC = () => {
                     )}
                     <Routes>
                         <Route path="/" element={<Home onJoinRoom={handleJoinRoom} userUuid={userUuid} />} />
-                        <Route path="/room/:roomId" element={<RoomContainer username={username} onGameStateChange={handleGameStateChange} />} />
+                        <Route path="/room/:roomId" element={<RoomContainer username={username} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </div>
