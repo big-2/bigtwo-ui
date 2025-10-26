@@ -246,6 +246,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
                 lastPlayedBy: payload.last_played_by,
             });
             setGameStarted(true);
+
+            // Clear ready states to mirror backend behavior (backend clears ready states when game starts)
+            // This ensures when players return to lobby, they see correct (empty) ready state
+            setReadyPlayers(new Set());
         },
 
         // Game message handlers
@@ -547,14 +551,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
     const canAddBot = !gameStarted && playerUuids.length < 4;
 
     const handleReturnToLobby = () => {
-        console.log("Returning to lobby after game");
+        console.log("Returning to lobby view");
 
-        // Notify backend to reset game state and clear ready states
-        socketRef.current?.send(JSON.stringify({
-            type: "GAME_RESET",
-            payload: {}
-        }));
-
+        // Simply update local UI state - no backend coordination needed
+        // The player is still in the room, just viewing the lobby instead of game
         setGameStarted(false);
         setGameData(null);
     };
