@@ -1,5 +1,5 @@
 import React from "react";
-import { Bot, Trash2, Trophy, TrendingDown, Flame } from "lucide-react";
+import { Bot, Trash2, Trophy, BarChart3, Flame } from "lucide-react";
 
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -155,102 +155,96 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                 isCurrentUser && "border-primary/60 bg-primary/5"
                             )}
                         >
-                            {/* Top row on mobile: Player name + stats */}
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                                {/* Player name - flexible width with fixed bot icon space */}
-                                <div className="flex items-center gap-3 min-w-0 flex-1">
-                                    <div className="w-4 h-4 flex-shrink-0">
-                                        {isBot && <Bot aria-hidden className="h-4 w-4 text-muted-foreground" />}
-                                    </div>
-                                    <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
+                            {/* Player name section - flexible width */}
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="w-4 h-4 flex-shrink-0">
+                                    {isBot && <Bot aria-hidden className="h-4 w-4 text-muted-foreground" />}
                                 </div>
-
-                                {/* Stats section - responsive width */}
-                                {gamesPlayed > 0 && (
-                                    <div className="flex items-center gap-3 text-xs flex-shrink-0">
-                                        {/* Wins - fixed width */}
-                                        <div className="flex items-center gap-1.5 min-w-[3rem] justify-end">
-                                            <Trophy className="h-3 w-3 text-yellow-500 flex-shrink-0" />
-                                            <span className="font-semibold font-mono w-4 text-right tabular-nums">
-                                                {stats?.wins ?? 0}
-                                            </span>
-                                        </div>
-
-                                        {/* Score - fixed width */}
-                                        <div className="flex items-center gap-1.5 min-w-[3.5rem] justify-end">
-                                            <TrendingDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                            <span className={cn(
-                                                'font-mono w-6 text-right tabular-nums',
-                                                (stats?.total_score ?? 0) <= 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
-                                            )}>
-                                                {stats?.total_score ?? 0}
-                                            </span>
-                                        </div>
-
-                                        {/* Win streak - fixed width placeholder */}
-                                        <div className="flex items-center gap-1.5 min-w-[2.5rem] justify-end">
-                                            {showWinStreak && (
-                                                <>
-                                                    <Flame className="h-3 w-3 text-orange-500 flex-shrink-0" />
-                                                    <span className="font-semibold font-mono text-orange-600 dark:text-orange-400 w-4 text-right tabular-nums">
-                                                        {stats.current_win_streak}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
+                                <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
                             </div>
 
-                            {/* Bottom row on mobile: Badges + Ready button */}
-                            <div className="flex items-center gap-2 flex-shrink-0 justify-between sm:justify-end">
-                                {/* Status badges section - responsive */}
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                    {isHostPlayer && <Badge variant="secondary" className="text-xs px-2">Host</Badge>}
-                                    {isCurrentUser && <Badge className="text-xs px-2">You</Badge>}
-                                    {isBot && <Badge variant="outline" className="text-xs px-2">Bot</Badge>}
-                                </div>
+                            {/* Stats section - fixed width for alignment */}
+                            {gamesPlayed > 0 && (
+                                <div className="flex items-center gap-2 text-xs flex-shrink-0 sm:w-[8.5rem]">
+                                    {/* Wins - fixed width */}
+                                    <div className="flex items-center gap-1 w-[2.5rem] justify-end">
+                                        <Trophy className="h-3 w-3 text-yellow-500 flex-shrink-0" />
+                                        <span className="font-semibold font-mono w-4 text-right tabular-nums">
+                                            {stats?.wins ?? 0}
+                                        </span>
+                                    </div>
 
-                                {/* Ready section - flexible width */}
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    {isCurrentUser && !isBot ? (
-                                        <Button
-                                            variant={isReady ? "outline" : "default"}
-                                            size="sm"
-                                            onClick={onToggleReady}
-                                            aria-label={isReady ? "Mark as not ready" : "Mark as ready"}
-                                            className={cn(
-                                                "min-w-[80px]",
-                                                isReady && "border-green-600 text-green-600 hover:bg-green-600/10 dark:hover:bg-green-600/20 hover:text-green-700 dark:hover:text-green-500"
-                                            )}
-                                        >
-                                            {isReady ? "✓ Ready" : "Ready Up"}
-                                        </Button>
-                                    ) : !isBot ? (
-                                        <Badge
-                                            variant={isReady ? "default" : "outline"}
-                                            className={cn(
-                                                "min-w-[80px] justify-center",
-                                                isReady ? "bg-green-600 hover:bg-green-600" : "text-muted-foreground"
-                                            )}
-                                        >
-                                            {isReady ? "✓ Ready" : "Not Ready"}
-                                        </Badge>
-                                    ) : null}
+                                    {/* Score - fixed width */}
+                                    <div className="flex items-center gap-1 w-[3rem] justify-end">
+                                        <BarChart3 className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                                        <span className={cn(
+                                            'font-mono w-6 text-right tabular-nums',
+                                            (stats?.total_score ?? 0) <= 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
+                                        )}>
+                                            {stats?.total_score ?? 0}
+                                        </span>
+                                    </div>
 
-                                    {isHost && !isCurrentUser && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleRemovePlayer(uuid, isBot)}
-                                            aria-label={isBot ? `Remove bot ${displayName}` : `Remove player ${displayName}`}
-                                            className="w-8 h-8 p-0"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                            <span className="sr-only">Remove</span>
-                                        </Button>
-                                    )}
+                                    {/* Win streak - fixed width placeholder */}
+                                    <div className="flex items-center gap-1 w-[2.5rem] justify-end">
+                                        {showWinStreak && (
+                                            <>
+                                                <Flame className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                                                <span className="font-semibold font-mono text-orange-600 dark:text-orange-400 w-4 text-right tabular-nums">
+                                                    {stats.current_win_streak}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* Badges section - fixed width for alignment */}
+                            <div className="flex items-center gap-1 flex-shrink-0 sm:w-[10rem] justify-start">
+                                {isHostPlayer && <Badge variant="secondary" className="text-xs px-2">Host</Badge>}
+                                {isCurrentUser && <Badge className="text-xs px-2">You</Badge>}
+                                {isBot && <Badge variant="outline" className="text-xs px-2">Bot</Badge>}
+                            </div>
+
+                            {/* Ready section - fixed width for alignment */}
+                            <div className="flex items-center gap-2 flex-shrink-0 justify-end sm:w-[9rem]">
+                                {isCurrentUser && !isBot ? (
+                                    <Button
+                                        variant={isReady ? "outline" : "default"}
+                                        size="sm"
+                                        onClick={onToggleReady}
+                                        aria-label={isReady ? "Mark as not ready" : "Mark as ready"}
+                                        className={cn(
+                                            "min-w-[80px]",
+                                            isReady && "border-green-600 text-green-600 hover:bg-green-600/10 dark:hover:bg-green-600/20 hover:text-green-700 dark:hover:text-green-500"
+                                        )}
+                                    >
+                                        {isReady ? "✓ Ready" : "Ready Up"}
+                                    </Button>
+                                ) : !isBot ? (
+                                    <Badge
+                                        variant={isReady ? "default" : "outline"}
+                                        className={cn(
+                                            "min-w-[80px] justify-center",
+                                            isReady ? "bg-green-600 hover:bg-green-600" : "text-muted-foreground"
+                                        )}
+                                    >
+                                        {isReady ? "✓ Ready" : "Not Ready"}
+                                    </Badge>
+                                ) : null}
+
+                                {isHost && !isCurrentUser && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleRemovePlayer(uuid, isBot)}
+                                        aria-label={isBot ? `Remove bot ${displayName}` : `Remove player ${displayName}`}
+                                        className="w-8 h-8 p-0"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">Remove</span>
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     );
