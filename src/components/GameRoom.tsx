@@ -585,27 +585,29 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     return (
         <div className="flex h-[calc(100vh-60px)] w-full flex-col overflow-hidden px-4 py-6">
             <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden">
-                <header className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 shadow-sm dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div className="flex flex-col gap-1">
-                            <h2 className="text-2xl sm:text-3xl font-bold text-blue-700 dark:text-blue-400 break-all">
+                <header className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-2 sm:p-6 shadow-sm dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
+                    <div className="flex flex-row items-center justify-between gap-2">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                            <h2 className="text-lg sm:text-3xl font-bold text-blue-700 dark:text-blue-400 break-all">
                                 {roomId}
                             </h2>
-                            <p className="text-sm text-blue-600/70 dark:text-blue-400/70">Game Room</p>
+                            <p className="text-xs sm:text-sm text-blue-600/70 dark:text-blue-400/70 hidden sm:block">Game Room</p>
                         </div>
                         <button
                             onClick={handleCopyRoomLink}
-                            className="flex items-center justify-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2.5 text-sm font-medium text-blue-700 transition-all hover:bg-blue-50 hover:shadow-md active:scale-95 dark:border-blue-700 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70 flex-shrink-0"
+                            className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg border border-blue-300 bg-white px-2 py-1.5 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-medium text-blue-700 transition-all hover:bg-blue-50 hover:shadow-md active:scale-95 dark:border-blue-700 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70 flex-shrink-0"
                         >
                             {linkCopied ? (
                                 <>
-                                    <Check className="h-4 w-4" />
-                                    <span>Link Copied!</span>
+                                    <Check className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    <span className="hidden sm:inline">Link Copied!</span>
+                                    <span className="sm:hidden">Copied!</span>
                                 </>
                             ) : (
                                 <>
-                                    <Copy className="h-4 w-4" />
-                                    <span>Invite Friends</span>
+                                    <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    <span className="hidden sm:inline">Invite Friends</span>
+                                    <span className="sm:hidden">Invite</span>
                                 </>
                             )}
                         </button>

@@ -794,12 +794,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     };
 
     const renderPassedTag = (hasPassed?: boolean) => {
-        if (!hasPassed) {
-            return null;
-        }
-
         return (
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-300">
+            <span className={cn(
+                "text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-300",
+                !hasPassed && "invisible"
+            )}>
                 Passed
             </span>
         );
@@ -1020,25 +1019,24 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     {/* Center Game Area */}
                     <div className="flex flex-1 flex-col items-center justify-center overflow-hidden">
                         <Card className="w-full max-w-4xl overflow-hidden border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
-                            <CardContent className="flex max-h-full flex-col items-center gap-4 overflow-y-auto p-8">
+                            <CardContent className="flex h-[280px] max-h-full flex-col items-center gap-3 overflow-y-auto p-6">
                                 {gameState.gameWon ? (
-                                    <div className="flex flex-col items-center gap-4 pb-2">
-                                        <p className="text-3xl font-bold text-emerald-500">
-                                            🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`} 🎉
+                                    <div className="flex flex-col items-center gap-3">
+                                        <p className="text-2xl font-bold text-emerald-500">
+                                            🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
                                         </p>
-                                        <p className="text-xl text-muted-foreground">Game Over</p>
                                         {gameState.lastPlayedBy === gameState.winner && renderLastPlayedCards({
                                             labelOverride: gameState.winner === uuid
-                                                ? "Your winning hand:"
-                                                : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s winning hand:`,
+                                                ? "Winning hand:"
+                                                : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand:`,
                                             mobileLabelOverride: gameState.winner === uuid
                                                 ? "You"
                                                 : getDisplayName(gameState.winner, gameState.uuidToName).slice(0, 8),
                                         })}
                                         <Button
                                             onClick={onReturnToLobby}
-                                            size="lg"
-                                            className="mt-4 min-w-[220px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
+                                            size="default"
+                                            className="mt-2 min-w-[180px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
                                         >
                                             Return to Lobby
                                         </Button>
@@ -1071,18 +1069,26 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
 
                     {/* Center Game Area - Mobile compact */}
-                    <div className="flex flex-1 flex-col items-center justify-center gap-2 overflow-y-auto px-2">
+                    <div className="flex flex-1 flex-col items-center justify-start gap-2 overflow-y-auto px-2 py-2">
                         {gameState.gameWon ? (
-                            <div className="flex flex-col items-center gap-3 text-center">
-                                <p className="text-lg font-bold text-emerald-500">
+                            <div className="flex flex-col items-center gap-2 text-center">
+                                <p className="text-base font-bold text-emerald-500">
                                     🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
                                 </p>
+                                {gameState.lastPlayedBy === gameState.winner && renderLastPlayedCards({
+                                    labelOverride: gameState.winner === uuid
+                                        ? "Winning hand:"
+                                        : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand:`,
+                                    mobileLabelOverride: gameState.winner === uuid
+                                        ? "Win"
+                                        : getDisplayName(gameState.winner, gameState.uuidToName).slice(0, 6),
+                                })}
                                 <Button
                                     onClick={onReturnToLobby}
                                     size="sm"
-                                    className="min-w-[150px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
+                                    className="mt-1 min-w-[130px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
                                 >
-                                    Return to Lobby
+                                    Back to Lobby
                                 </Button>
                             </div>
                         ) : (

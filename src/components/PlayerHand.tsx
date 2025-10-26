@@ -339,7 +339,9 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
                 gap: `${cardDimensions.gap}px`,
                 // On mobile with overlapping, need padding to prevent cut-off
                 paddingLeft: isMobile ? '20px' : undefined,
-                paddingRight: isMobile ? '20px' : undefined
+                paddingRight: isMobile ? '20px' : undefined,
+                // Maintain minimum height to prevent layout shift when cards are removed
+                minHeight: `${cardDimensions.height + 24}px` // card height + padding (3 * 2 = 6, but in rem units ~24px)
             }}
             onDragOver={handleHandDragOver}
             onDrop={handleHandDrop}
