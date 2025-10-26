@@ -24,12 +24,11 @@ interface GameRoomProps {
     roomId: string;
     username: string;
     roomDetails: RoomResponse | null;
-    onGameStateChange?: (gameStarted: boolean) => void;
 }
 
 type MessageHandler = (message: WebSocketMessage) => void;
 
-const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGameStateChange }) => {
+const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) => {
     const socketRef = useRef<WebSocket | null>(null);
     const [chatMessages, setChatMessages] = useState<UserChatMessage[]>([]);
     const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
@@ -56,11 +55,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails, onGa
             setSelfUuid(stored.player_uuid);
         }
     }, []);
-
-    // Notify parent when game state changes
-    useEffect(() => {
-        onGameStateChange?.(gameStarted);
-    }, [gameStarted, onGameStateChange]);
 
     // Fetch initial stats when room loads
     useEffect(() => {
