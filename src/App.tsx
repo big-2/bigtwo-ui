@@ -38,9 +38,6 @@ const App: React.FC = () => {
         setGameStarted(started);
     };
 
-    // Show back button only if we're on the room page AND game hasn't started
-    const showBackButton = location.pathname.includes('/room/') && !gameStarted;
-
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
@@ -51,7 +48,7 @@ const App: React.FC = () => {
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
-            <Header username={username} showBackButton={showBackButton} />
+            <Header username={username} />
             <main className="flex min-h-0 flex-1 justify-center overflow-hidden">
                 <div className="flex min-h-0 w-full flex-1 flex-col">
                     {error && (
