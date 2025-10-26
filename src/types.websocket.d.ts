@@ -1,5 +1,4 @@
 /* tslint:disable */
-/* eslint-disable */
 /**
 /* This file was automatically generated from pydantic models by running pydantic2ts.
 /* Do not modify it by hand - just update the pydantic models and then re-run the script
@@ -21,7 +20,6 @@ export type MessageType =
     | "READY"
     | "GAME_STARTED"
     | "GAME_WON"
-    | "GAME_RESET"
     | "BOT_ADDED"
     | "BOT_REMOVED"
     | "STATS_UPDATED";
@@ -155,17 +153,6 @@ export interface GameWonMessage {
 }
 export interface GameWonPayload {
     winner: string;
-}
-/**
- * Model for game reset messages.
- */
-export interface GameResetMessage {
-    type: "GAME_RESET";
-    payload: GameResetPayload;
-    meta?: WebSocketMessageMeta;
-}
-export interface GameResetPayload {
-    // Empty payload - just signals that game should reset to lobby
 }
 /**
  * Model for bot added messages.

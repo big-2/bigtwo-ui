@@ -264,6 +264,31 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             }
         },
         TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
+
+        GAME_WON: (message) => {
+            const payload = message.payload as { winner?: string };
+            const winnerUuid = payload?.winner;
+
+            if (winnerUuid) {
+                const winnerName = uuidToName[winnerUuid] || winnerUuid;
+                console.log(`Game won by: ${winnerName}`);
+
+                // Add win message to chat
+                setChatMessages(prevMessages => ([
+                    ...prevMessages,
+                    {
+                        senderUuid: "SYSTEM",
+                        content: `🎉 ${winnerName} won the game!`
+                    }
+                ]));
+
+                // Note: We don't automatically return to lobby here because:
+                // 1. GameScreen shows the win screen with "Return to Lobby" button
+                // 2. User clicks button → calls handleReturnToLobby → returns to lobby
+                // 3. Backend removes game from repository after sending GAME_WON
+                // 4. On refresh, backend has no game → won't send GAME_STARTED → shows lobby
+            }
+        },
         ERROR: (message) => {
             const payload = message.payload as { message?: string; error_type?: string };
             console.error("Error from server:", payload?.message);
