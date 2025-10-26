@@ -167,20 +167,20 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
                                 {/* Stats section - responsive width */}
                                 {gamesPlayed > 0 && (
-                                    <div className="flex items-center gap-2 text-xs flex-shrink-0">
+                                    <div className="flex items-center gap-3 text-xs flex-shrink-0">
                                         {/* Wins - fixed width */}
-                                        <div className="flex items-center gap-1 w-9 justify-end">
-                                            <Trophy className="h-3 w-3 text-yellow-500" />
-                                            <span className="font-semibold w-3 text-right">
+                                        <div className="flex items-center gap-1.5 min-w-[3rem] justify-end">
+                                            <Trophy className="h-3 w-3 text-yellow-500 flex-shrink-0" />
+                                            <span className="font-semibold font-mono w-4 text-right tabular-nums">
                                                 {stats?.wins ?? 0}
                                             </span>
                                         </div>
 
                                         {/* Score - fixed width */}
-                                        <div className="flex items-center gap-1 w-11 justify-end">
-                                            <TrendingDown className="h-3 w-3 text-muted-foreground" />
+                                        <div className="flex items-center gap-1.5 min-w-[3.5rem] justify-end">
+                                            <TrendingDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                             <span className={cn(
-                                                'font-mono w-6 text-right',
+                                                'font-mono w-6 text-right tabular-nums',
                                                 (stats?.total_score ?? 0) <= 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
                                             )}>
                                                 {stats?.total_score ?? 0}
@@ -188,11 +188,11 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                         </div>
 
                                         {/* Win streak - fixed width placeholder */}
-                                        <div className="flex items-center gap-1 w-8 justify-end">
+                                        <div className="flex items-center gap-1.5 min-w-[2.5rem] justify-end">
                                             {showWinStreak && (
                                                 <>
-                                                    <Flame className="h-3 w-3 text-orange-500" />
-                                                    <span className="font-semibold text-orange-600 dark:text-orange-400 w-3 text-right">
+                                                    <Flame className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                                                    <span className="font-semibold font-mono text-orange-600 dark:text-orange-400 w-4 text-right tabular-nums">
                                                         {stats.current_win_streak}
                                                     </span>
                                                 </>
