@@ -1017,7 +1017,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
 
                     {/* Center Game Area */}
-                    <div className="flex flex-1 flex-col items-center justify-center overflow-hidden">
+                    <div className="flex flex-1 flex-col items-center justify-center">
                         <Card className="w-full max-w-4xl overflow-hidden border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
                             <CardContent className="flex h-[280px] max-h-full flex-col items-center gap-3 overflow-y-auto p-6">
                                 {gameState.gameWon ? (
