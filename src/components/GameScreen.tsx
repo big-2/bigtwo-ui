@@ -75,8 +75,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         const isBot = botUuids.has(playerUuid);
 
         return (
-            <div className="flex items-center justify-center gap-1.5 text-foreground">
-                <span className={cn("font-semibold", {
+            <div className="flex items-center justify-center gap-1.5 text-foreground min-w-0">
+                <span className={cn("font-semibold truncate", {
                     "text-xs": size === "xs",
                     "text-sm": size === "sm",
                     "text-base": size === "md",
@@ -85,7 +85,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     {displayName || "Opponent"}
                 </span>
                 {isBot && (
-                    <Badge variant="secondary" className="px-1 py-0 text-[10px] uppercase tracking-wide">
+                    <Badge variant="secondary" className="px-1 py-0 text-[10px] uppercase tracking-wide flex-shrink-0">
                         Bot
                     </Badge>
                 )}
@@ -758,6 +758,41 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         </div>
     );
 
+    // Render side player with cards (for left/right players)
+    const renderSidePlayer = (playerUuid: string, player: Player | undefined, rotation: "left" | "right") => {
+        const rotationClass = rotation === "left" ? "rotate-90" : "-rotate-90";
+
+        return (
+            <div className={cn("flex items-center gap-3", rotationClass, "origin-center")}>
+                <Badge
+                    variant={gameState.currentTurn === playerUuid ? "secondary" : "outline"}
+                    className={cn(
+                        "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs shadow-sm transition-all whitespace-nowrap md:py-2 md:text-sm",
+                        gameState.currentTurn === playerUuid && "animate-pulse border-primary/40 bg-primary/20"
+                    )}
+                >
+                    {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
+                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] flex-shrink-0 md:h-6 md:px-2 md:text-xs">
+                        {player?.cardCount || 0}
+                    </Badge>
+                    {renderPassedTag(player?.hasPassed)}
+                </Badge>
+                <div className="flex items-center justify-center">
+                    {Array.from({ length: Math.min(player?.cardCount ?? 0, 13) }).map((_, index) => (
+                        <div
+                            key={`side-card-${index}`}
+                            className={cn(
+                                "h-6 w-4 rounded border border-blue-600/40 bg-blue-500/80 shadow-sm md:h-8 md:w-5",
+                                index > 0 && "-ml-1.5 md:-ml-2"
+                            )}
+                            style={{ zIndex: 13 - index }}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     const renderPassedTag = (hasPassed?: boolean) => {
         if (!hasPassed) {
             return null;
@@ -976,25 +1011,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 </section>
 
                 {/* Middle Row - Desktop layout */}
-                <section className="hidden min-h-0 grid flex-1 grid-cols-[minmax(120px,0.9fr)_minmax(0,1.6fr)_minmax(120px,0.9fr)] items-center gap-4 overflow-hidden py-1 md:grid">
-                    {/* Left Player */}
-                    <div className="flex h-full flex-col items-center justify-center gap-3">
-                        <Badge
-                            variant={gameState.currentTurn === playerPositions.left ? "secondary" : "outline"}
-                            className={cn(
-                                "flex w-full max-w-[150px] flex-col items-center justify-center rounded px-2 py-2 text-center text-xs uppercase tracking-wide shadow-sm transition-all",
-                                gameState.currentTurn === playerPositions.left && "animate-pulse border-primary/40 bg-primary/20"
-                            )}
-                        >
-                            <div className="flex flex-col items-center gap-0">
-                                {renderPlayerName(playerPositions.left, gameState.uuidToName, "xs")}
-                                <span className="text-[9px] font-medium text-muted-foreground">
-                                    {getCardCountLabel(leftPlayer)}
-                                </span>
-                                {renderPassedTag(leftPlayer?.hasPassed)}
-                            </div>
-                        </Badge>
-                        {renderTopCardBacks(leftPlayer?.cardCount)}
+                <section className="hidden min-h-0 grid flex-1 grid-cols-[120px_1fr_120px] items-center gap-4 overflow-hidden py-1 md:grid">
+                    {/* Left Player - Rotated 90deg clockwise */}
+                    <div className="flex items-center justify-center">
+                        {renderSidePlayer(playerPositions.left, leftPlayer, "left")}
                     </div>
 
                     {/* Center Game Area */}
@@ -1037,94 +1057,53 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         </Card>
                     </div>
 
-                    {/* Right Player */}
-                    <div className="flex h-full flex-col items-center justify-center gap-3">
-                        <Badge
-                            variant={gameState.currentTurn === playerPositions.right ? "secondary" : "outline"}
-                            className={cn(
-                                "flex w-full max-w-[150px] flex-col items-center justify-center rounded px-2 py-2 text-center text-xs uppercase tracking-wide shadow-sm transition-all",
-                                gameState.currentTurn === playerPositions.right && "animate-pulse border-primary/40 bg-primary/20"
-                            )}
-                        >
-                            <div className="flex flex-col items-center gap-0">
-                                {renderPlayerName(playerPositions.right, gameState.uuidToName, "xs")}
-                                <span className="text-[9px] font-medium text-muted-foreground">
-                                    {getCardCountLabel(rightPlayer)}
-                                </span>
-                                {renderPassedTag(rightPlayer?.hasPassed)}
-                            </div>
-                        </Badge>
-                        {renderTopCardBacks(rightPlayer?.cardCount)}
+                    {/* Right Player - Rotated 270deg clockwise (-90deg) */}
+                    <div className="flex items-center justify-center">
+                        {renderSidePlayer(playerPositions.right, rightPlayer, "right")}
                     </div>
                 </section>
 
                 {/* Middle Row - Mobile layout */}
-                <section className="flex min-h-[200px] flex-1 overflow-y-auto py-2 md:hidden">
-                    <div className="flex flex-1 flex-col">
-                        {/* Left Player - Mobile horizontal layout */}
-                        <div className="flex flex-shrink-0 items-center justify-start px-2 py-1">
-                            <Badge
-                                variant={gameState.currentTurn === playerPositions.left ? "secondary" : "outline"}
-                                className={cn(
-                                    "flex h-8 items-center gap-2 rounded-full px-3 py-1 text-xs",
-                                    gameState.currentTurn === playerPositions.left && "animate-pulse border-primary/40 bg-primary/20"
-                                )}
-                            >
-                                {renderPlayerName(playerPositions.left, gameState.uuidToName, "xs")}
-                                <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                                    {leftPlayer?.cardCount || 0}
-                                </Badge>
-                                {renderPassedTag(leftPlayer?.hasPassed)}
-                            </Badge>
-                        </div>
+                <section className="flex min-h-[200px] flex-1 items-center gap-1 overflow-y-auto py-2 md:hidden">
+                    {/* Left Player - Mobile rotated 90deg clockwise */}
+                    <div className="flex flex-shrink-0 items-center justify-center w-16">
+                        {renderSidePlayer(playerPositions.left, leftPlayer, "left")}
+                    </div>
 
-                        {/* Center Game Area - Mobile compact */}
-                        <div className="flex flex-1 flex-col items-center justify-center gap-2 overflow-y-auto px-2">
-                            {gameState.gameWon ? (
-                                <div className="flex flex-col items-center gap-3 text-center">
-                                    <p className="text-lg font-bold text-emerald-500">
-                                        🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
+                    {/* Center Game Area - Mobile compact */}
+                    <div className="flex flex-1 flex-col items-center justify-center gap-2 overflow-y-auto px-2">
+                        {gameState.gameWon ? (
+                            <div className="flex flex-col items-center gap-3 text-center">
+                                <p className="text-lg font-bold text-emerald-500">
+                                    🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
+                                </p>
+                                <Button
+                                    onClick={onReturnToLobby}
+                                    size="sm"
+                                    className="min-w-[150px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
+                                >
+                                    Return to Lobby
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center gap-2">
+                                {isCurrentTurn ? (
+                                    <p className="text-base font-bold text-primary">
+                                        Your turn!
                                     </p>
-                                    <Button
-                                        onClick={onReturnToLobby}
-                                        size="sm"
-                                        className="min-w-[150px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
-                                    >
-                                        Return to Lobby
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center gap-2">
-                                    {isCurrentTurn ? (
-                                        <p className="text-base font-bold text-primary">
-                                            Your turn!
-                                        </p>
-                                    ) : (
-                                        <p className="text-xs font-semibold text-muted-foreground">
-                                            {getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn
-                                        </p>
-                                    )}
-                                    {renderLastPlayedCards()}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Right Player - Mobile horizontal layout */}
-                        <div className="flex flex-shrink-0 items-center justify-end px-2 py-1">
-                            <Badge
-                                variant={gameState.currentTurn === playerPositions.right ? "secondary" : "outline"}
-                                className={cn(
-                                    "flex h-8 items-center gap-2 rounded-full px-3 py-1 text-xs",
-                                    gameState.currentTurn === playerPositions.right && "animate-pulse border-primary/40 bg-primary/20"
+                                ) : (
+                                    <p className="text-xs font-semibold text-muted-foreground">
+                                        {getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn
+                                    </p>
                                 )}
-                            >
-                                {renderPlayerName(playerPositions.right, gameState.uuidToName, "xs")}
-                                <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                                    {rightPlayer?.cardCount || 0}
-                                </Badge>
-                                {renderPassedTag(rightPlayer?.hasPassed)}
-                            </Badge>
-                        </div>
+                                {renderLastPlayedCards()}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right Player - Mobile rotated 270deg clockwise (or -90deg) */}
+                    <div className="flex flex-shrink-0 items-center justify-center w-16">
+                        {renderSidePlayer(playerPositions.right, rightPlayer, "right")}
                     </div>
                 </section>
 

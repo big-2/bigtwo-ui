@@ -585,17 +585,17 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     return (
         <div className="flex h-[calc(100vh-60px)] w-full flex-col overflow-hidden px-4 py-6">
             <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden">
-                <header className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 shadow-sm dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
-                    <div className="flex items-center justify-between">
+                <header className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 shadow-sm dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="flex flex-col gap-1">
-                            <h2 className="text-3xl font-bold text-blue-700 dark:text-blue-400">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-blue-700 dark:text-blue-400 break-all">
                                 {roomId}
                             </h2>
                             <p className="text-sm text-blue-600/70 dark:text-blue-400/70">Game Room</p>
                         </div>
                         <button
                             onClick={handleCopyRoomLink}
-                            className="flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2.5 text-sm font-medium text-blue-700 transition-all hover:bg-blue-50 hover:shadow-md active:scale-95 dark:border-blue-700 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70"
+                            className="flex items-center justify-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2.5 text-sm font-medium text-blue-700 transition-all hover:bg-blue-50 hover:shadow-md active:scale-95 dark:border-blue-700 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70 flex-shrink-0"
                         >
                             {linkCopied ? (
                                 <>
@@ -612,8 +612,8 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     </div>
                 </header>
 
-                <div className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-6 overflow-hidden md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                    <div className="flex flex-col gap-6 overflow-auto pr-2">
+                <div className="flex flex-1 flex-col gap-6 overflow-hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                    <div className="flex flex-col gap-6 overflow-auto md:pr-2">
                         <PlayerList
                             players={playerUuids}
                             mapping={uuidToName}
@@ -656,7 +656,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                         )}
                     </div>
 
-                    <div className="flex min-h-0 flex-col overflow-hidden">
+                    <div className="flex min-h-[300px] md:min-h-0 flex-col overflow-hidden">
                         <ChatBox messages={displayMessages} onSendMessage={sendChatMessage} />
                     </div>
                 </div>
