@@ -37,6 +37,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const navigate = useNavigate();
     const socketRef = useRef<ReconnectingWebSocket | null>(null);
     const lastConnectionStateRef = useRef<ConnectionState | null>(null);
+    const pendingLeaveResolve = useRef<(() => void) | null>(null);
     const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.DISCONNECTED);
     const [chatMessages, setChatMessages] = useState<UserChatMessage[]>([]);
     const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
@@ -159,8 +160,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                         setReadyPlayers(new Set(readyPlayersFromServer));
                     }
 
+                    // Update connected players with type validation
                     if (Array.isArray(connectedFromServer)) {
-                        setConnectedPlayers(new Set(connectedFromServer));
+                        // Filter to ensure all values are strings (UUIDs)
+                        const validUuids = connectedFromServer.filter(
+                            (uuid): uuid is string => typeof uuid === 'string'
+                        );
+                        setConnectedPlayers(new Set(validUuids));
                     }
                 }
             },
@@ -186,6 +192,19 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     newSet.delete(leftPlayerUuid);
                     return newSet;
                 });
+
+                // Clean up connected players state
+                setConnectedPlayers(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(leftPlayerUuid);
+                    return newSet;
+                });
+
+                // If this is our own LEAVE echo, resolve the pending promise
+                if (leftPlayerUuid === selfUuid && pendingLeaveResolve.current) {
+                    pendingLeaveResolve.current();
+                    pendingLeaveResolve.current = null;
+                }
             },
 
             HOST_CHANGE: (message) => {
@@ -647,16 +666,39 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }
     };
 
-    const handleLeaveRoom = () => {
+    const handleLeaveRoom = async () => {
         console.log("Leave room button clicked");
 
-        // Send LEAVE message if connected
-        if (socketRef.current?.isConnected()) {
-            socketRef.current.send(JSON.stringify({
-                type: "LEAVE",
-                payload: {}
-            }));
+        // If not connected, navigate immediately
+        if (!socketRef.current?.isConnected()) {
+            navigate("/");
+            return;
         }
+
+        // Set up a promise to wait for our own LEAVE message echo
+        const leaveAcknowledged = new Promise<void>((resolve) => {
+            // Timeout after 3 seconds if we don't receive acknowledgment
+            const timeout = setTimeout(() => {
+                console.warn("Leave acknowledgment timeout - navigating anyway");
+                pendingLeaveResolve.current = null;
+                resolve();
+            }, 3000);
+
+            // Store the resolver so the LEAVE handler can call it
+            pendingLeaveResolve.current = () => {
+                clearTimeout(timeout);
+                resolve();
+            };
+        });
+
+        // Send LEAVE message
+        socketRef.current.send(JSON.stringify({
+            type: "LEAVE",
+            payload: {}
+        }));
+
+        // Wait for acknowledgment (or timeout)
+        await leaveAcknowledged;
 
         // Navigate back to home
         navigate("/");
