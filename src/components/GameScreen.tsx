@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { WebSocketMessage } from "../types.websocket";
-import { ReconnectingWebSocket } from "../services/websocket-reconnect";
+import { ReconnectingWebSocket, ConnectionState } from "../services/websocket-reconnect";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType, findCardsByRank } from "../utils/cardSorting";
 import { Badge } from "./ui/badge";
@@ -9,7 +9,7 @@ import { Card, CardContent } from "./ui/card";
 import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, WifiOff } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -33,6 +33,7 @@ interface GameScreenProps {
     mapping: Record<string, string>; // uuid to display name mapping
     botUuids?: Set<string>; // Set of bot UUIDs
     onReturnToLobby?: () => void;
+    connectionState?: ConnectionState;
 }
 
 interface Player {
@@ -59,8 +60,9 @@ interface GameState {
     focusedCardIndex: number | null; // Track which card has keyboard focus (cursor)
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initialGameData, mapping, botUuids = new Set(), onReturnToLobby }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initialGameData, mapping, botUuids = new Set(), onReturnToLobby, connectionState = ConnectionState.CONNECTED }) => {
     const { theme } = useThemeContext();
+    const isConnected = connectionState === ConnectionState.CONNECTED;
 
     // Track cycling state for cards with same rank
     const rankCycleIndexRef = useRef<Record<string, number>>({});
@@ -455,16 +457,18 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     const handlePlayCards = () => {
         if (gameState.selectedCards.length === 0) return;
 
-        if (socket && socket.isConnected()) {
-            socket.send(JSON.stringify({
-                type: "MOVE",
-                payload: {
-                    cards: gameState.selectedCards,
-                },
-            }));
-        } else {
+        if (!isConnected || !socket?.isConnected()) {
             console.warn("Cannot send move: not connected");
+            alert("Cannot play cards: connection lost. Please wait for reconnection.");
+            return;
         }
+
+        socket.send(JSON.stringify({
+            type: "MOVE",
+            payload: {
+                cards: gameState.selectedCards,
+            },
+        }));
 
         setGameState(prev => ({
             ...prev,
@@ -476,16 +480,18 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     };
 
     const handlePass = () => {
-        if (socket && socket.isConnected()) {
-            socket.send(JSON.stringify({
-                type: "MOVE",
-                payload: {
-                    cards: [],
-                },
-            }));
-        } else {
+        if (!isConnected || !socket?.isConnected()) {
             console.warn("Cannot pass: not connected");
+            alert("Cannot pass: connection lost. Please wait for reconnection.");
+            return;
         }
+
+        socket.send(JSON.stringify({
+            type: "MOVE",
+            payload: {
+                cards: [],
+            },
+        }));
     };
 
     const handleDeselectAll = () => {
@@ -1020,7 +1026,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
 
                     {/* Center Game Area */}
-                    <div className="flex flex-1 flex-col items-center justify-center">
+                    <div className="flex flex-1 flex-col items-center justify-center gap-2">
+                        {/* Connection status banner */}
+                        {!isConnected && (
+                            <div className="flex items-center gap-2 rounded-lg border-2 border-orange-500 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 dark:border-orange-400 dark:bg-orange-950/50 dark:text-orange-300">
+                                <WifiOff className="h-4 w-4 animate-pulse" />
+                                <span>Connection lost - reconnecting...</span>
+                            </div>
+                        )}
                         <Card className="w-full max-w-4xl overflow-hidden border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
                             <CardContent className="flex h-[280px] max-h-full flex-col items-center gap-3 overflow-y-auto p-6">
                                 {gameState.gameWon ? (
@@ -1073,6 +1086,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
                     {/* Center Game Area - Mobile compact */}
                     <div className="flex flex-1 flex-col items-center justify-start gap-2 overflow-y-auto px-2 py-2">
+                        {/* Connection status banner - mobile */}
+                        {!isConnected && (
+                            <div className="flex items-center gap-1.5 rounded-lg border-2 border-orange-500 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 dark:border-orange-400 dark:bg-orange-950/50 dark:text-orange-300">
+                                <WifiOff className="h-3 w-3 animate-pulse" />
+                                <span>Reconnecting...</span>
+                            </div>
+                        )}
                         {gameState.gameWon ? (
                             <div className="flex flex-col items-center gap-2 text-center">
                                 <p className="text-base font-bold text-emerald-500">

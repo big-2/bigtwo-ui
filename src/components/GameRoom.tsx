@@ -29,8 +29,12 @@ interface GameRoomProps {
 
 type MessageHandler = (message: WebSocketMessage) => void;
 
+// Maximum number of chat messages to keep in history
+const MAX_CHAT_MESSAGES = 100;
+
 const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) => {
     const socketRef = useRef<ReconnectingWebSocket | null>(null);
+    const lastConnectionStateRef = useRef<ConnectionState | null>(null);
     const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.DISCONNECTED);
     const [chatMessages, setChatMessages] = useState<UserChatMessage[]>([]);
     const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
@@ -59,6 +63,15 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }
     }, []);
 
+    // Helper function to add chat message with history limit
+    const addChatMessage = useCallback((message: UserChatMessage) => {
+        setChatMessages(prev => {
+            const newMessages = [...prev, message];
+            // Keep only the last MAX_CHAT_MESSAGES messages
+            return newMessages.slice(-MAX_CHAT_MESSAGES);
+        });
+    }, []);
+
     // Fetch initial stats when room loads
     useEffect(() => {
         const fetchStats = async () => {
@@ -81,7 +94,9 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     }, [roomId]);
 
     // WebSocket message handlers
-    const messageHandlers = useRef<Record<string, MessageHandler>>({
+    // Update handlers when dependencies change
+    useEffect(() => {
+        messageHandlers.current = {
         CHAT: (message) => {
             const payload = message.payload as { sender_uuid?: string; content?: string };
             const senderUuid = payload?.sender_uuid;
@@ -90,13 +105,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 return;
             }
 
-            setChatMessages(prevMessages => ([
-                ...prevMessages,
-                {
-                    senderUuid,
-                    content
-                }
-            ]));
+            addChatMessage({
+                senderUuid,
+                content
+            });
         },
 
         PLAYERS_LIST: (message) => {
@@ -191,13 +203,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 ? "You are now the host of this room."
                 : `${displayName} is now the host of this room.`;
 
-            setChatMessages(prevMessages => ([
-                ...prevMessages,
-                {
-                    senderUuid: "SYSTEM",
-                    content: systemMessage
-                }
-            ]));
+            addChatMessage({
+                senderUuid: "SYSTEM",
+                content: systemMessage
+            });
         },
         READY: (message) => {
             const payload = message.payload as {
@@ -275,13 +284,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 console.log(`Game won by: ${winnerName}`);
 
                 // Add win message to chat
-                setChatMessages(prevMessages => ([
-                    ...prevMessages,
-                    {
-                        senderUuid: "SYSTEM",
-                        content: `🎉 ${winnerName} won the game!`
-                    }
-                ]));
+                addChatMessage({
+                    senderUuid: "SYSTEM",
+                    content: `🎉 ${winnerName} won the game!`
+                });
 
                 // Note: We don't automatically return to lobby here because:
                 // 1. GameScreen shows the win screen with "Return to Lobby" button
@@ -302,13 +308,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
             // Show error to user in chat
             if (payload?.message) {
-                setChatMessages(prevMessages => ([
-                    ...prevMessages,
-                    {
-                        senderUuid: "SYSTEM",
-                        content: `Error: ${payload.message}`
-                    }
-                ]));
+                addChatMessage({
+                    senderUuid: "SYSTEM",
+                    content: `Error: ${payload.message}`
+                });
             }
         },
 
@@ -327,13 +330,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             setBotUuids(prev => new Set([...prev, botUuid]));
 
             // Add system message to chat
-            setChatMessages(prevMessages => ([
-                ...prevMessages,
-                {
-                    senderUuid: "SYSTEM",
-                    content: `${botName} joined the room`
-                }
-            ]));
+            addChatMessage({
+                senderUuid: "SYSTEM",
+                content: `${botName} joined the room`
+            });
         },
 
         BOT_REMOVED: (message) => {
@@ -354,13 +354,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
             // Add system message to chat
             const botName = uuidToName[botUuid] || "Bot";
-            setChatMessages(prevMessages => ([
-                ...prevMessages,
-                {
-                    senderUuid: "SYSTEM",
-                    content: `${botName} left the room`
-                }
-            ]));
+            addChatMessage({
+                senderUuid: "SYSTEM",
+                content: `${botName} left the room`
+            });
         },
 
         STATS_UPDATED: (message) => {
@@ -375,7 +372,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
             setRoomStats(stats);
         },
-    });
+        };
+    }, [uuidToName, selfUuid, username, roomId, addChatMessage, hostName]);
+
+    const messageHandlers = useRef<Record<string, MessageHandler>>({});
 
     const processMessage = (msg: string) => {
         try {
@@ -406,22 +406,28 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             onStateChange: (state) => {
                 setConnectionState(state);
 
+                // Only add chat messages for state transitions, not repeats
+                if (lastConnectionStateRef.current === state) {
+                    return;
+                }
+                lastConnectionStateRef.current = state;
+
                 // Show connection status in chat
                 if (state === ConnectionState.CONNECTED) {
-                    setChatMessages(prev => [...prev, {
+                    addChatMessage({
                         senderUuid: "SYSTEM",
                         content: "Connected to game server"
-                    }]);
+                    });
                 } else if (state === ConnectionState.RECONNECTING) {
-                    setChatMessages(prev => [...prev, {
+                    addChatMessage({
                         senderUuid: "SYSTEM",
                         content: "Connection lost. Reconnecting..."
-                    }]);
+                    });
                 } else if (state === ConnectionState.FAILED) {
-                    setChatMessages(prev => [...prev, {
+                    addChatMessage({
                         senderUuid: "SYSTEM",
                         content: "Failed to reconnect. Please refresh the page."
-                    }]);
+                    });
                 }
             },
             maxReconnectAttempts: 10,
@@ -436,7 +442,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             console.log(`Closing WebSocket connection to room ${roomId}`);
             socket.close();
         };
-    }, [roomId]); // Note: Only depend on roomId, not username (prevents unnecessary reconnects)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [roomId, addChatMessage]);
+    // Note: username is intentionally omitted - it's only used as a fallback if player_uuid
+    // is not in localStorage. WebSocket authentication uses session_id (from localStorage),
+    // not username. Including username would cause unnecessary reconnections when it changes.
 
     // Update host name from room details
     useEffect(() => {
@@ -554,47 +564,38 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             } else {
                 console.error("Failed to add bot");
                 // Show error notification to user
-                setChatMessages(prevMessages => ([
-                    ...prevMessages,
-                    {
-                        senderUuid: "SYSTEM",
-                        content: "Failed to add bot. Room may be full or you may not be the host."
-                    }
-                ]));
+                addChatMessage({
+                    senderUuid: "SYSTEM",
+                    content: "Failed to add bot. Room may be full or you may not be the host."
+                });
             }
         } finally {
             setAddingBot(false);
         }
-    }, [roomId, botDifficulty]);
+    }, [roomId, botDifficulty, addChatMessage]);
 
     const handleRemoveBot = useCallback(async (botUuid: string) => {
         try {
             const success = await removeBotFromRoom(roomId, botUuid);
             if (!success) {
                 console.error("Failed to remove bot");
-                setChatMessages(prevMessages => ([
-                    ...prevMessages,
-                    {
-                        senderUuid: "SYSTEM",
-                        content: "Failed to remove bot. You may not be the host."
-                    }
-                ]));
+                addChatMessage({
+                    senderUuid: "SYSTEM",
+                    content: "Failed to remove bot. You may not be the host."
+                });
             }
         } catch (error) {
             console.error("Error removing bot:", error);
         }
-    }, [roomId]);
+    }, [roomId, addChatMessage]);
 
     const handleKickPlayer = useCallback((playerUuid: string) => {
         console.log("Kick player clicked", playerUuid);
-        setChatMessages(prevMessages => ([
-            ...prevMessages,
-            {
-                senderUuid: "SYSTEM",
-                content: "Player removal is coming soon."
-            }
-        ]));
-    }, []);
+        addChatMessage({
+            senderUuid: "SYSTEM",
+            content: "Player removal is coming soon."
+        });
+    }, [addChatMessage]);
 
     // Check if current user is the host using UUID mapping
     // Find the UUID that maps to the current username and see if that UUID maps to the host
@@ -696,6 +697,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 mapping={uuidToName}
                 botUuids={botUuids}
                 onReturnToLobby={handleReturnToLobby}
+                connectionState={connectionState}
             />
         );
     }

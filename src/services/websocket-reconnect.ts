@@ -69,11 +69,29 @@ export class ReconnectingWebSocket {
     private onlineHandler: (() => void) | null = null;
 
     constructor(config: WebSocketConfig) {
+        // Validate configuration
+        const maxReconnectAttempts = config.maxReconnectAttempts ?? 10;
+        const baseDelay = config.baseDelay ?? 1000;
+        const maxDelay = config.maxDelay ?? 30000;
+
+        if (maxReconnectAttempts < 0) {
+            throw new Error('maxReconnectAttempts must be non-negative');
+        }
+        if (baseDelay <= 0) {
+            throw new Error('baseDelay must be positive');
+        }
+        if (maxDelay <= 0) {
+            throw new Error('maxDelay must be positive');
+        }
+        if (maxDelay < baseDelay) {
+            throw new Error('maxDelay must be greater than or equal to baseDelay');
+        }
+
         this.config = {
             ...config,
-            maxReconnectAttempts: config.maxReconnectAttempts ?? 10,
-            baseDelay: config.baseDelay ?? 1000,
-            maxDelay: config.maxDelay ?? 30000,
+            maxReconnectAttempts,
+            baseDelay,
+            maxDelay,
         };
 
         // Set up event listeners for immediate reconnection on visibility/network changes
