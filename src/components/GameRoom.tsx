@@ -38,6 +38,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const socketRef = useRef<ReconnectingWebSocket | null>(null);
     const lastConnectionStateRef = useRef<ConnectionState | null>(null);
     const pendingLeaveResolve = useRef<(() => void) | null>(null);
+    const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.DISCONNECTED);
     const [chatMessages, setChatMessages] = useState<UserChatMessage[]>([]);
     const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
@@ -201,7 +202,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 });
 
                 // If this is our own LEAVE echo, resolve the pending promise
-                if (leftPlayerUuid === selfUuid && pendingLeaveResolve.current) {
+                // Check against both selfUuid and stored session UUID to handle race conditions
+                const stored = getStoredSession();
+                const isOwnLeave = leftPlayerUuid === selfUuid ||
+                    (stored?.player_uuid && leftPlayerUuid === stored.player_uuid);
+
+                if (isOwnLeave && pendingLeaveResolve.current) {
                     pendingLeaveResolve.current();
                     pendingLeaveResolve.current = null;
                 }
@@ -469,6 +475,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         return () => {
             console.log(`Closing WebSocket connection to room ${roomId}`);
             socket.close();
+
+            // Clean up pending leave timeout to prevent memory leak
+            if (leaveTimeoutRef.current) {
+                clearTimeout(leaveTimeoutRef.current);
+                leaveTimeoutRef.current = null;
+            }
+            pendingLeaveResolve.current = null;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [roomId, addChatMessage]);
@@ -678,15 +691,19 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         // Set up a promise to wait for our own LEAVE message echo
         const leaveAcknowledged = new Promise<void>((resolve) => {
             // Timeout after 3 seconds if we don't receive acknowledgment
-            const timeout = setTimeout(() => {
+            leaveTimeoutRef.current = setTimeout(() => {
                 console.warn("Leave acknowledgment timeout - navigating anyway");
                 pendingLeaveResolve.current = null;
+                leaveTimeoutRef.current = null;
                 resolve();
             }, 3000);
 
             // Store the resolver so the LEAVE handler can call it
             pendingLeaveResolve.current = () => {
-                clearTimeout(timeout);
+                if (leaveTimeoutRef.current) {
+                    clearTimeout(leaveTimeoutRef.current);
+                    leaveTimeoutRef.current = null;
+                }
                 resolve();
             };
         });

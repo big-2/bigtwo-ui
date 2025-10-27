@@ -164,7 +164,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                         <Bot aria-hidden className="h-4 w-4 text-muted-foreground" />
                                     ) : (
                                         <span
-                                            aria-hidden
+                                            aria-label={connectedPlayers.has(uuid) ? "Connected" : "Disconnected"}
+                                            role="status"
                                             className={cn(
                                                 "block h-2 w-2 rounded-full",
                                                 connectedPlayers.has(uuid) ? "bg-green-500" : "bg-red-500"
