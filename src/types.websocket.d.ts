@@ -115,6 +115,7 @@ export interface PlayersListPayload {
     bot_uuids: string[];
     ready_players: string[];
     host_uuid?: string | null;
+    connected_players: string[];
 }
 /**
  * Model for turn change messages.
