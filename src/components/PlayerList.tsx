@@ -16,6 +16,7 @@ interface PlayerListProps {
     mapping: Record<string, string>;
     botUuids: Set<string>;
     readyPlayers: Set<string>;
+    connectedPlayers: Set<string>;
     currentUserUuid?: string;
     currentUsername: string;
     hostUuid?: string;
@@ -37,6 +38,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
     mapping,
     botUuids,
     readyPlayers,
+    connectedPlayers,
     currentUserUuid,
     currentUsername,
     hostUuid,
@@ -157,8 +159,18 @@ const PlayerList: React.FC<PlayerListProps> = ({
                         >
                             {/* Player name section - flexible width */}
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className="w-4 h-4 flex-shrink-0">
-                                    {isBot && <Bot aria-hidden className="h-4 w-4 text-muted-foreground" />}
+                                <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
+                                    {isBot ? (
+                                        <Bot aria-hidden className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                        <span
+                                            aria-hidden
+                                            className={cn(
+                                                "block h-2 w-2 rounded-full",
+                                                connectedPlayers.has(uuid) ? "bg-green-500" : "bg-red-500"
+                                            )}
+                                        />
+                                    )}
                                 </div>
                                 <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
                             </div>
