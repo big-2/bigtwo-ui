@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { WebSocketMessage } from "../types.websocket";
+import { ReconnectingWebSocket } from "../services/websocket-reconnect";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType, findCardsByRank } from "../utils/cardSorting";
 import { Badge } from "./ui/badge";
@@ -21,7 +22,7 @@ import {
 interface GameScreenProps {
     username: string; // display name for current client
     uuid: string; // uuid for current client
-    socket: WebSocket | null;
+    socket: ReconnectingWebSocket | null;
     initialGameData?: {
         cards: string[];
         currentTurn: string;
@@ -368,18 +369,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         }
     };
 
-    // Set up WebSocket message listener
+    // Set up WebSocket message listener for game-specific messages
     useEffect(() => {
         if (socket) {
-            const messageHandler = (event: MessageEvent) => {
-                processMessage(event.data);
-            };
+            const cleanupListener = socket.addMessageListener((data: string) => {
+                processMessage(data);
+            });
 
-            socket.addEventListener("message", messageHandler);
-
-            // Cleanup function to remove event listener
+            // Cleanup function to remove listener
             return () => {
-                socket.removeEventListener("message", messageHandler);
+                cleanupListener();
             };
         }
     }, [socket]);
@@ -456,13 +455,15 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     const handlePlayCards = () => {
         if (gameState.selectedCards.length === 0) return;
 
-        if (socket) {
+        if (socket && socket.isConnected()) {
             socket.send(JSON.stringify({
                 type: "MOVE",
                 payload: {
                     cards: gameState.selectedCards,
                 },
             }));
+        } else {
+            console.warn("Cannot send move: not connected");
         }
 
         setGameState(prev => ({
@@ -475,13 +476,15 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     };
 
     const handlePass = () => {
-        if (socket) {
+        if (socket && socket.isConnected()) {
             socket.send(JSON.stringify({
                 type: "MOVE",
                 payload: {
                     cards: [],
                 },
             }));
+        } else {
+            console.warn("Cannot pass: not connected");
         }
     };
 

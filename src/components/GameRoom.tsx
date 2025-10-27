@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { connectToRoomWebSocket } from "../services/socket";
 import { getStoredSession } from "../services/session";
 import { RoomResponse, addBotToRoom, removeBotFromRoom, getRoomStats } from "../services/api";
 import { Button } from "./ui/button";
@@ -9,7 +8,8 @@ import PlayerList from "./PlayerList";
 import GameScreen from "./GameScreen";
 import { WebSocketMessage } from "../types.websocket";
 import { RoomStats } from "../types.stats";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Wifi, WifiOff } from "lucide-react";
+import { ReconnectingWebSocket, ConnectionState } from "../services/websocket-reconnect";
 
 interface UserChatMessage {
     senderUuid: string;
@@ -30,7 +30,8 @@ interface GameRoomProps {
 type MessageHandler = (message: WebSocketMessage) => void;
 
 const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) => {
-    const socketRef = useRef<WebSocket | null>(null);
+    const socketRef = useRef<ReconnectingWebSocket | null>(null);
+    const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.DISCONNECTED);
     const [chatMessages, setChatMessages] = useState<UserChatMessage[]>([]);
     const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
@@ -391,19 +392,51 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }
     };
 
-    // Establish WebSocket connection
+    // Establish WebSocket connection with automatic reconnection
     useEffect(() => {
         console.log(`Establishing WebSocket connection to room ${roomId}...`);
-        // Prefer uuid-based identity for socket protocol when available
+
         const stored = getStoredSession();
         const identity = stored?.player_uuid || username;
-        socketRef.current = connectToRoomWebSocket(roomId, identity, processMessage);
+
+        const socket = new ReconnectingWebSocket({
+            roomId,
+            playerName: identity,
+            onMessage: processMessage,
+            onStateChange: (state) => {
+                setConnectionState(state);
+
+                // Show connection status in chat
+                if (state === ConnectionState.CONNECTED) {
+                    setChatMessages(prev => [...prev, {
+                        senderUuid: "SYSTEM",
+                        content: "Connected to game server"
+                    }]);
+                } else if (state === ConnectionState.RECONNECTING) {
+                    setChatMessages(prev => [...prev, {
+                        senderUuid: "SYSTEM",
+                        content: "Connection lost. Reconnecting..."
+                    }]);
+                } else if (state === ConnectionState.FAILED) {
+                    setChatMessages(prev => [...prev, {
+                        senderUuid: "SYSTEM",
+                        content: "Failed to reconnect. Please refresh the page."
+                    }]);
+                }
+            },
+            maxReconnectAttempts: 10,
+            baseDelay: 1000,
+            maxDelay: 30000,
+        });
+
+        socket.connect();
+        socketRef.current = socket;
 
         return () => {
             console.log(`Closing WebSocket connection to room ${roomId}`);
-            socketRef.current?.close();
+            socket.close();
         };
-    }, [username, roomId]);
+    }, [roomId]); // Note: Only depend on roomId, not username (prevents unnecessary reconnects)
 
     // Update host name from room details
     useEffect(() => {
@@ -445,7 +478,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     ), [chatMessages, getDisplayName, selfUuid, username]);
 
     const sendChatMessage = (message: string) => {
-        socketRef.current?.send(JSON.stringify({
+        if (!socketRef.current?.isConnected()) {
+            console.warn("Cannot send chat: not connected");
+            return;
+        }
+
+        socketRef.current.send(JSON.stringify({
             type: "CHAT",
             payload: {
                 sender_uuid: selfUuid || username,
@@ -474,17 +512,25 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             return newSet;
         });
 
-        socketRef.current?.send(JSON.stringify({
-            type: "READY",
-            payload: {
-                is_ready: newReadyState
-            }
-        }));
+        if (socketRef.current?.isConnected()) {
+            socketRef.current.send(JSON.stringify({
+                type: "READY",
+                payload: {
+                    is_ready: newReadyState
+                }
+            }));
+        }
     };
 
     const handleStartGame = () => {
         console.log("Start game button clicked");
-        socketRef.current?.send(JSON.stringify({
+
+        if (!socketRef.current?.isConnected()) {
+            console.warn("Cannot start game: not connected");
+            return;
+        }
+
+        socketRef.current.send(JSON.stringify({
             type: "START_GAME",
             payload: {}
         }));
@@ -591,6 +637,54 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }
     };
 
+    // Connection status indicator component
+    const ConnectionIndicator = () => {
+        const getStatusConfig = () => {
+            switch (connectionState) {
+                case ConnectionState.CONNECTED:
+                    return {
+                        icon: Wifi,
+                        text: "Connected",
+                        className: "text-green-600 dark:text-green-400"
+                    };
+                case ConnectionState.CONNECTING:
+                    return {
+                        icon: Wifi,
+                        text: "Connecting...",
+                        className: "text-yellow-600 dark:text-yellow-400 animate-pulse"
+                    };
+                case ConnectionState.RECONNECTING:
+                    return {
+                        icon: WifiOff,
+                        text: "Reconnecting...",
+                        className: "text-orange-600 dark:text-orange-400 animate-pulse"
+                    };
+                case ConnectionState.DISCONNECTED:
+                    return {
+                        icon: WifiOff,
+                        text: "Disconnected",
+                        className: "text-gray-600 dark:text-gray-400"
+                    };
+                case ConnectionState.FAILED:
+                    return {
+                        icon: WifiOff,
+                        text: "Connection Failed",
+                        className: "text-red-600 dark:text-red-400"
+                    };
+            }
+        };
+
+        const config = getStatusConfig();
+        const Icon = config.icon;
+
+        return (
+            <div className={cn("flex items-center gap-1.5 text-xs sm:text-sm", config.className)}>
+                <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">{config.text}</span>
+            </div>
+        );
+    };
+
     // If game has started, show the GameScreen (only after we know self uuid for consistent identity)
     if (gameStarted && gameData && (selfUuid || Object.keys(uuidToName).find((uuid) => uuidToName[uuid] === username))) {
         return (
@@ -616,7 +710,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                             <h2 className="text-lg sm:text-3xl font-bold text-blue-700 dark:text-blue-400 break-all">
                                 {roomId}
                             </h2>
-                            <p className="text-xs sm:text-sm text-blue-600/70 dark:text-blue-400/70 hidden sm:block">Game Room</p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-xs sm:text-sm text-blue-600/70 dark:text-blue-400/70 hidden sm:block">Game Room</p>
+                                <ConnectionIndicator />
+                            </div>
                         </div>
                         <button
                             onClick={handleCopyRoomLink}
