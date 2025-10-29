@@ -38,7 +38,9 @@ export const useSession = (): UseSessionReturn => {
             const newSession = await createSession();
             setSession(newSession);
             setUsername(newSession.username);
-            setUserUuid(newSession.player_uuid || '');
+            // Use session_id as the player identifier (extract from JWT payload)
+            const payload = JSON.parse(atob(newSession.session_id.split('.')[1]));
+            setUserUuid(payload.session_id || '');
 
             console.log('New session created:', newSession.username);
         } catch (err) {
@@ -69,7 +71,9 @@ export const useSession = (): UseSessionReturn => {
                     // Let axios interceptor handle validation on first actual request
                     setSession(storedSession);
                     setUsername(storedSession.username);
-                    setUserUuid(storedSession.player_uuid || '');
+                    // Use session_id as the player identifier (extract from JWT payload)
+                    const payload = JSON.parse(atob(storedSession.session_id.split('.')[1]));
+                    setUserUuid(payload.session_id || '');
                     console.log('Found existing session for:', storedSession.username, '(will validate on first request)');
                 } else {
                     console.log('Invalid stored session, creating a new one');
