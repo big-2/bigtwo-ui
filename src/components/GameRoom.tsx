@@ -11,6 +11,7 @@ import { WebSocketMessage } from "../types.websocket";
 import { RoomStats } from "../types.stats";
 import { Copy, Check, Wifi, WifiOff, LogOut } from "lucide-react";
 import { ReconnectingWebSocket, ConnectionState } from "../services/websocket-reconnect";
+import { extractSessionIdFromJWT } from "../utils/jwt";
 
 interface UserChatMessage {
     senderUuid: string;
@@ -65,8 +66,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         const stored = getStoredSession();
         if (stored?.session_id) {
             // Extract session_id from JWT payload (this is the player identifier)
-            const payload = JSON.parse(atob(stored.session_id.split('.')[1]));
-            setSelfUuid(payload.session_id || '');
+            const sessionId = extractSessionIdFromJWT(stored.session_id);
+            if (sessionId) {
+                setSelfUuid(sessionId);
+            }
         }
     }, []);
 
@@ -206,11 +209,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 // If this is our own LEAVE echo, resolve the pending promise
                 // Check against both selfUuid and stored session ID to handle race conditions
                 const stored = getStoredSession();
-                let storedSessionId = '';
-                if (stored?.session_id) {
-                    const payload = JSON.parse(atob(stored.session_id.split('.')[1]));
-                    storedSessionId = payload.session_id || '';
-                }
+                const storedSessionId = stored?.session_id ? extractSessionIdFromJWT(stored.session_id) : null;
                 const isOwnLeave = leftPlayerUuid === selfUuid ||
                     (storedSessionId && leftPlayerUuid === storedSessionId);
 
@@ -441,8 +440,8 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         // Extract session_id from JWT (this is the player identifier)
         let identity = username;
         if (stored?.session_id) {
-            const payload = JSON.parse(atob(stored.session_id.split('.')[1]));
-            identity = payload.session_id || username;
+            const sessionId = extractSessionIdFromJWT(stored.session_id);
+            identity = sessionId || username;
         }
 
         const socket = new ReconnectingWebSocket({

@@ -7,6 +7,7 @@ import {
     UserSession
 } from '../services/session';
 import { getNormalizedApiUrl } from '../utils/config';
+import { extractSessionIdFromJWT } from '../utils/jwt';
 
 interface UseSessionReturn {
     session: UserSession | null;
@@ -39,8 +40,8 @@ export const useSession = (): UseSessionReturn => {
             setSession(newSession);
             setUsername(newSession.username);
             // Use session_id as the player identifier (extract from JWT payload)
-            const payload = JSON.parse(atob(newSession.session_id.split('.')[1]));
-            setUserUuid(payload.session_id || '');
+            const sessionId = extractSessionIdFromJWT(newSession.session_id);
+            setUserUuid(sessionId || '');
 
             console.log('New session created:', newSession.username);
         } catch (err) {
@@ -72,8 +73,8 @@ export const useSession = (): UseSessionReturn => {
                     setSession(storedSession);
                     setUsername(storedSession.username);
                     // Use session_id as the player identifier (extract from JWT payload)
-                    const payload = JSON.parse(atob(storedSession.session_id.split('.')[1]));
-                    setUserUuid(payload.session_id || '');
+                    const sessionId = extractSessionIdFromJWT(storedSession.session_id);
+                    setUserUuid(sessionId || '');
                     console.log('Found existing session for:', storedSession.username, '(will validate on first request)');
                 } else {
                     console.log('Invalid stored session, creating a new one');

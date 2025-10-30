@@ -39,6 +39,8 @@ export interface WebSocketConfig {
     baseDelay?: number;
     /** Maximum delay between reconnection attempts in ms (default: 30000) */
     maxDelay?: number;
+    /** Heartbeat timeout in ms (default: 5000) */
+    heartbeatTimeout?: number;
 }
 
 /**
@@ -58,6 +60,7 @@ export class ReconnectingWebSocket {
         maxReconnectAttempts: number;
         baseDelay: number;
         maxDelay: number;
+        heartbeatTimeout: number;
     };
     private reconnectAttempt = 0;
     private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -75,6 +78,7 @@ export class ReconnectingWebSocket {
         const maxReconnectAttempts = config.maxReconnectAttempts ?? 10;
         const baseDelay = config.baseDelay ?? 1000;
         const maxDelay = config.maxDelay ?? 30000;
+        const heartbeatTimeout = config.heartbeatTimeout ?? 5000;
 
         if (maxReconnectAttempts < 0) {
             throw new Error('maxReconnectAttempts must be non-negative');
@@ -88,12 +92,16 @@ export class ReconnectingWebSocket {
         if (maxDelay < baseDelay) {
             throw new Error('maxDelay must be greater than or equal to baseDelay');
         }
+        if (heartbeatTimeout <= 0) {
+            throw new Error('heartbeatTimeout must be positive');
+        }
 
         this.config = {
             ...config,
             maxReconnectAttempts,
             baseDelay,
             maxDelay,
+            heartbeatTimeout,
         };
 
         // Set up event listeners for immediate reconnection on visibility/network changes
@@ -206,7 +214,7 @@ export class ReconnectingWebSocket {
 
         console.log('[WebSocket] Sent HEARTBEAT, waiting for ACK...');
 
-        // Set timeout: if no HEARTBEAT_ACK within 5 seconds, connection is dead
+        // Set timeout: if no HEARTBEAT_ACK within configured timeout, connection is dead
         this.heartbeatTimeout = setTimeout(() => {
             console.warn('[WebSocket] Heartbeat timeout - no ACK received, connection is dead');
             this.awaitingHeartbeatAck = false;
@@ -215,7 +223,7 @@ export class ReconnectingWebSocket {
             // Force reconnection - connection appears open but is actually dead
             this.socket?.close();
             this.tryImmediateReconnect();
-        }, 5000);
+        }, this.config.heartbeatTimeout);
     }
 
     /**
@@ -405,6 +413,7 @@ export class ReconnectingWebSocket {
             }
         } catch (e) {
             // Not JSON or parsing failed, continue normally
+            console.debug('[WebSocket] Non-JSON message or parse error:', e);
         }
 
         // Call primary handler
