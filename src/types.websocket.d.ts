@@ -22,7 +22,9 @@ export type MessageType =
     | "GAME_WON"
     | "BOT_ADDED"
     | "BOT_REMOVED"
-    | "STATS_UPDATED";
+    | "STATS_UPDATED"
+    | "HEARTBEAT"
+    | "HEARTBEAT_ACK";
 
 /**
  * Model for chat messages.

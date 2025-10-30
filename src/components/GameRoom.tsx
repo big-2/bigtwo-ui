@@ -11,6 +11,7 @@ import { WebSocketMessage } from "../types.websocket";
 import { RoomStats } from "../types.stats";
 import { Copy, Check, Wifi, WifiOff, LogOut } from "lucide-react";
 import { ReconnectingWebSocket, ConnectionState } from "../services/websocket-reconnect";
+import { extractSessionIdFromJWT } from "../utils/jwt";
 
 interface UserChatMessage {
     senderUuid: string;
@@ -63,8 +64,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
     useEffect(() => {
         const stored = getStoredSession();
-        if (stored?.player_uuid) {
-            setSelfUuid(stored.player_uuid);
+        if (stored?.session_id) {
+            // Extract session_id from JWT payload (this is the player identifier)
+            const sessionId = extractSessionIdFromJWT(stored.session_id);
+            if (sessionId) {
+                setSelfUuid(sessionId);
+            }
         }
     }, []);
 
@@ -202,10 +207,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 });
 
                 // If this is our own LEAVE echo, resolve the pending promise
-                // Check against both selfUuid and stored session UUID to handle race conditions
+                // Check against both selfUuid and stored session ID to handle race conditions
                 const stored = getStoredSession();
+                const storedSessionId = stored?.session_id ? extractSessionIdFromJWT(stored.session_id) : null;
                 const isOwnLeave = leftPlayerUuid === selfUuid ||
-                    (stored?.player_uuid && leftPlayerUuid === stored.player_uuid);
+                    (storedSessionId && leftPlayerUuid === storedSessionId);
 
                 if (isOwnLeave && pendingLeaveResolve.current) {
                     pendingLeaveResolve.current();
@@ -431,7 +437,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         console.log(`Establishing WebSocket connection to room ${roomId}...`);
 
         const stored = getStoredSession();
-        const identity = stored?.player_uuid || username;
+        // Extract session_id from JWT (this is the player identifier)
+        let identity = username;
+        if (stored?.session_id) {
+            const sessionId = extractSessionIdFromJWT(stored.session_id);
+            identity = sessionId || username;
+        }
 
         const socket = new ReconnectingWebSocket({
             roomId,
@@ -485,9 +496,9 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [roomId, addChatMessage]);
-    // Note: username is intentionally omitted - it's only used as a fallback if player_uuid
-    // is not in localStorage. WebSocket authentication uses session_id (from localStorage),
-    // not username. Including username would cause unnecessary reconnections when it changes.
+    // Note: username is intentionally omitted - it's only used as a fallback if session_id
+    // cannot be extracted. WebSocket authentication uses session_id (from localStorage JWT).
+    // Including username would cause unnecessary reconnections when it changes.
 
     // Update host name from room details
     useEffect(() => {

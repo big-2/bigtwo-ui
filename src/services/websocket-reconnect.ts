@@ -39,6 +39,8 @@ export interface WebSocketConfig {
     baseDelay?: number;
     /** Maximum delay between reconnection attempts in ms (default: 30000) */
     maxDelay?: number;
+    /** Heartbeat timeout in ms (default: 5000) */
+    heartbeatTimeout?: number;
 }
 
 /**
@@ -58,6 +60,7 @@ export class ReconnectingWebSocket {
         maxReconnectAttempts: number;
         baseDelay: number;
         maxDelay: number;
+        heartbeatTimeout: number;
     };
     private reconnectAttempt = 0;
     private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -67,12 +70,15 @@ export class ReconnectingWebSocket {
     private additionalListeners: Array<(message: string) => void> = [];
     private visibilityChangeHandler: (() => void) | null = null;
     private onlineHandler: (() => void) | null = null;
+    private heartbeatTimeout: NodeJS.Timeout | null = null;
+    private awaitingHeartbeatAck = false;
 
     constructor(config: WebSocketConfig) {
         // Validate configuration
         const maxReconnectAttempts = config.maxReconnectAttempts ?? 10;
         const baseDelay = config.baseDelay ?? 1000;
         const maxDelay = config.maxDelay ?? 30000;
+        const heartbeatTimeout = config.heartbeatTimeout ?? 5000;
 
         if (maxReconnectAttempts < 0) {
             throw new Error('maxReconnectAttempts must be non-negative');
@@ -86,12 +92,16 @@ export class ReconnectingWebSocket {
         if (maxDelay < baseDelay) {
             throw new Error('maxDelay must be greater than or equal to baseDelay');
         }
+        if (heartbeatTimeout <= 0) {
+            throw new Error('heartbeatTimeout must be positive');
+        }
 
         this.config = {
             ...config,
             maxReconnectAttempts,
             baseDelay,
             maxDelay,
+            heartbeatTimeout,
         };
 
         // Set up event listeners for immediate reconnection on visibility/network changes
@@ -159,6 +169,76 @@ export class ReconnectingWebSocket {
             if (this.socket.readyState !== WebSocket.OPEN) {
                 console.log('[WebSocket] Connection was marked connected but socket is closed, reconnecting');
                 this.tryImmediateReconnect();
+            } else {
+                // Connection appears to be open, verify it's actually alive with a heartbeat
+                console.log('[WebSocket] Verifying connection health with heartbeat');
+                this.verifyConnectionWithHeartbeat();
+            }
+        }
+    }
+
+    /**
+     * Verify connection is actually alive by sending a heartbeat
+     *
+     * Modern approach used by Discord, Slack, multiplayer games:
+     * - Send application-level HEARTBEAT message
+     * - Expect HEARTBEAT_ACK within 5 seconds
+     * - If no response, connection is dead → force reconnect
+     *
+     * This catches the case where WebSocket appears "OPEN" but is actually dead
+     * (common after tab backgrounding on Safari/iOS)
+     */
+    private verifyConnectionWithHeartbeat(): void {
+        // Don't send duplicate heartbeats
+        if (this.awaitingHeartbeatAck) {
+            console.log('[WebSocket] Already awaiting heartbeat ACK, skipping');
+            return;
+        }
+
+        this.awaitingHeartbeatAck = true;
+
+        // Send HEARTBEAT message
+        const heartbeat = JSON.stringify({
+            type: 'HEARTBEAT',
+            payload: {},
+            meta: { timestamp: new Date().toISOString() }
+        });
+
+        const sent = this.send(heartbeat);
+        if (!sent) {
+            console.warn('[WebSocket] Failed to send heartbeat, connection likely dead');
+            this.awaitingHeartbeatAck = false;
+            this.tryImmediateReconnect();
+            return;
+        }
+
+        console.log('[WebSocket] Sent HEARTBEAT, waiting for ACK...');
+
+        // Set timeout: if no HEARTBEAT_ACK within configured timeout, connection is dead
+        this.heartbeatTimeout = setTimeout(() => {
+            console.warn('[WebSocket] Heartbeat timeout - no ACK received, connection is dead');
+            this.awaitingHeartbeatAck = false;
+            this.heartbeatTimeout = null;
+
+            // Force reconnection - connection appears open but is actually dead
+            this.socket?.close();
+            this.tryImmediateReconnect();
+        }, this.config.heartbeatTimeout);
+    }
+
+    /**
+     * Handle HEARTBEAT_ACK message from server
+     * Called when we receive a HEARTBEAT_ACK message
+     */
+    private handleHeartbeatAck(): void {
+        if (this.awaitingHeartbeatAck) {
+            console.log('[WebSocket] Received HEARTBEAT_ACK - connection is healthy');
+            this.awaitingHeartbeatAck = false;
+
+            // Clear timeout
+            if (this.heartbeatTimeout) {
+                clearTimeout(this.heartbeatTimeout);
+                this.heartbeatTimeout = null;
             }
         }
     }
@@ -322,6 +402,20 @@ export class ReconnectingWebSocket {
 
     private handleMessage(event: MessageEvent): void {
         const message = event.data;
+
+        // Check if this is a HEARTBEAT_ACK message
+        try {
+            const parsed = JSON.parse(message);
+            if (parsed.type === 'HEARTBEAT_ACK') {
+                this.handleHeartbeatAck();
+                // Don't pass HEARTBEAT_ACK to application handlers - it's internal
+                return;
+            }
+        } catch (e) {
+            // Not JSON or parsing failed, continue normally
+            console.debug('[WebSocket] Non-JSON message or parse error:', e);
+        }
+
         // Call primary handler
         this.config.onMessage(message);
         // Call additional listeners
@@ -385,6 +479,13 @@ export class ReconnectingWebSocket {
             clearTimeout(this.reconnectTimeout);
             this.reconnectTimeout = null;
         }
+
+        if (this.heartbeatTimeout) {
+            clearTimeout(this.heartbeatTimeout);
+            this.heartbeatTimeout = null;
+        }
+
+        this.awaitingHeartbeatAck = false;
 
         if (this.socket) {
             // Remove event handlers to prevent memory leaks

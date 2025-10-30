@@ -4,12 +4,10 @@ import { getNormalizedApiUrl } from '../utils/config';
 
 const API_URL = getNormalizedApiUrl();
 const SESSION_STORAGE_KEY = 'session_id';
-const PLAYER_UUID_STORAGE_KEY = 'player_uuid';
 
 export interface UserSession {
     session_id: string;
     username: string;
-    player_uuid?: string;
 }
 
 interface JWTPayload {
@@ -43,11 +41,10 @@ const decodeJWTPayload = (token: string): JWTPayload | null => {
 export const createSession = async (): Promise<UserSession> => {
     try {
         const response = await axios.post(`${API_URL}/session`);
-        const session = response.data as { session_id: string; username: string; player_uuid: string };
+        const session = response.data as { session_id: string; username: string };
 
-        // Store the session ID and player UUID in localStorage
+        // Store the session ID in localStorage
         localStorage.setItem(SESSION_STORAGE_KEY, session.session_id);
-        localStorage.setItem(PLAYER_UUID_STORAGE_KEY, session.player_uuid);
 
         return session;
     } catch (error) {
@@ -63,10 +60,6 @@ export const getSessionId = (): string | null => {
     return localStorage.getItem(SESSION_STORAGE_KEY);
 };
 
-export const getPlayerUuid = (): string | null => {
-    return localStorage.getItem(PLAYER_UUID_STORAGE_KEY);
-};
-
 /**
  * Gets stored session with username extracted from JWT token
  */
@@ -77,12 +70,9 @@ export const getStoredSession = (): UserSession | null => {
     const payload = decodeJWTPayload(sessionId);
     if (!payload || !payload.username) return null;
 
-    const player_uuid = getPlayerUuid() || undefined;
-
     return {
         session_id: sessionId,
         username: payload.username,
-        player_uuid,
     };
 };
 
@@ -91,7 +81,6 @@ export const getStoredSession = (): UserSession | null => {
  */
 export const clearSession = (): void => {
     localStorage.removeItem(SESSION_STORAGE_KEY);
-    localStorage.removeItem(PLAYER_UUID_STORAGE_KEY);
 };
 
 /**
