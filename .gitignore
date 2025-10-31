@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .cursorrules
+.vercel
 
 # Environment variables (keep .env.example and .env.development)
 .env.production.local
