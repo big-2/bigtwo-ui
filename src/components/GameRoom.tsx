@@ -9,9 +9,10 @@ import PlayerList from "./PlayerList";
 import GameScreen from "./GameScreen";
 import { WebSocketMessage } from "../types.websocket";
 import { RoomStats } from "../types.stats";
-import { Copy, Check, Wifi, WifiOff, LogOut } from "lucide-react";
+import { Copy, Check, Wifi, WifiOff, LogOut, MessageSquare } from "lucide-react";
 import { ReconnectingWebSocket, ConnectionState } from "../services/websocket-reconnect";
 import { extractSessionIdFromJWT } from "../utils/jwt";
+import { Dialog, DialogContent, DialogClose } from "./ui/dialog";
 
 interface UserChatMessage {
     senderUuid: string;
@@ -61,6 +62,9 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
     const [linkCopied, setLinkCopied] = useState(false);
     const [connectedPlayers, setConnectedPlayers] = useState<Set<string>>(new Set());
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [mobileChatDraft, setMobileChatDraft] = useState("");
 
     useEffect(() => {
         const stored = getStoredSession();
@@ -77,10 +81,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const addChatMessage = useCallback((message: UserChatMessage) => {
         setChatMessages(prev => {
             const newMessages = [...prev, message];
+            if (!isChatOpen) {
+                setUnreadCount((c) => Math.min(99, c + 1));
+            }
             // Keep only the last MAX_CHAT_MESSAGES messages
             return newMessages.slice(-MAX_CHAT_MESSAGES);
         });
-    }, []);
+    }, [isChatOpen]);
 
     // Fetch initial stats when room loads
     useEffect(() => {
@@ -495,7 +502,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             pendingLeaveResolve.current = null;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [roomId, addChatMessage]);
+    }, [roomId]);
     // Note: username is intentionally omitted - it's only used as a fallback if session_id
     // cannot be extracted. WebSocket authentication uses session_id (from localStorage JWT).
     // Including username would cause unnecessary reconnections when it changes.
@@ -553,6 +560,13 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             }
         }));
     };
+
+    // Reset unread when chat opens
+    useEffect(() => {
+        if (isChatOpen) {
+            setUnreadCount(0);
+        }
+    }, [isChatOpen]);
 
     const handleToggleReady = () => {
         if (!currentUserUuid) {
@@ -887,11 +901,52 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                         )}
                     </div>
 
-                    <div className="flex min-h-[300px] md:min-h-0 flex-col overflow-hidden">
+                    <div className="hidden md:flex min-h-[300px] md:min-h-0 flex-col overflow-hidden">
                         <ChatBox messages={displayMessages} onSendMessage={sendChatMessage} />
                     </div>
                 </div>
             </div>
+            {/* Mobile chat floating action button */}
+            <button
+                type="button"
+                onClick={() => setIsChatOpen(true)}
+                aria-label="Open chat"
+                className="md:hidden fixed bottom-5 right-5 z-40 inline-flex items-center justify-center h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95"
+            >
+                <MessageSquare className="h-5 w-5" />
+                {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold leading-none text-white">
+                        {unreadCount}
+                    </span>
+                )}
+            </button>
+
+            {/* Mobile chat drawer (Dialog) */}
+            <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+                <DialogContent hideCloseButton className="md:hidden fixed bottom-0 left-0 right-0 top-auto mx-0 w-full max-w-none rounded-t-2xl p-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom duration-200 max-h-[70dvh]">
+                    <div className="flex flex-col h-full">
+                        {/* Header with close button */}
+                        <div className="relative flex items-center justify-between border-b bg-background/95 px-4 py-3 flex-shrink-0">
+                            <h2 className="text-base font-semibold">Chat</h2>
+                            <DialogClose aria-label="Close chat" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-muted/70 text-foreground/80 backdrop-blur transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">
+                                ✕
+                            </DialogClose>
+                        </div>
+                        <div className="flex-1 p-3 min-h-0 overflow-hidden">
+                            <ChatBox
+                                messages={displayMessages}
+                                onSendMessage={(msg) => {
+                                    sendChatMessage(msg);
+                                }}
+                                draftValue={mobileChatDraft}
+                                onDraftChange={setMobileChatDraft}
+                                hideCard={true}
+                                keepFocusAfterSend={true}
+                            />
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
