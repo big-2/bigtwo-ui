@@ -39,8 +39,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const navigate = useNavigate();
     const socketRef = useRef<ReconnectingWebSocket | null>(null);
     const lastConnectionStateRef = useRef<ConnectionState | null>(null);
-    const pendingLeaveResolve = useRef<(() => void) | null>(null);
-    const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.DISCONNECTED);
     const [chatMessages, setChatMessages] = useState<UserChatMessage[]>([]);
     const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
@@ -212,18 +210,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     newSet.delete(leftPlayerUuid);
                     return newSet;
                 });
-
-                // If this is our own LEAVE echo, resolve the pending promise
-                // Check against both selfUuid and stored session ID to handle race conditions
-                const stored = getStoredSession();
-                const storedSessionId = stored?.session_id ? extractSessionIdFromJWT(stored.session_id) : null;
-                const isOwnLeave = leftPlayerUuid === selfUuid ||
-                    (storedSessionId && leftPlayerUuid === storedSessionId);
-
-                if (isOwnLeave && pendingLeaveResolve.current) {
-                    pendingLeaveResolve.current();
-                    pendingLeaveResolve.current = null;
-                }
             },
 
             HOST_CHANGE: (message) => {
@@ -493,13 +479,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         return () => {
             console.log(`Closing WebSocket connection to room ${roomId}`);
             socket.close();
-
-            // Clean up pending leave timeout to prevent memory leak
-            if (leaveTimeoutRef.current) {
-                clearTimeout(leaveTimeoutRef.current);
-                leaveTimeoutRef.current = null;
-            }
-            pendingLeaveResolve.current = null;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [roomId]);
@@ -704,46 +683,25 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }
     };
 
-    const handleLeaveRoom = async () => {
+    const handleLeaveRoom = () => {
         console.log("Leave room button clicked");
 
-        // If not connected, navigate immediately
-        if (!socketRef.current?.isConnected()) {
+        // Send LEAVE message if connected (fire-and-forget pattern)
+        // Backend will handle cleanup on either LEAVE message or WebSocket close
+        if (socketRef.current?.isConnected()) {
+            socketRef.current.send(JSON.stringify({
+                type: "LEAVE",
+                payload: {}
+            }));
+
+            // Small delay to ensure message is flushed before WebSocket closes
+            // This prevents race condition where navigation → component unmount → socket close
+            // happens before the LEAVE message is transmitted
+            setTimeout(() => navigate("/"), 50);
+        } else {
+            // If not connected, navigate immediately
             navigate("/");
-            return;
         }
-
-        // Set up a promise to wait for our own LEAVE message echo
-        const leaveAcknowledged = new Promise<void>((resolve) => {
-            // Timeout after 3 seconds if we don't receive acknowledgment
-            leaveTimeoutRef.current = setTimeout(() => {
-                console.warn("Leave acknowledgment timeout - navigating anyway");
-                pendingLeaveResolve.current = null;
-                leaveTimeoutRef.current = null;
-                resolve();
-            }, 3000);
-
-            // Store the resolver so the LEAVE handler can call it
-            pendingLeaveResolve.current = () => {
-                if (leaveTimeoutRef.current) {
-                    clearTimeout(leaveTimeoutRef.current);
-                    leaveTimeoutRef.current = null;
-                }
-                resolve();
-            };
-        });
-
-        // Send LEAVE message
-        socketRef.current.send(JSON.stringify({
-            type: "LEAVE",
-            payload: {}
-        }));
-
-        // Wait for acknowledgment (or timeout)
-        await leaveAcknowledged;
-
-        // Navigate back to home
-        navigate("/");
     };
 
     // Connection status indicator component
