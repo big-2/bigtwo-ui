@@ -85,7 +85,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
     return (
         <Card>
-            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardHeader className="flex flex-col gap-2 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 flex-wrap">
                     <CardTitle>Players</CardTitle>
                     <Badge variant="secondary">{players.length}/{MAX_PLAYERS}</Badge>
@@ -128,13 +128,13 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     </div>
                 )}
             </CardHeader>
-            <CardContent className="grid gap-2">
+            <CardContent className="grid gap-1.5">
                 {slots.map((uuid, index) => {
                     if (!uuid) {
                         return (
                             <div
                                 key={`empty-${index}`}
-                                className="flex h-12 items-center justify-between rounded-lg border border-dashed border-slate-200 bg-muted/40 px-3 py-2"
+                                className="flex h-10 items-center justify-between rounded-lg border border-dashed border-slate-200 bg-muted/40 px-3 py-2"
                             >
                                 <span className="text-sm font-medium text-muted-foreground"></span>
                             </div>
@@ -153,7 +153,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                         <div
                             key={uuid}
                             className={cn(
-                                "flex flex-col sm:flex-row sm:items-center rounded-lg border border-slate-200 bg-card px-3 py-2 gap-2 sm:h-12",
+                                "flex flex-col sm:flex-row sm:items-center rounded-lg border border-slate-200 bg-card px-3 py-1.5 gap-2 sm:h-12",
                                 isCurrentUser && "border-primary/60 bg-primary/5"
                             )}
                         >
@@ -213,7 +213,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                             )}
 
                             {/* Badges section - fixed width for alignment */}
-                            <div className="flex items-center gap-1 flex-shrink-0 sm:w-[10rem] justify-start">
+                            <div className="flex items-center gap-1 flex-shrink-0 sm:w-[9rem] justify-start">
                                 {isHostPlayer && <Badge variant="secondary" className="text-xs px-2">Host</Badge>}
                                 {isCurrentUser && <Badge className="text-xs px-2">You</Badge>}
                                 {isBot && <Badge variant="outline" className="text-xs px-2">Bot</Badge>}
@@ -228,7 +228,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                         onClick={onToggleReady}
                                         aria-label={isReady ? "Mark as not ready" : "Mark as ready"}
                                         className={cn(
-                                            "min-w-[80px]",
+                                            "min-w-[72px] sm:min-w-[80px]",
                                             isReady && "border-green-600 text-green-600 hover:bg-green-600/10 dark:hover:bg-green-600/20 hover:text-green-700 dark:hover:text-green-500"
                                         )}
                                     >
@@ -238,7 +238,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                     <Badge
                                         variant={isReady ? "default" : "outline"}
                                         className={cn(
-                                            "min-w-[80px] justify-center",
+                                            "min-w-[72px] sm:min-w-[80px] justify-center",
                                             isReady ? "bg-green-600 hover:bg-green-600" : "text-muted-foreground"
                                         )}
                                     >

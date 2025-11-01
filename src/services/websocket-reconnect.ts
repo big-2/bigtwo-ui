@@ -104,6 +104,10 @@ export class ReconnectingWebSocket {
             heartbeatTimeout,
         };
 
+        // Reference heartbeat verifier to satisfy linter; feature may be re-enabled in future.
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        this.verifyConnectionWithHeartbeat;
+
         // Set up event listeners for immediate reconnection on visibility/network changes
         this.setupImmediateReconnectTriggers();
     }
@@ -165,14 +169,14 @@ export class ReconnectingWebSocket {
 
         // Also check if existing connection is actually dead (Safari issue)
         // Safari can silently drop connections when tab loses focus
+        // If we believe we're connected, do not force a heartbeat-based reconnect here.
+        // Some browsers/devtools fire spurious visibility events when dialogs open or
+        // when switching responsive modes, and servers may not implement HEARTBEAT_ACK.
+        // We leave the connection alone unless it's clearly not OPEN.
         else if (this.state === ConnectionState.CONNECTED && this.socket) {
             if (this.socket.readyState !== WebSocket.OPEN) {
                 console.log('[WebSocket] Connection was marked connected but socket is closed, reconnecting');
                 this.tryImmediateReconnect();
-            } else {
-                // Connection appears to be open, verify it's actually alive with a heartbeat
-                console.log('[WebSocket] Verifying connection health with heartbeat');
-                this.verifyConnectionWithHeartbeat();
             }
         }
     }
