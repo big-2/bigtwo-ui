@@ -686,16 +686,22 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const handleLeaveRoom = () => {
         console.log("Leave room button clicked");
 
-        // Send LEAVE message if connected (backend handles the rest)
+        // Send LEAVE message if connected (fire-and-forget pattern)
+        // Backend will handle cleanup on either LEAVE message or WebSocket close
         if (socketRef.current?.isConnected()) {
             socketRef.current.send(JSON.stringify({
                 type: "LEAVE",
                 payload: {}
             }));
-        }
 
-        // Navigate immediately - no need to wait for acknowledgment
-        navigate("/");
+            // Small delay to ensure message is flushed before WebSocket closes
+            // This prevents race condition where navigation → component unmount → socket close
+            // happens before the LEAVE message is transmitted
+            setTimeout(() => navigate("/"), 50);
+        } else {
+            // If not connected, navigate immediately
+            navigate("/");
+        }
     };
 
     // Connection status indicator component
