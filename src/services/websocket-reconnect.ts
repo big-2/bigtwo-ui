@@ -41,6 +41,8 @@ export interface WebSocketConfig {
     maxDelay?: number;
     /** Heartbeat timeout in ms (default: 5000) */
     heartbeatTimeout?: number;
+    /** Interval to send heartbeats in ms (default: 30000, disabled if 0) */
+    heartbeatInterval?: number;
 }
 
 /**
@@ -61,6 +63,7 @@ export class ReconnectingWebSocket {
         baseDelay: number;
         maxDelay: number;
         heartbeatTimeout: number;
+        heartbeatInterval: number;
     };
     private reconnectAttempt = 0;
     private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -71,6 +74,7 @@ export class ReconnectingWebSocket {
     private visibilityChangeHandler: (() => void) | null = null;
     private onlineHandler: (() => void) | null = null;
     private heartbeatTimeout: NodeJS.Timeout | null = null;
+    private heartbeatInterval: NodeJS.Timeout | null = null;
     private awaitingHeartbeatAck = false;
 
     constructor(config: WebSocketConfig) {
@@ -79,6 +83,7 @@ export class ReconnectingWebSocket {
         const baseDelay = config.baseDelay ?? 1000;
         const maxDelay = config.maxDelay ?? 30000;
         const heartbeatTimeout = config.heartbeatTimeout ?? 5000;
+        const heartbeatInterval = config.heartbeatInterval ?? 30000;
 
         if (maxReconnectAttempts < 0) {
             throw new Error('maxReconnectAttempts must be non-negative');
@@ -95,6 +100,9 @@ export class ReconnectingWebSocket {
         if (heartbeatTimeout <= 0) {
             throw new Error('heartbeatTimeout must be positive');
         }
+        if (heartbeatInterval < 0) {
+            throw new Error('heartbeatInterval must be non-negative');
+        }
 
         this.config = {
             ...config,
@@ -102,6 +110,7 @@ export class ReconnectingWebSocket {
             baseDelay,
             maxDelay,
             heartbeatTimeout,
+            heartbeatInterval,
         };
 
         // Set up event listeners for immediate reconnection on visibility/network changes
@@ -398,6 +407,7 @@ export class ReconnectingWebSocket {
         console.log(`[WebSocket] Connected to room ${this.config.roomId} as ${this.config.playerName}`);
         this.reconnectAttempt = 0; // Reset on successful connection
         this.updateState(ConnectionState.CONNECTED);
+        this.startHeartbeatInterval();
     }
 
     private handleMessage(event: MessageEvent): void {
@@ -474,6 +484,32 @@ export class ReconnectingWebSocket {
         }, delay);
     }
 
+    /**
+     * Start sending periodic heartbeats to detect dead connections
+     * This runs in addition to the server-side ping/pong keepalive
+     */
+    private startHeartbeatInterval(): void {
+        // Clear any existing interval
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
+
+        // Don't start if interval is 0 or less (disabled)
+        if (this.config.heartbeatInterval <= 0) {
+            return;
+        }
+
+        this.heartbeatInterval = setInterval(() => {
+            // Only send heartbeat if connected and not already waiting for one
+            if (this.state === ConnectionState.CONNECTED && !this.awaitingHeartbeatAck) {
+                this.verifyConnectionWithHeartbeat();
+            }
+        }, this.config.heartbeatInterval);
+
+        console.log(`[WebSocket] Started periodic heartbeat every ${this.config.heartbeatInterval}ms`);
+    }
+
     private cleanup(): void {
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -483,6 +519,11 @@ export class ReconnectingWebSocket {
         if (this.heartbeatTimeout) {
             clearTimeout(this.heartbeatTimeout);
             this.heartbeatTimeout = null;
+        }
+
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
         }
 
         this.awaitingHeartbeatAck = false;
