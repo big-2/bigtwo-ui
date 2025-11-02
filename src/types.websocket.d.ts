@@ -145,6 +145,7 @@ export interface GameStartedPayload {
     card_counts: { [uuid: string]: number };
     last_played_cards?: string[];
     last_played_by?: string;
+    last_plays_by_player: { [uuid: string]: string[] };
 }
 /**
  * Model for game won messages.

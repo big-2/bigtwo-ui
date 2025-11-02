@@ -42,6 +42,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.DISCONNECTED);
     const [chatMessages, setChatMessages] = useState<UserChatMessage[]>([]);
     const [uuidToName, setUuidToName] = useState<Record<string, string>>({});
+    const [playerUuidsOrdered, setPlayerUuidsOrdered] = useState<string[]>([]);
     const [hostName, setHostName] = useState<string>(roomDetails?.host_name || "");
     const [hostUuid, setHostUuid] = useState<string | undefined>(undefined);
     const [gameStarted, setGameStarted] = useState(false);
@@ -128,17 +129,24 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
             PLAYERS_LIST: (message) => {
                 const payload = message.payload as {
+                    players?: string[];
                     mapping?: Record<string, string>;
                     bot_uuids?: string[];
                     ready_players?: string[];
                     host_uuid?: string | null;
                     connected_players?: string[];
                 };
+                const playersFromServer = payload?.players;
                 const mapping = payload?.mapping;
                 const botUuidsFromServer = payload?.bot_uuids;
                 const readyPlayersFromServer = payload?.ready_players;
                 const hostUuidFromServer = payload?.host_uuid;
                 const connectedFromServer = payload?.connected_players;
+
+                // Update ordered players list from server (maintains join order)
+                if (Array.isArray(playersFromServer)) {
+                    setPlayerUuidsOrdered(playersFromServer);
+                }
 
                 if (mapping) {
                     setUuidToName(mapping);
@@ -196,6 +204,9 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     delete newMapping[leftPlayerUuid];
                     return newMapping;
                 });
+
+                // Remove from ordered players list to maintain consistency
+                setPlayerUuidsOrdered(prev => prev.filter(uuid => uuid !== leftPlayerUuid));
 
                 // Clean up bot UUID if the leaving player is a bot
                 setBotUuids(prev => {
@@ -644,7 +655,15 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
     // Check if current user is the host using UUID mapping
     // Find the UUID that maps to the current username and see if that UUID maps to the host
-    const playerUuids = useMemo(() => Object.keys(uuidToName), [uuidToName]);
+    // Use the ordered players array from server to maintain join order
+    const playerUuids = useMemo(() => {
+        // If we have the ordered array from server, use it (filter to only include players in mapping)
+        if (playerUuidsOrdered.length > 0) {
+            return playerUuidsOrdered.filter(uuid => uuidToName[uuid] !== undefined);
+        }
+        // Fallback to Object.keys if server hasn't sent ordered array yet
+        return Object.keys(uuidToName);
+    }, [playerUuidsOrdered, uuidToName]);
     const currentUserUuid = selfUuid || playerUuids.find(uuid => uuidToName[uuid] === username);
     const derivedHostUuid = useMemo(() => {
         if (hostUuid) {

@@ -134,9 +134,33 @@ const PlayerList: React.FC<PlayerListProps> = ({
                         return (
                             <div
                                 key={`empty-${index}`}
-                                className="flex h-10 items-center justify-between rounded-lg border border-dashed border-slate-200 bg-muted/40 px-3 py-2"
+                                className="flex flex-col sm:flex-row sm:items-center rounded-lg border border-dashed border-slate-200 bg-muted/40 px-3 py-1.5 gap-2 sm:h-12"
                             >
-                                <span className="text-sm font-medium text-muted-foreground"></span>
+                                {/* Player name section - flexible width */}
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <div className="w-4 h-4 flex-shrink-0"></div>
+                                </div>
+
+                                {/* Stats section - fixed width for alignment */}
+                                {gamesPlayed > 0 && (
+                                    <div className="flex items-center gap-2 text-xs flex-shrink-0 sm:w-[8.5rem] opacity-0 pointer-events-none">
+                                        <div className="flex items-center gap-1 w-[2.5rem] justify-end">
+                                            <span className="w-4"></span>
+                                        </div>
+                                        <div className="flex items-center gap-1 w-[3rem] justify-end">
+                                            <span className="w-6"></span>
+                                        </div>
+                                        <div className="flex items-center gap-1 w-[2.5rem] justify-end">
+                                            <span className="w-4"></span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Badges section - fixed width for alignment */}
+                                <div className="flex items-center gap-1 flex-shrink-0 sm:w-[9rem] justify-start"></div>
+
+                                {/* Ready section - fixed width for alignment */}
+                                <div className="flex items-center gap-2 flex-shrink-0 justify-end sm:w-[9rem]"></div>
                             </div>
                         );
                     }
