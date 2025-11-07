@@ -3,6 +3,7 @@ import { WebSocketMessage } from "../types.websocket";
 import { ReconnectingWebSocket, ConnectionState } from "../services/websocket-reconnect";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType, findCardsByRank } from "../utils/cardSorting";
+import { getSuitColorClass, getSuitSymbol } from "../utils/cardDisplay";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -326,15 +327,18 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 const shouldResetFocus = isCurrentPlayerMove ||
                     (prev.focusedCardIndex !== null && prev.focusedCardIndex >= newCardCount);
 
-                // Update lastPlaysByPlayer to track this player's last play
-                const updatedLastPlaysByPlayer = {
-                    ...prev.lastPlaysByPlayer,
-                    [player]: cards, // Empty array if pass, cards if played
-                };
+                // Detect if this is a new round: when someone plays cards after the table was cleared
+                // (i.e., lastPlayedCards was empty and now someone is playing cards)
+                const isNewRound = prev.lastPlayedCards.length === 0 && cards.length > 0;
 
-                // Clear all last plays if this is a new round (table was cleared)
-                // Detect new round by checking if lastPlayedCards was previously empty or if 3 consecutive passes occurred
-                // For now, we'll just accumulate. Backend will handle clearing on new rounds.
+                // Update lastPlaysByPlayer to track this player's last play
+                // Clear all last plays if this is a new round (table was cleared by 3 consecutive passes)
+                const updatedLastPlaysByPlayer = isNewRound
+                    ? { [player]: cards } // Start fresh for new round
+                    : {
+                        ...prev.lastPlaysByPlayer,
+                        [player]: cards, // Empty array if pass, cards if played
+                    };
 
                 return {
                     ...prev,
@@ -857,34 +861,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         }
 
         // Player played cards - show larger cards
-        const getSuitColorClass = (suit: string) => {
-            switch (suit) {
-                case "H":
-                case "D":
-                    return "text-destructive";
-                case "S":
-                case "C":
-                    return theme === "dark" ? "text-white" : "text-black";
-                default:
-                    return theme === "dark" ? "text-white" : "text-black";
-            }
-        };
-
-        const getSuitSymbol = (suit: string) => {
-            switch (suit) {
-                case "H":
-                    return "♥";
-                case "D":
-                    return "♦";
-                case "S":
-                    return "♠";
-                case "C":
-                    return "♣";
-                default:
-                    return suit;
-            }
-        };
-
         return (
             <div className="flex items-center gap-1">
                 {cards.map((card, index) => {
@@ -897,7 +873,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                             className={cn(
                                 "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
                                 "w-16 aspect-[5/7] text-base md:w-20 md:aspect-[5/7] md:text-lg",
-                                getSuitColorClass(suit),
+                                getSuitColorClass(suit, theme),
                                 index > 0 && "-ml-2 md:-ml-3"
                             )}
                             style={{ zIndex: cards.length - index }}
@@ -920,33 +896,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         }
 
         const { labelOverride, mobileLabelOverride } = options;
-        const getSuitColorClass = (suit: string) => {
-            switch (suit) {
-                case "H":
-                case "D":
-                    return "text-destructive";
-                case "S":
-                case "C":
-                    return theme === "dark" ? "text-white" : "text-black";
-                default:
-                    return theme === "dark" ? "text-white" : "text-black";
-            }
-        };
-
-        const getSuitSymbol = (suit: string) => {
-            switch (suit) {
-                case "H":
-                    return "♥";
-                case "D":
-                    return "♦";
-                case "S":
-                    return "♠";
-                case "C":
-                    return "♣";
-                default:
-                    return suit;
-            }
-        };
 
         const displayName = getDisplayName(gameState.lastPlayedBy, gameState.uuidToName);
         const isSelfPlay = gameState.lastPlayedBy === uuid;
@@ -972,7 +921,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 className={cn(
                                     "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
                                     "h-16 w-12 text-sm md:h-20 md:w-14 md:text-lg",
-                                    getSuitColorClass(suit)
+                                    getSuitColorClass(suit, theme)
                                 )}
                             >
                                 <span>{rank}</span>
@@ -1129,7 +1078,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 </section>
 
                 {/* Middle Row - Desktop layout */}
-                <section className="hidden min-h-0 grid flex-1 grid-cols-[160px_1fr_160px] items-center gap-4 overflow-hidden py-1 md:grid">
+                <section className="hidden min-h-0 grid flex-1 grid-cols-[120px_1fr_120px] lg:grid-cols-[160px_1fr_160px] items-center gap-4 overflow-hidden py-1 md:grid">
                     {/* Left Player - Rotated 90deg clockwise */}
                     <div className="flex items-center justify-center px-4">
                         {renderSidePlayer(playerPositions.left, leftPlayer, "left")}
@@ -1162,39 +1111,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                                     {gameState.lastPlayedCards.map((card, index) => {
                                                         const suit = card.slice(-1);
                                                         const rank = card.slice(0, -1);
-                                                        const getSuitColorClass = (suit: string) => {
-                                                            switch (suit) {
-                                                                case "H":
-                                                                case "D":
-                                                                    return "text-destructive";
-                                                                case "S":
-                                                                case "C":
-                                                                    return theme === "dark" ? "text-white" : "text-black";
-                                                                default:
-                                                                    return theme === "dark" ? "text-white" : "text-black";
-                                                            }
-                                                        };
-                                                        const getSuitSymbol = (suit: string) => {
-                                                            switch (suit) {
-                                                                case "H":
-                                                                    return "♥";
-                                                                case "D":
-                                                                    return "♦";
-                                                                case "S":
-                                                                    return "♠";
-                                                                case "C":
-                                                                    return "♣";
-                                                                default:
-                                                                    return suit;
-                                                            }
-                                                        };
                                                         return (
                                                             <div
                                                                 key={`${card}-${index}`}
                                                                 className={cn(
                                                                     "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900 flex-shrink-0",
                                                                     "h-12 w-9 text-xs md:h-14 md:w-10 md:text-sm",
-                                                                    getSuitColorClass(suit)
+                                                                    getSuitColorClass(suit, theme)
                                                                 )}
                                                             >
                                                                 <span>{rank}</span>
@@ -1263,39 +1186,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                             {gameState.lastPlayedCards.map((card, index) => {
                                                 const suit = card.slice(-1);
                                                 const rank = card.slice(0, -1);
-                                                const getSuitColorClass = (suit: string) => {
-                                                    switch (suit) {
-                                                        case "H":
-                                                        case "D":
-                                                            return "text-destructive";
-                                                        case "S":
-                                                        case "C":
-                                                            return theme === "dark" ? "text-white" : "text-black";
-                                                        default:
-                                                            return theme === "dark" ? "text-white" : "text-black";
-                                                    }
-                                                };
-                                                const getSuitSymbol = (suit: string) => {
-                                                    switch (suit) {
-                                                        case "H":
-                                                            return "♥";
-                                                        case "D":
-                                                            return "♦";
-                                                        case "S":
-                                                            return "♠";
-                                                        case "C":
-                                                            return "♣";
-                                                        default:
-                                                            return suit;
-                                                    }
-                                                };
                                                 return (
                                                     <div
                                                         key={`${card}-${index}`}
                                                         className={cn(
                                                             "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900 flex-shrink-0",
                                                             "h-12 w-9 text-xs",
-                                                            getSuitColorClass(suit)
+                                                            getSuitColorClass(suit, theme)
                                                         )}
                                                     >
                                                         <span>{rank}</span>
