@@ -351,6 +351,37 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             });
         },
 
+        LEAVE: (message) => {
+            const payload = message.payload as { player?: string };
+            const departingPlayer = payload?.player;
+            if (!departingPlayer) {
+                return;
+            }
+
+            setGameState(prev => {
+                if (!prev.playerList.includes(departingPlayer)) {
+                    return prev;
+                }
+
+                const updatedPlayerList = prev.playerList.filter(uuid => uuid !== departingPlayer);
+                const updatedPlayers = prev.players.filter(player => player.name !== departingPlayer);
+                const remainingLastPlays = { ...prev.lastPlaysByPlayer };
+                delete remainingLastPlays[departingPlayer];
+                const shouldClearLastPlayed = prev.lastPlayedBy === departingPlayer;
+                const isCurrentTurnDeparting = prev.currentTurn === departingPlayer;
+
+                return {
+                    ...prev,
+                    players: updatedPlayers,
+                    playerList: updatedPlayerList,
+                    lastPlaysByPlayer: remainingLastPlays,
+                    lastPlayedBy: shouldClearLastPlayed ? "" : prev.lastPlayedBy,
+                    lastPlayedCards: shouldClearLastPlayed ? [] : prev.lastPlayedCards,
+                    currentTurn: isCurrentTurnDeparting ? "" : prev.currentTurn,
+                };
+            });
+        },
+
         GAME_WON: (message) => {
             const winner = message.payload.winner as string;
             const winningHand = Array.isArray(message.payload.winning_hand)
