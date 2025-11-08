@@ -3,6 +3,7 @@ import { WebSocketMessage } from "../types.websocket";
 import { ReconnectingWebSocket, ConnectionState } from "../services/websocket-reconnect";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType, findCardsByRank } from "../utils/cardSorting";
+import { getSuitColorClass, getSuitSymbol } from "../utils/cardDisplay";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -54,6 +55,7 @@ interface GameState {
     playerList: string[]; // Track the full player list order
     lastPlayedCards: string[]; // Track the last played cards for validation
     lastPlayedBy: string; // Track who played the last cards
+    lastPlaysByPlayer: Record<string, string[]>; // Track last cards played by each player (UUID -> cards)
     gameWon: boolean; // Track if the game has been won
     winner: string; // Track who won the game
     uuidToName: Record<string, string>; // UUID to username mapping
@@ -152,6 +154,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             playerList,
             lastPlayedCards,
             lastPlayedBy,
+            lastPlaysByPlayer: {}, // Initialize empty
             gameWon: false,
             winner: "",
             uuidToName: {},
@@ -182,6 +185,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             playerList: [uuid],
             lastPlayedCards: [],
             lastPlayedBy: "",
+            lastPlaysByPlayer: {},
             gameWon: false,
             winner: "",
             uuidToName: mapping,
@@ -209,6 +213,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 card_counts?: Record<string, number>;
                 last_played_cards?: string[];
                 last_played_by?: string;
+                last_plays_by_player?: Record<string, string[]>;
             };
 
             if (!payload?.current_turn || !Array.isArray(payload.cards) || !Array.isArray(payload.player_list)) {
@@ -218,6 +223,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
             const cardCounts = payload.card_counts;
             const lastCards = payload.last_played_cards;
             const lastPlayer = payload.last_played_by;
+            const lastPlaysByPlayer = payload.last_plays_by_player || {};
 
             // Reset game state to ensure opponent card counts are correctly initialized
             setGameState(prev => {
@@ -240,6 +246,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
                 return {
                     ...nextState,
+                    lastPlaysByPlayer, // Set the per-player last plays from server
                     uuidToName: prev.uuidToName,
                 };
             });
@@ -320,12 +327,57 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 const shouldResetFocus = isCurrentPlayerMove ||
                     (prev.focusedCardIndex !== null && prev.focusedCardIndex >= newCardCount);
 
+                // Detect if this is a new round: when someone plays cards after the table was cleared
+                // (i.e., lastPlayedCards was empty and now someone is playing cards)
+                const isNewRound = prev.lastPlayedCards.length === 0 && cards.length > 0;
+
+                // Update lastPlaysByPlayer to track this player's last play
+                // Clear all last plays if this is a new round (table was cleared by 3 consecutive passes)
+                const updatedLastPlaysByPlayer = isNewRound
+                    ? { [player]: cards } // Start fresh for new round
+                    : {
+                        ...prev.lastPlaysByPlayer,
+                        [player]: cards, // Empty array if pass, cards if played
+                    };
+
                 return {
                     ...prev,
                     lastPlayedCards: cards.length > 0 ? cards : prev.lastPlayedCards,
                     lastPlayedBy: cards.length > 0 ? player : prev.lastPlayedBy,
+                    lastPlaysByPlayer: updatedLastPlaysByPlayer,
                     players: updatedPlayers,
                     focusedCardIndex: shouldResetFocus ? null : prev.focusedCardIndex,
+                };
+            });
+        },
+
+        LEAVE: (message) => {
+            const payload = message.payload as { player?: string };
+            const departingPlayer = payload?.player;
+            if (!departingPlayer) {
+                return;
+            }
+
+            setGameState(prev => {
+                if (!prev.playerList.includes(departingPlayer)) {
+                    return prev;
+                }
+
+                const updatedPlayerList = prev.playerList.filter(uuid => uuid !== departingPlayer);
+                const updatedPlayers = prev.players.filter(player => player.name !== departingPlayer);
+                const remainingLastPlays = { ...prev.lastPlaysByPlayer };
+                delete remainingLastPlays[departingPlayer];
+                const shouldClearLastPlayed = prev.lastPlayedBy === departingPlayer;
+                const isCurrentTurnDeparting = prev.currentTurn === departingPlayer;
+
+                return {
+                    ...prev,
+                    players: updatedPlayers,
+                    playerList: updatedPlayerList,
+                    lastPlaysByPlayer: remainingLastPlays,
+                    lastPlayedBy: shouldClearLastPlayed ? "" : prev.lastPlayedBy,
+                    lastPlayedCards: shouldClearLastPlayed ? [] : prev.lastPlayedCards,
+                    currentTurn: isCurrentTurnDeparting ? "" : prev.currentTurn,
                 };
             });
         },
@@ -772,31 +824,39 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         const rotationClass = rotation === "left" ? "rotate-90" : "-rotate-90";
 
         return (
-            <div className={cn("flex items-center gap-3", rotationClass, "origin-center")}>
-                <Badge
-                    variant={gameState.currentTurn === playerUuid ? "secondary" : "outline"}
-                    className={cn(
-                        "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs shadow-sm transition-all whitespace-nowrap md:py-2 md:text-sm",
-                        gameState.currentTurn === playerUuid && "animate-pulse border-primary/40 bg-primary/20"
-                    )}
-                >
-                    {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
-                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] flex-shrink-0 md:h-6 md:px-2 md:text-xs">
-                        {player?.cardCount || 0}
+            <div className={cn("flex flex-col gap-2", rotationClass, "origin-center")}>
+                {/* Top Region: Last played cards */}
+                <div className="flex items-center justify-center min-h-[60px] md:min-h-[70px] min-w-[80px] md:min-w-[100px]">
+                    {renderLastPlayedForPlayer(playerUuid)}
+                </div>
+
+                {/* Bottom Region: Player info and card backs */}
+                <div className="flex items-center gap-3">
+                    <Badge
+                        variant={gameState.currentTurn === playerUuid ? "secondary" : "outline"}
+                        className={cn(
+                            "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs shadow-sm transition-all whitespace-nowrap md:py-2 md:text-sm",
+                            gameState.currentTurn === playerUuid && "animate-pulse border-primary/40 bg-primary/20"
+                        )}
+                    >
+                        {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
+                        <Badge variant="outline" className="h-5 px-1.5 text-[10px] flex-shrink-0 md:h-6 md:px-2 md:text-xs">
+                            {player?.cardCount || 0}
+                        </Badge>
+                        {renderPassedTag(player?.hasPassed)}
                     </Badge>
-                    {renderPassedTag(player?.hasPassed)}
-                </Badge>
-                <div className="flex items-center justify-center">
-                    {Array.from({ length: Math.min(player?.cardCount ?? 0, 13) }).map((_, index) => (
-                        <div
-                            key={`side-card-${index}`}
-                            className={cn(
-                                "h-6 w-4 rounded border border-blue-600/40 bg-blue-500/80 shadow-sm md:h-8 md:w-5",
-                                index > 0 && "-ml-1.5 md:-ml-2"
-                            )}
-                            style={{ zIndex: 13 - index }}
-                        />
-                    ))}
+                    <div className="flex items-center justify-center">
+                        {Array.from({ length: Math.min(player?.cardCount ?? 0, 13) }).map((_, index) => (
+                            <div
+                                key={`side-card-${index}`}
+                                className={cn(
+                                    "h-6 w-4 rounded border border-blue-600/40 bg-blue-500/80 shadow-sm md:h-8 md:w-5",
+                                    index > 0 && "-ml-1.5 md:-ml-2"
+                                )}
+                                style={{ zIndex: 13 - index }}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
         );
@@ -813,6 +873,51 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         );
     };
 
+    // Helper function to render last played cards for a specific player
+    const renderLastPlayedForPlayer = (playerUuid: string) => {
+        const cards = gameState.lastPlaysByPlayer[playerUuid];
+
+        // No data yet
+        if (!cards) {
+            return null;
+        }
+
+        // Player passed - show PASS badge
+        if (cards.length === 0) {
+            return (
+                <Badge variant="secondary" className="px-3 py-1.5 text-xs uppercase tracking-wide bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300 font-semibold">
+                    Pass
+                </Badge>
+            );
+        }
+
+        // Player played cards - show larger cards
+        return (
+            <div className="flex items-center gap-1">
+                {cards.map((card, index) => {
+                    const suit = card.slice(-1);
+                    const rank = card.slice(0, -1);
+
+                    return (
+                        <div
+                            key={`${playerUuid}-${card}-${index}`}
+                            className={cn(
+                                "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
+                                "w-16 aspect-[5/7] text-base md:w-20 md:aspect-[5/7] md:text-lg",
+                                getSuitColorClass(suit, theme),
+                                index > 0 && "-ml-2 md:-ml-3"
+                            )}
+                            style={{ zIndex: cards.length - index }}
+                        >
+                            <span className="leading-tight">{rank}</span>
+                            <span className="text-3xl leading-tight md:text-4xl">{getSuitSymbol(suit)}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
     const renderLastPlayedCards = (options: {
         labelOverride?: string;
         mobileLabelOverride?: string;
@@ -822,33 +927,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         }
 
         const { labelOverride, mobileLabelOverride } = options;
-        const getSuitColorClass = (suit: string) => {
-            switch (suit) {
-                case "H":
-                case "D":
-                    return "text-destructive";
-                case "S":
-                case "C":
-                    return theme === "dark" ? "text-white" : "text-black";
-                default:
-                    return theme === "dark" ? "text-white" : "text-black";
-            }
-        };
-
-        const getSuitSymbol = (suit: string) => {
-            switch (suit) {
-                case "H":
-                    return "♥";
-                case "D":
-                    return "♦";
-                case "S":
-                    return "♠";
-                case "C":
-                    return "♣";
-                default:
-                    return suit;
-            }
-        };
 
         const displayName = getDisplayName(gameState.lastPlayedBy, gameState.uuidToName);
         const isSelfPlay = gameState.lastPlayedBy === uuid;
@@ -874,7 +952,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 className={cn(
                                     "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
                                     "h-16 w-12 text-sm md:h-20 md:w-14 md:text-lg",
-                                    getSuitColorClass(suit)
+                                    getSuitColorClass(suit, theme)
                                 )}
                             >
                                 <span>{rank}</span>
@@ -980,7 +1058,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
             <div className="flex h-full min-h-0 w-full flex-col px-2 py-1">
                 {/* Top Player - Desktop layout */}
-                <section className="hidden flex-shrink-0 flex-col items-center justify-start gap-0.5 py-0.5 md:flex">
+                <section className="hidden flex-shrink-0 flex-col items-center justify-start gap-2 py-0.5 md:flex">
+                    {/* Bottom Region: Player info and card backs */}
                     <div className="flex items-center gap-3">
                         <Badge
                             variant={gameState.currentTurn === playerPositions.top ? "secondary" : "outline"}
@@ -999,10 +1078,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         </Badge>
                         {renderTopCardBacks(topPlayer?.cardCount)}
                     </div>
+
+                    {/* Top Region: Last played cards */}
+                    <div className="flex items-center justify-center min-h-[60px] md:min-h-[70px] min-w-[100px] md:min-w-[120px]">
+                        {renderLastPlayedForPlayer(playerPositions.top)}
+                    </div>
                 </section>
 
                 {/* Top Player - Mobile compact layout */}
-                <section className="flex flex-shrink-0 items-center justify-center py-1 md:hidden">
+                <section className="flex flex-shrink-0 flex-col items-center justify-center gap-1.5 py-1 md:hidden">
+                    {/* Bottom Region: Player info */}
                     <Badge
                         variant={gameState.currentTurn === playerPositions.top ? "secondary" : "outline"}
                         className={cn(
@@ -1016,12 +1101,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         </Badge>
                         {renderPassedTag(topPlayer?.hasPassed)}
                     </Badge>
+
+                    {/* Top Region: Last played cards */}
+                    <div className="flex items-center justify-center min-h-[55px] min-w-[80px]">
+                        {renderLastPlayedForPlayer(playerPositions.top)}
+                    </div>
                 </section>
 
                 {/* Middle Row - Desktop layout */}
-                <section className="hidden min-h-0 grid flex-1 grid-cols-[120px_1fr_120px] items-center gap-4 overflow-hidden py-1 md:grid">
+                <section className="hidden min-h-0 grid flex-1 grid-cols-[120px_1fr_120px] lg:grid-cols-[160px_1fr_160px] items-center gap-4 overflow-hidden py-1 md:grid">
                     {/* Left Player - Rotated 90deg clockwise */}
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center px-4">
                         {renderSidePlayer(playerPositions.left, leftPlayer, "left")}
                     </div>
 
@@ -1034,25 +1124,45 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 <span>Connection lost - reconnecting...</span>
                             </div>
                         )}
-                        <Card className="w-full max-w-4xl overflow-hidden border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
-                            <CardContent className="flex h-[280px] max-h-full flex-col items-center gap-3 overflow-y-auto p-6">
+                        <Card className="w-full max-w-3xl overflow-hidden border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
+                            <CardContent className="flex max-h-[calc(100vh-400px)] min-h-[180px] flex-col items-center gap-2 overflow-y-auto p-3 md:p-4 md:max-h-[280px]">
                                 {gameState.gameWon ? (
-                                    <div className="flex flex-col items-center gap-3">
-                                        <p className="text-2xl font-bold text-emerald-500">
+                                    <div className="flex flex-col items-center gap-2 w-full">
+                                        <p className="text-xl md:text-2xl font-bold text-emerald-500 flex-shrink-0">
                                             🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
                                         </p>
-                                        {gameState.lastPlayedBy === gameState.winner && renderLastPlayedCards({
-                                            labelOverride: gameState.winner === uuid
-                                                ? "Winning hand:"
-                                                : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand:`,
-                                            mobileLabelOverride: gameState.winner === uuid
-                                                ? "You"
-                                                : getDisplayName(gameState.winner, gameState.uuidToName).slice(0, 8),
-                                        })}
+                                        {gameState.lastPlayedBy === gameState.winner && (
+                                            <div className="py-1 w-full max-w-full overflow-hidden">
+                                                <p className="text-xs md:text-sm uppercase tracking-wide text-muted-foreground mb-1.5 flex-shrink-0">
+                                                    {gameState.winner === uuid
+                                                        ? "Winning hand:"
+                                                        : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand:`}
+                                                </p>
+                                                <div className="flex flex-wrap justify-center gap-1 md:gap-1.5 max-w-full">
+                                                    {gameState.lastPlayedCards.map((card, index) => {
+                                                        const suit = card.slice(-1);
+                                                        const rank = card.slice(0, -1);
+                                                        return (
+                                                            <div
+                                                                key={`${card}-${index}`}
+                                                                className={cn(
+                                                                    "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900 flex-shrink-0",
+                                                                    "h-12 w-9 text-xs md:h-14 md:w-10 md:text-sm",
+                                                                    getSuitColorClass(suit, theme)
+                                                                )}
+                                                            >
+                                                                <span>{rank}</span>
+                                                                <span className="text-lg md:text-xl">{getSuitSymbol(suit)}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                         <Button
                                             onClick={onReturnToLobby}
                                             size="default"
-                                            className="mt-2 min-w-[180px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
+                                            className="mt-1 min-w-[160px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg flex-shrink-0"
                                         >
                                             Return to Lobby
                                         </Button>
@@ -1072,7 +1182,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
 
                     {/* Right Player - Rotated 270deg clockwise (-90deg) */}
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center px-4">
                         {renderSidePlayer(playerPositions.right, rightPlayer, "right")}
                     </div>
                 </section>
@@ -1080,7 +1190,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 {/* Middle Row - Mobile layout */}
                 <section className="flex min-h-[200px] flex-1 items-center gap-1 overflow-y-auto py-2 md:hidden">
                     {/* Left Player - Mobile rotated 90deg clockwise */}
-                    <div className="flex flex-shrink-0 items-center justify-center w-16">
+                    <div className="flex flex-shrink-0 items-center justify-center w-20 px-1">
                         {renderSidePlayer(playerPositions.left, leftPlayer, "left")}
                     </div>
 
@@ -1094,22 +1204,40 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                             </div>
                         )}
                         {gameState.gameWon ? (
-                            <div className="flex flex-col items-center gap-2 text-center">
-                                <p className="text-base font-bold text-emerald-500">
+                            <div className="flex flex-col items-center gap-2 text-center w-full max-w-full">
+                                <p className="text-base font-bold text-emerald-500 flex-shrink-0">
                                     🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
                                 </p>
-                                {gameState.lastPlayedBy === gameState.winner && renderLastPlayedCards({
-                                    labelOverride: gameState.winner === uuid
-                                        ? "Winning hand:"
-                                        : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand:`,
-                                    mobileLabelOverride: gameState.winner === uuid
-                                        ? "Win"
-                                        : getDisplayName(gameState.winner, gameState.uuidToName).slice(0, 6),
-                                })}
+                                {gameState.lastPlayedBy === gameState.winner && (
+                                    <div className="w-full max-w-full overflow-hidden">
+                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1 flex-shrink-0">
+                                            {gameState.winner === uuid ? "Win" : getDisplayName(gameState.winner, gameState.uuidToName).slice(0, 6)}
+                                        </p>
+                                        <div className="flex flex-wrap justify-center gap-1 max-w-full">
+                                            {gameState.lastPlayedCards.map((card, index) => {
+                                                const suit = card.slice(-1);
+                                                const rank = card.slice(0, -1);
+                                                return (
+                                                    <div
+                                                        key={`${card}-${index}`}
+                                                        className={cn(
+                                                            "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900 flex-shrink-0",
+                                                            "h-12 w-9 text-xs",
+                                                            getSuitColorClass(suit, theme)
+                                                        )}
+                                                    >
+                                                        <span>{rank}</span>
+                                                        <span className="text-lg">{getSuitSymbol(suit)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                                 <Button
                                     onClick={onReturnToLobby}
                                     size="sm"
-                                    className="mt-1 min-w-[130px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
+                                    className="mt-1 min-w-[130px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg flex-shrink-0"
                                 >
                                     Back to Lobby
                                 </Button>
@@ -1131,7 +1259,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
 
                     {/* Right Player - Mobile rotated 270deg clockwise (or -90deg) */}
-                    <div className="flex flex-shrink-0 items-center justify-center w-16">
+                    <div className="flex flex-shrink-0 items-center justify-center w-20 px-1">
                         {renderSidePlayer(playerPositions.right, rightPlayer, "right")}
                     </div>
                 </section>
