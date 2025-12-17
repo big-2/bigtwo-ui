@@ -1,14 +1,20 @@
 import React, { useState, useRef } from "react";
 import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
-import { useIsMobile } from "../hooks/useMediaQuery";
+import { useScreenSize } from "../hooks/useMediaQuery";
 
 // Card dimension constants for responsive sizing
+// Three breakpoints: mobile (<640px), tablet (640-768px), desktop (768px+)
 const CARD_DIMENSIONS = {
   mobile: {
-    width: 55,
-    height: 77,
-    gap: -35, // Negative gap creates overlapping effect to save space
+    width: 48,
+    height: 67,
+    gap: -28, // Reduced overlap for better card visibility
+  },
+  tablet: {
+    width: 65,
+    height: 91,
+    gap: -20, // Less overlap on tablet
   },
   desktop: {
     width: 90,
@@ -180,14 +186,15 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     const [isDragBatch, setIsDragBatch] = useState<boolean>(false);
     const handRef = useRef<HTMLDivElement>(null);
 
-    // Use media query hook for mobile detection (aligns with Tailwind's md breakpoint)
-    const isMobile = useIsMobile();
+    // Use screen size hook for responsive card sizing
+    const screenSize = useScreenSize();
 
     // Debounce timer for drag leave
     const dragLeaveTimerRef = useRef<number | null>(null);
 
     // Responsive card dimensions based on screen size
-    const cardDimensions = isMobile ? CARD_DIMENSIONS.mobile : CARD_DIMENSIONS.desktop;
+    const cardDimensions = CARD_DIMENSIONS[screenSize];
+    const isMobileOrTablet = screenSize !== 'desktop';
 
     const handleDragStart = (card: string, index: number) => {
         setDraggedIndex(index);
@@ -332,16 +339,16 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
         <div
             ref={handRef}
             className={cn(
-                "flex w-full flex-nowrap overflow-x-auto rounded-xl border border-slate-200/60 bg-white/50 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40",
-                isMobile ? "justify-start" : "justify-center"
+                "flex w-full flex-nowrap overflow-x-auto rounded-xl border border-slate-200/60 bg-white/50 p-2 sm:p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40",
+                isMobileOrTablet ? "justify-start" : "justify-center"
             )}
             style={{
                 gap: `${cardDimensions.gap}px`,
-                // On mobile with overlapping, need padding to prevent cut-off
-                paddingLeft: isMobile ? '20px' : undefined,
-                paddingRight: isMobile ? '20px' : undefined,
+                // On mobile/tablet with overlapping, need padding to prevent cut-off
+                paddingLeft: isMobileOrTablet ? '12px' : undefined,
+                paddingRight: isMobileOrTablet ? '12px' : undefined,
                 // Maintain minimum height to prevent layout shift when cards are removed
-                minHeight: `${cardDimensions.height + 24}px` // card height + padding (3 * 2 = 6, but in rem units ~24px)
+                minHeight: `${cardDimensions.height + 20}px` // card height + padding
             }}
             onDragOver={handleHandDragOver}
             onDrop={handleHandDrop}

@@ -789,12 +789,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
     // Otherwise show the home/room interface
     return (
-        <div className="flex h-[calc(100vh-60px)] w-full flex-col overflow-hidden px-4 py-6">
-            <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden">
-                <header className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-2 sm:p-6 shadow-sm dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
+        <div className="flex h-[calc(100vh-60px)] w-full flex-col overflow-hidden px-2 py-3 sm:px-4 sm:py-6">
+            <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-3 sm:gap-6 overflow-hidden">
+                <header className="flex flex-col gap-2 sm:gap-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-2 sm:p-4 md:p-6 shadow-sm dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
                     <div className="flex flex-row items-center justify-between gap-2">
-                        <div className="flex flex-col gap-0.5 min-w-0">
-                            <h2 className="text-lg sm:text-3xl font-bold text-blue-700 dark:text-blue-400 break-all">
+                        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                            <h2 className="text-base sm:text-xl md:text-3xl font-bold text-blue-700 dark:text-blue-400 truncate max-w-[180px] sm:max-w-none sm:break-all">
                                 {roomId}
                             </h2>
                             <div className="flex items-center gap-2">
@@ -833,8 +833,8 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     </div>
                 </header>
 
-                <div className="flex flex-1 flex-col gap-6 overflow-hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                    <div className="flex flex-col gap-6 overflow-auto md:pr-2">
+                <div className="flex flex-1 flex-col gap-3 sm:gap-6 overflow-hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                    <div className="flex flex-col gap-3 sm:gap-6 overflow-auto md:pr-2">
                         <PlayerList
                             players={playerUuids}
                             mapping={uuidToName}

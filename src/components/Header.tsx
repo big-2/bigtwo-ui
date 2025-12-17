@@ -26,8 +26,8 @@ const Header: React.FC<HeaderProps> = ({ username }) => {
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <Badge variant="secondary" className="hidden px-3 py-1 sm:inline-flex">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <Badge variant="secondary" className="px-2 py-0.5 text-xs sm:px-3 sm:py-1 sm:text-sm max-w-[100px] sm:max-w-none truncate">
                         {username}
                     </Badge>
                     <ThemeToggle />

@@ -38,3 +38,25 @@ export const useMediaQuery = (query: string): boolean => {
 export const useIsMobile = (): boolean => {
   return useMediaQuery('(max-width: 767px)');
 };
+
+/**
+ * Convenience hook for checking if viewport is small mobile size
+ * Uses Tailwind's default sm breakpoint (640px)
+ * @returns boolean indicating if viewport is small mobile size
+ */
+export const useIsSmallMobile = (): boolean => {
+  return useMediaQuery('(max-width: 639px)');
+};
+
+/**
+ * Convenience hook for responsive card sizing
+ * Returns 'mobile' for <640px, 'tablet' for 640-767px, 'desktop' for 768px+
+ */
+export const useScreenSize = (): 'mobile' | 'tablet' | 'desktop' => {
+  const isSmallMobile = useMediaQuery('(max-width: 639px)');
+  const isMobile = useMediaQuery('(max-width: 767px)');
+
+  if (isSmallMobile) return 'mobile';
+  if (isMobile) return 'tablet';
+  return 'desktop';
+};
