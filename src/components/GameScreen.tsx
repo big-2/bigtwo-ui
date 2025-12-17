@@ -840,7 +840,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         )}
                     >
                         {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
-                        <Badge variant="outline" className="h-4 px-1 text-[9px] flex-shrink-0 sm:h-5 sm:px-1.5 sm:text-[10px] md:h-6 md:px-2 md:text-xs">
+                        <Badge variant="outline" className="h-4 px-1 text-[10px] flex-shrink-0 sm:h-5 sm:px-1.5 sm:text-xs md:h-6 md:px-2 md:text-sm">
                             {player?.cardCount || 0}
                         </Badge>
                         {renderPassedTag(player?.hasPassed)}
@@ -1070,7 +1070,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         >
                             <div className="flex flex-col items-center gap-0">
                                 {renderPlayerName(playerPositions.top, gameState.uuidToName, "xs")}
-                                <span className="text-[9px] font-medium text-muted-foreground">
+                                <span className="text-[10px] font-medium text-muted-foreground">
                                     {getCardCountLabel(topPlayer)}
                                 </span>
                                 {renderPassedTag(topPlayer?.hasPassed)}
@@ -1096,7 +1096,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         )}
                     >
                         {renderPlayerName(playerPositions.top, gameState.uuidToName, "xs")}
-                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
                             {topPlayer?.cardCount || 0}
                         </Badge>
                         {renderPassedTag(topPlayer?.hasPassed)}
@@ -1210,7 +1210,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 </p>
                                 {gameState.lastPlayedBy === gameState.winner && (
                                     <div className="w-full max-w-full overflow-hidden">
-                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1 flex-shrink-0">
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1 flex-shrink-0">
                                             {gameState.winner === uuid ? "Win" : getDisplayName(gameState.winner, gameState.uuidToName).slice(0, 6)}
                                         </p>
                                         <div className="flex flex-wrap justify-center gap-1 max-w-full">
@@ -1298,7 +1298,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                             <span className="text-xs font-semibold">
                                 {gameState.uuidToName[uuid] || username}
                             </span>
-                            <span className="text-[10px] font-medium text-muted-foreground">
+                            <span className="text-xs font-medium text-muted-foreground">
                                 {getCardCountLabel(currentPlayer)}
                             </span>
                         </Badge>
@@ -1335,7 +1335,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                             )}
                         >
                             <span className="max-w-[6rem] truncate">{gameState.uuidToName[uuid] || username}</span>
-                            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                            <Badge variant="outline" className="h-5 px-1.5 text-xs">
                                 {currentPlayer?.cardCount || 0}
                             </Badge>
                         </Badge>

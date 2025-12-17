@@ -4,11 +4,12 @@ import { useThemeContext } from "../contexts/ThemeContext";
 import { useScreenSize } from "../hooks/useMediaQuery";
 
 // Card dimension constants for responsive sizing
+// All dimensions use exact 5:7 aspect ratio to match aspect-[5/7] used elsewhere
 // Three breakpoints: mobile (<640px), tablet (640-768px), desktop (768px+)
 const CARD_DIMENSIONS = {
   mobile: {
-    width: 48,
-    height: 67,
+    width: 50,
+    height: 70,
     gap: -28, // Reduced overlap for better card visibility
   },
   tablet: {
@@ -121,7 +122,7 @@ const Card: React.FC<CardProps> = ({
     return (
         <div
             className={cn(
-                "relative flex cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 bg-white transition-all duration-200 dark:bg-slate-900",
+                "relative flex cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 bg-white transition-all duration-200 dark:bg-slate-900 snap-start",
                 isSelected ? "-translate-y-4 border-primary shadow-lg" : "border-slate-200 dark:border-slate-700",
                 isFocused && "ring-[3px] ring-amber-500 ring-offset-2 dark:ring-amber-400",
                 isDragging && "opacity-80",
@@ -340,7 +341,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
             ref={handRef}
             className={cn(
                 "flex w-full flex-nowrap overflow-x-auto rounded-xl border border-slate-200/60 bg-white/50 p-2 sm:p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40",
-                isMobileOrTablet ? "justify-start" : "justify-center"
+                isMobileOrTablet ? "justify-start snap-x snap-proximity" : "justify-center"
             )}
             style={{
                 gap: `${cardDimensions.gap}px`,

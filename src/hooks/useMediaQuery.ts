@@ -49,14 +49,37 @@ export const useIsSmallMobile = (): boolean => {
 };
 
 /**
+ * Helper to determine screen size from width
+ */
+const getScreenSizeFromWidth = (width: number): 'mobile' | 'tablet' | 'desktop' => {
+  if (width < 640) return 'mobile';
+  if (width < 768) return 'tablet';
+  return 'desktop';
+};
+
+/**
  * Convenience hook for responsive card sizing
  * Returns 'mobile' for <640px, 'tablet' for 640-767px, 'desktop' for 768px+
+ * Uses a single resize listener for better performance
  */
 export const useScreenSize = (): 'mobile' | 'tablet' | 'desktop' => {
-  const isSmallMobile = useMediaQuery('(max-width: 639px)');
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const [screenSize, setScreenSize] = useState<'mobile' | 'tablet' | 'desktop'>(() => {
+    if (typeof window === 'undefined') return 'desktop';
+    return getScreenSizeFromWidth(window.innerWidth);
+  });
 
-  if (isSmallMobile) return 'mobile';
-  if (isMobile) return 'tablet';
-  return 'desktop';
+  useEffect(() => {
+    const handleResize = () => {
+      const newSize = getScreenSizeFromWidth(window.innerWidth);
+      setScreenSize(prev => prev !== newSize ? newSize : prev);
+    };
+
+    // Set initial value
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return screenSize;
 };

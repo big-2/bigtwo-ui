@@ -84,7 +84,7 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                                                             <Badge
                                                                 variant={room.status === 'waiting' ? 'default' : 'secondary'}
                                                                 className={cn(
-                                                                    "text-[10px] px-1.5 py-0",
+                                                                    "text-xs px-1.5 py-0",
                                                                     room.status === 'waiting' && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
                                                                 )}
                                                             >
