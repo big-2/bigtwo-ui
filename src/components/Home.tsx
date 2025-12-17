@@ -35,77 +35,114 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
     }
 
     return (
-        <div className="flex min-h-[calc(100vh-60px)] items-start justify-center px-4 py-8">
-            <div className="flex w-full max-w-7xl flex-col gap-6 lg:flex-row">
+        <div className="flex min-h-[calc(100vh-60px)] items-start justify-center px-2 py-4 sm:px-4 sm:py-8">
+            <div className="flex w-full max-w-7xl flex-col gap-4 sm:gap-6 lg:flex-row">
                 {/* Room List Section */}
                 <section className="flex-1">
                     <Card>
-                        <CardContent className="space-y-4 p-6 lg:space-y-6 lg:p-8">
-                            <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-                                <h1 className="text-xl font-bold lg:text-2xl">Available Rooms</h1>
+                        <CardContent className="space-y-3 p-3 sm:space-y-4 sm:p-6 lg:space-y-6 lg:p-8">
+                            <header className="flex flex-row items-center justify-between gap-2">
+                                <h1 className="text-lg font-bold sm:text-xl lg:text-2xl">Available Rooms</h1>
                                 <div className="flex items-center gap-2">
                                     <Button
                                         onClick={handleCreateRoom}
-                                        className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                                        className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-xs sm:text-sm"
                                         size="sm"
                                     >
-                                        Create Room
+                                        <span className="hidden sm:inline">Create Room</span>
+                                        <span className="sm:hidden">Create</span>
                                     </Button>
                                     <Button
                                         onClick={fetchRooms}
                                         variant="outline"
                                         size="icon"
                                         title="Refresh rooms"
-                                        className="transition-transform hover:rotate-180"
+                                        className="transition-transform hover:rotate-180 h-8 w-8 sm:h-9 sm:w-9"
                                     >
-                                        <RefreshCw className="h-5 w-5" />
+                                        <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
                                     </Button>
                                 </div>
                             </header>
 
-                            <ScrollArea className="h-96 rounded-md border">
+                            <ScrollArea className="h-80 sm:h-96 rounded-md border">
                                 {rooms.length === 0 ? (
                                     <p className="py-12 text-center italic text-muted-foreground">
                                         No available rooms. Create one!
                                     </p>
                                 ) : (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Room ID</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead>Players</TableHead>
-                                                <TableHead>Action</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
+                                    <>
+                                        {/* Mobile: Card layout */}
+                                        <div className="flex flex-col gap-2 p-2 sm:hidden">
                                             {rooms.map((room) => (
-                                                <TableRow key={room.id}>
-                                                    <TableCell className="font-medium">{room.id}</TableCell>
-                                                    <TableCell>
-                                                        <Badge
-                                                            variant={room.status === 'waiting' ? 'default' : 'secondary'}
-                                                            className={cn(
-                                                                room.status === 'waiting' && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
-                                                            )}
-                                                        >
-                                                            {room.status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>{room.player_count}/4</TableCell>
-                                                    <TableCell>
-                                                        <Button
-                                                            onClick={() => onJoinRoom(room.id)}
-                                                            size="sm"
-                                                            variant="secondary"
-                                                        >
-                                                            Join
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
+                                                <div
+                                                    key={room.id}
+                                                    className="flex items-center justify-between gap-2 rounded-lg border bg-card p-3"
+                                                >
+                                                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                                                        <span className="font-medium text-sm truncate max-w-[140px]">{room.id}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge
+                                                                variant={room.status === 'waiting' ? 'default' : 'secondary'}
+                                                                className={cn(
+                                                                    "text-xs px-1.5 py-0",
+                                                                    room.status === 'waiting' && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                                                                )}
+                                                            >
+                                                                {room.status}
+                                                            </Badge>
+                                                            <span className="text-xs text-muted-foreground">{room.player_count}/4</span>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        onClick={() => onJoinRoom(room.id)}
+                                                        size="sm"
+                                                        variant="secondary"
+                                                        className="flex-shrink-0"
+                                                    >
+                                                        Join
+                                                    </Button>
+                                                </div>
                                             ))}
-                                        </TableBody>
-                                    </Table>
+                                        </div>
+                                        {/* Desktop: Table layout */}
+                                        <Table className="hidden sm:table">
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Room ID</TableHead>
+                                                    <TableHead>Status</TableHead>
+                                                    <TableHead>Players</TableHead>
+                                                    <TableHead>Action</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {rooms.map((room) => (
+                                                    <TableRow key={room.id}>
+                                                        <TableCell className="font-medium">{room.id}</TableCell>
+                                                        <TableCell>
+                                                            <Badge
+                                                                variant={room.status === 'waiting' ? 'default' : 'secondary'}
+                                                                className={cn(
+                                                                    room.status === 'waiting' && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                                                                )}
+                                                            >
+                                                                {room.status}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>{room.player_count}/4</TableCell>
+                                                        <TableCell>
+                                                            <Button
+                                                                onClick={() => onJoinRoom(room.id)}
+                                                                size="sm"
+                                                                variant="secondary"
+                                                            >
+                                                                Join
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </>
                                 )}
                             </ScrollArea>
                         </CardContent>
@@ -113,7 +150,7 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                 </section>
 
                 {/* About Big Two Section */}
-                <aside className="lg:w-96">
+                <aside className="hidden sm:block lg:w-96">
                     <AboutBigTwo />
                 </aside>
             </div>
