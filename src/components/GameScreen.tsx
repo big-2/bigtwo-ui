@@ -867,6 +867,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         const isActive = gameState.currentTurn === playerUuid;
         const displayName = getDisplayName(playerUuid, gameState.uuidToName);
         const isBot = botUuids.has(playerUuid);
+        const lastPlayed = gameState.lastPlaysByPlayer[playerUuid];
 
         return (
             <div
@@ -885,6 +886,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 )}>
                     {player?.cardCount || 0}
                 </div>
+
                 {/* Player name - truncated */}
                 <div className="flex items-center gap-0.5 max-w-[80px]">
                     <span className="text-[10px] font-medium truncate">
@@ -896,8 +898,47 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         </span>
                     )}
                 </div>
-                {/* Passed indicator */}
-                {player?.hasPassed && (
+
+                {/* Last played indicator - compact */}
+                {lastPlayed !== undefined && (
+                    <div className="flex items-center justify-center min-h-[20px] mt-0.5">
+                        {lastPlayed.length === 0 ? (
+                            // Player passed
+                            <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400">
+                                PASS
+                            </span>
+                        ) : (
+                            // Show mini cards
+                            <div className="flex items-center gap-0.5">
+                                {lastPlayed.slice(0, 3).map((card, index) => {
+                                    const suit = card.slice(-1);
+                                    const rank = card.slice(0, -1);
+                                    return (
+                                        <div
+                                            key={`mini-${playerUuid}-${card}-${index}`}
+                                            className={cn(
+                                                "flex flex-col items-center justify-center rounded border border-border bg-white dark:bg-slate-900 shadow-sm",
+                                                "h-5 w-3.5 text-[6px] font-bold",
+                                                getSuitColorClass(suit, theme)
+                                            )}
+                                        >
+                                            <span className="leading-none">{rank}</span>
+                                            <span className="text-[8px] leading-none">{getSuitSymbol(suit)}</span>
+                                        </div>
+                                    );
+                                })}
+                                {lastPlayed.length > 3 && (
+                                    <span className="text-[8px] text-muted-foreground ml-0.5">
+                                        +{lastPlayed.length - 3}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Passed indicator - only show if no last played data */}
+                {lastPlayed === undefined && player?.hasPassed && (
                     <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400">
                         PASS
                     </span>
