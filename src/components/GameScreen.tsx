@@ -908,9 +908,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 PASS
                             </span>
                         ) : (
-                            // Show mini cards
+                            // Show mini cards - up to 5 for full information
                             <div className="flex items-center gap-0.5">
-                                {lastPlayed.slice(0, 3).map((card, index) => {
+                                {lastPlayed.slice(0, 5).map((card, index) => {
                                     const suit = card.slice(-1);
                                     const rank = card.slice(0, -1);
                                     return (
@@ -927,11 +927,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                         </div>
                                     );
                                 })}
-                                {lastPlayed.length > 3 && (
-                                    <span className="text-[8px] text-muted-foreground ml-0.5">
-                                        +{lastPlayed.length - 3}
-                                    </span>
-                                )}
                             </div>
                         )}
                     </div>
