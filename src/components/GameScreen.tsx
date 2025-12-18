@@ -862,43 +862,35 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         );
     };
 
-    // Render side player for mobile (no rotation, horizontal layout)
+    // Render side player for mobile (no rotation, compact horizontal layout)
     const renderMobileSidePlayer = (playerUuid: string, player: Player | undefined) => {
         return (
-            <div className="flex flex-col items-center gap-1.5 w-full">
-                {/* Player info with card backs */}
-                <div className="flex items-center gap-2">
-                    <Badge
-                        variant={gameState.currentTurn === playerUuid ? "secondary" : "outline"}
-                        className={cn(
-                            "flex h-7 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs",
-                            gameState.currentTurn === playerUuid && "animate-pulse border-primary/40 bg-primary/20"
-                        )}
-                    >
-                        {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
-                        <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
-                            {player?.cardCount || 0}
-                        </Badge>
-                        {renderPassedTag(player?.hasPassed)}
+            <div className="flex items-center justify-center gap-2 w-full px-2">
+                <Badge
+                    variant={gameState.currentTurn === playerUuid ? "secondary" : "outline"}
+                    className={cn(
+                        "flex h-7 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs",
+                        gameState.currentTurn === playerUuid && "animate-pulse border-primary/40 bg-primary/20"
+                    )}
+                >
+                    {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
+                    <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+                        {player?.cardCount || 0}
                     </Badge>
-                    {/* Card backs - horizontal display */}
-                    <div className="flex items-center justify-center">
-                        {Array.from({ length: Math.min(player?.cardCount ?? 0, 13) }).map((_, index) => (
-                            <div
-                                key={`mobile-side-card-${playerUuid}-${index}`}
-                                className={cn(
-                                    "h-6 w-4 rounded border border-blue-600/40 bg-blue-500/80 shadow-sm",
-                                    index > 0 && "-ml-1.5"
-                                )}
-                                style={{ zIndex: 13 - index }}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Last played cards */}
-                <div className="flex items-center justify-center min-h-[50px] w-full">
-                    {renderLastPlayedForPlayer(playerUuid)}
+                    {renderPassedTag(player?.hasPassed)}
+                </Badge>
+                {/* Card backs - horizontal display */}
+                <div className="flex items-center justify-center">
+                    {Array.from({ length: Math.min(player?.cardCount ?? 0, 13) }).map((_, index) => (
+                        <div
+                            key={`mobile-side-card-${playerUuid}-${index}`}
+                            className={cn(
+                                "h-6 w-4 rounded border border-blue-600/40 bg-blue-500/80 shadow-sm",
+                                index > 0 && "-ml-1.5"
+                            )}
+                            style={{ zIndex: 13 - index }}
+                        />
+                    ))}
                 </div>
             </div>
         );
@@ -1229,11 +1221,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
                 </section>
 
-                {/* Middle Row - Mobile layout (vertical stack) */}
-                <section className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto py-1 md:hidden">
-                    {/* Left Player - Mobile horizontal */}
-                    <div className="flex flex-shrink-0 items-center justify-center px-2">
+                {/* Middle Row - Mobile layout (compact) */}
+                <section className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-1 md:hidden">
+                    {/* Side players in horizontal row */}
+                    <div className="flex flex-shrink-0 items-center justify-between gap-1">
                         {renderMobileSidePlayer(playerPositions.left, leftPlayer)}
+                        {renderMobileSidePlayer(playerPositions.right, rightPlayer)}
                     </div>
 
                     {/* Center Game Area - Mobile compact */}
@@ -1298,11 +1291,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 {renderLastPlayedCards()}
                             </div>
                         )}
-                    </div>
-
-                    {/* Right Player - Mobile horizontal */}
-                    <div className="flex flex-shrink-0 items-center justify-center px-2">
-                        {renderMobileSidePlayer(playerPositions.right, rightPlayer)}
                     </div>
                 </section>
 
