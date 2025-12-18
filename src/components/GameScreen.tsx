@@ -866,20 +866,35 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     const renderMobileSidePlayer = (playerUuid: string, player: Player | undefined) => {
         return (
             <div className="flex flex-col items-center gap-1.5 w-full">
-                {/* Player info */}
-                <Badge
-                    variant={gameState.currentTurn === playerUuid ? "secondary" : "outline"}
-                    className={cn(
-                        "flex h-7 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs",
-                        gameState.currentTurn === playerUuid && "animate-pulse border-primary/40 bg-primary/20"
-                    )}
-                >
-                    {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
-                    <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
-                        {player?.cardCount || 0}
+                {/* Player info with card backs */}
+                <div className="flex items-center gap-2">
+                    <Badge
+                        variant={gameState.currentTurn === playerUuid ? "secondary" : "outline"}
+                        className={cn(
+                            "flex h-7 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs",
+                            gameState.currentTurn === playerUuid && "animate-pulse border-primary/40 bg-primary/20"
+                        )}
+                    >
+                        {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
+                        <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+                            {player?.cardCount || 0}
+                        </Badge>
+                        {renderPassedTag(player?.hasPassed)}
                     </Badge>
-                    {renderPassedTag(player?.hasPassed)}
-                </Badge>
+                    {/* Card backs - horizontal display */}
+                    <div className="flex items-center justify-center">
+                        {Array.from({ length: Math.min(player?.cardCount ?? 0, 13) }).map((_, index) => (
+                            <div
+                                key={`mobile-side-card-${playerUuid}-${index}`}
+                                className={cn(
+                                    "h-6 w-4 rounded border border-blue-600/40 bg-blue-500/80 shadow-sm",
+                                    index > 0 && "-ml-1.5"
+                                )}
+                                style={{ zIndex: 13 - index }}
+                            />
+                        ))}
+                    </div>
+                </div>
 
                 {/* Last played cards */}
                 <div className="flex items-center justify-center min-h-[50px] w-full">
@@ -1237,8 +1252,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                 </p>
                                 {gameState.lastPlayedBy === gameState.winner && (
                                     <div className="w-full">
-                                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                                            {gameState.winner === uuid ? "Winning hand" : getDisplayName(gameState.winner, gameState.uuidToName).slice(0, 8)}
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1 truncate px-2">
+                                            {gameState.winner === uuid ? "Winning hand" : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand`}
                                         </p>
                                         <div className="flex flex-wrap justify-center gap-1">
                                             {gameState.lastPlayedCards.map((card, index) => {
