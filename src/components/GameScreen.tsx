@@ -862,36 +862,46 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         );
     };
 
-    // Render side player for mobile (no rotation, compact horizontal layout)
-    const renderMobileSidePlayer = (playerUuid: string, player: Player | undefined) => {
+    // Render compact opponent card for mobile - minimal design
+    const renderMobileOpponent = (playerUuid: string, player: Player | undefined) => {
+        const isActive = gameState.currentTurn === playerUuid;
+        const displayName = getDisplayName(playerUuid, gameState.uuidToName);
+        const isBot = botUuids.has(playerUuid);
+
         return (
-            <div className="flex items-center justify-center gap-2 w-full px-2">
-                <Badge
-                    variant={gameState.currentTurn === playerUuid ? "secondary" : "outline"}
-                    className={cn(
-                        "flex h-7 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs",
-                        gameState.currentTurn === playerUuid && "animate-pulse border-primary/40 bg-primary/20"
-                    )}
-                >
-                    {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
-                    <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
-                        {player?.cardCount || 0}
-                    </Badge>
-                    {renderPassedTag(player?.hasPassed)}
-                </Badge>
-                {/* Card backs - horizontal display */}
-                <div className="flex items-center justify-center">
-                    {Array.from({ length: Math.min(player?.cardCount ?? 0, 13) }).map((_, index) => (
-                        <div
-                            key={`mobile-side-card-${playerUuid}-${index}`}
-                            className={cn(
-                                "h-6 w-4 rounded border border-blue-600/40 bg-blue-500/80 shadow-sm",
-                                index > 0 && "-ml-1.5"
-                            )}
-                            style={{ zIndex: 13 - index }}
-                        />
-                    ))}
+            <div
+                key={playerUuid}
+                className={cn(
+                    "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all",
+                    isActive && "bg-primary/10 ring-1 ring-primary/30"
+                )}
+            >
+                {/* Player circle indicator */}
+                <div className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
+                    isActive
+                        ? "bg-primary text-primary-foreground animate-pulse"
+                        : "bg-muted text-muted-foreground"
+                )}>
+                    {player?.cardCount || 0}
                 </div>
+                {/* Player name - truncated */}
+                <div className="flex items-center gap-0.5 max-w-[80px]">
+                    <span className="text-[10px] font-medium truncate">
+                        {displayName}
+                    </span>
+                    {isBot && (
+                        <span className="text-[8px] px-1 rounded bg-secondary text-secondary-foreground">
+                            BOT
+                        </span>
+                    )}
+                </div>
+                {/* Passed indicator */}
+                {player?.hasPassed && (
+                    <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400">
+                        PASS
+                    </span>
+                )}
             </div>
         );
     };
@@ -1119,27 +1129,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
                 </section>
 
-                {/* Top Player - Mobile compact layout */}
-                <section className="flex flex-shrink-0 flex-col items-center justify-center gap-1.5 py-1 md:hidden">
-                    {/* Bottom Region: Player info */}
-                    <Badge
-                        variant={gameState.currentTurn === playerPositions.top ? "secondary" : "outline"}
-                        className={cn(
-                            "flex h-8 items-center gap-2 rounded-full px-3 py-1 text-xs",
-                            gameState.currentTurn === playerPositions.top && "animate-pulse border-primary/40 bg-primary/20"
-                        )}
-                    >
-                        {renderPlayerName(playerPositions.top, gameState.uuidToName, "xs")}
-                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
-                            {topPlayer?.cardCount || 0}
-                        </Badge>
-                        {renderPassedTag(topPlayer?.hasPassed)}
-                    </Badge>
-
-                    {/* Top Region: Last played cards */}
-                    <div className="flex items-center justify-center min-h-[55px] min-w-[80px]">
-                        {renderLastPlayedForPlayer(playerPositions.top)}
-                    </div>
+                {/* Mobile: Compact Opponents Bar - All 3 opponents in one row */}
+                <section className="flex flex-shrink-0 items-center justify-around gap-1 py-2 px-1 bg-muted/20 rounded-lg md:hidden">
+                    {renderMobileOpponent(playerPositions.top, topPlayer)}
+                    {renderMobileOpponent(playerPositions.left, leftPlayer)}
+                    {renderMobileOpponent(playerPositions.right, rightPlayer)}
                 </section>
 
                 {/* Middle Row - Desktop layout */}
@@ -1221,77 +1215,102 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
                 </section>
 
-                {/* Middle Row - Mobile layout (compact) */}
-                <section className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-1 md:hidden">
-                    {/* Side players in horizontal row */}
-                    <div className="flex flex-shrink-0 items-center justify-between gap-1">
-                        {renderMobileSidePlayer(playerPositions.left, leftPlayer)}
-                        {renderMobileSidePlayer(playerPositions.right, rightPlayer)}
-                    </div>
+                {/* Mobile: Center Game Area - Large focus on gameplay */}
+                <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto py-3 px-2 md:hidden">
+                    {/* Connection status banner - mobile */}
+                    {!isConnected && (
+                        <div className="flex items-center gap-1.5 rounded-lg border-2 border-orange-500 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 dark:border-orange-400 dark:bg-orange-950/50 dark:text-orange-300">
+                            <WifiOff className="h-3 w-3 animate-pulse" />
+                            <span>Reconnecting...</span>
+                        </div>
+                    )}
 
-                    {/* Center Game Area - Mobile compact */}
-                    <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2">
-                        {/* Connection status banner - mobile */}
-                        {!isConnected && (
-                            <div className="flex items-center gap-1.5 rounded-lg border-2 border-orange-500 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 dark:border-orange-400 dark:bg-orange-950/50 dark:text-orange-300">
-                                <WifiOff className="h-3 w-3 animate-pulse" />
-                                <span>Reconnecting...</span>
-                            </div>
-                        )}
-                        {gameState.gameWon ? (
-                            <div className="flex flex-col items-center gap-2 text-center w-full">
-                                <p className="text-base font-bold text-emerald-500">
-                                    🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
-                                </p>
-                                {gameState.lastPlayedBy === gameState.winner && (
-                                    <div className="w-full">
-                                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1 truncate px-2">
-                                            {gameState.winner === uuid ? "Winning hand" : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand`}
-                                        </p>
-                                        <div className="flex flex-wrap justify-center gap-1">
-                                            {gameState.lastPlayedCards.map((card, index) => {
-                                                const suit = card.slice(-1);
-                                                const rank = card.slice(0, -1);
-                                                return (
-                                                    <div
-                                                        key={`${card}-${index}`}
-                                                        className={cn(
-                                                            "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
-                                                            "h-12 w-9 text-xs",
-                                                            getSuitColorClass(suit, theme)
-                                                        )}
-                                                    >
-                                                        <span>{rank}</span>
-                                                        <span className="text-lg">{getSuitSymbol(suit)}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
+                    {gameState.gameWon ? (
+                        <div className="flex flex-col items-center gap-3 text-center w-full">
+                            <p className="text-xl font-bold text-emerald-500">
+                                🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
+                            </p>
+                            {gameState.lastPlayedBy === gameState.winner && (
+                                <div className="w-full">
+                                    <p className="text-sm uppercase tracking-wide text-muted-foreground mb-2">
+                                        {gameState.winner === uuid ? "Winning hand" : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand`}
+                                    </p>
+                                    <div className="flex flex-wrap justify-center gap-1.5">
+                                        {gameState.lastPlayedCards.map((card, index) => {
+                                            const suit = card.slice(-1);
+                                            const rank = card.slice(0, -1);
+                                            return (
+                                                <div
+                                                    key={`${card}-${index}`}
+                                                    className={cn(
+                                                        "flex flex-col items-center justify-center rounded-lg border-2 border-border bg-white font-bold shadow-lg dark:border-slate-700 dark:bg-slate-900",
+                                                        "h-16 w-11 text-sm",
+                                                        getSuitColorClass(suit, theme)
+                                                    )}
+                                                >
+                                                    <span>{rank}</span>
+                                                    <span className="text-2xl">{getSuitSymbol(suit)}</span>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                )}
-                                <Button
-                                    onClick={onReturnToLobby}
-                                    size="sm"
-                                    className="mt-1 min-w-[130px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
-                                >
-                                    Back to Lobby
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center gap-2 w-full">
+                                </div>
+                            )}
+                            <Button
+                                onClick={onReturnToLobby}
+                                size="default"
+                                className="mt-2 min-w-[150px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
+                            >
+                                Back to Lobby
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center gap-3 w-full">
+                            {/* Turn indicator */}
+                            <div className="text-center">
                                 {isCurrentTurn ? (
-                                    <p className="text-base font-bold text-primary">
+                                    <p className="text-xl font-bold text-primary animate-pulse">
                                         Your turn!
                                     </p>
                                 ) : (
-                                    <p className="text-xs font-semibold text-muted-foreground">
-                                        {getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn
-                                    </p>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground mb-0.5">Waiting for</p>
+                                        <p className="text-base font-semibold">
+                                            {getDisplayName(gameState.currentTurn, gameState.uuidToName)}
+                                        </p>
+                                    </div>
                                 )}
-                                {renderLastPlayedCards()}
                             </div>
-                        )}
-                    </div>
+
+                            {/* Last played cards - larger and more prominent */}
+                            {gameState.lastPlayedCards.length > 0 && (
+                                <div className="flex flex-col items-center gap-2 w-full">
+                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                        {gameState.lastPlayedBy === uuid ? "You played" : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played`}
+                                    </p>
+                                    <div className="flex flex-wrap justify-center gap-1.5">
+                                        {gameState.lastPlayedCards.map((card, index) => {
+                                            const suit = card.slice(-1);
+                                            const rank = card.slice(0, -1);
+                                            return (
+                                                <div
+                                                    key={`${card}-${index}`}
+                                                    className={cn(
+                                                        "flex flex-col items-center justify-center rounded-lg border-2 border-border bg-white font-bold shadow-lg dark:border-slate-700 dark:bg-slate-900",
+                                                        "h-16 w-11 text-sm",
+                                                        getSuitColorClass(suit, theme)
+                                                    )}
+                                                >
+                                                    <span>{rank}</span>
+                                                    <span className="text-2xl">{getSuitSymbol(suit)}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </section>
 
                 {/* Bottom Player */}
