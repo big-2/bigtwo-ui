@@ -103,8 +103,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         const currentIndex = playerList.indexOf(currentPlayerUuid);
         if (currentIndex === -1) return { top: "", left: "", right: "" };
 
-        // Calculate positions: current player is at bottom, others positioned clockwise
-        // For 4 players: current player at bottom, then clockwise: right, top, left
+        // Calculate positions: current player is at bottom, turn order: right → top → left
+        // For 4 players: current player at bottom, then right, top, left
         const rightIndex = (currentIndex + 1) % playerList.length;
         const topIndex = (currentIndex + 2) % playerList.length;
         const leftIndex = (currentIndex + 3) % playerList.length;
@@ -1165,11 +1165,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </div>
                 </section>
 
-                {/* Mobile: Compact Opponents Bar - All 3 opponents in one row */}
+                {/* Mobile: Compact Opponents Bar - All 3 opponents in one row (turn order: left to right) */}
                 <section className="flex flex-shrink-0 items-center justify-around gap-1 py-2 px-1 bg-muted/20 rounded-lg md:hidden">
+                    {renderMobileOpponent(playerPositions.right, rightPlayer)}
                     {renderMobileOpponent(playerPositions.top, topPlayer)}
                     {renderMobileOpponent(playerPositions.left, leftPlayer)}
-                    {renderMobileOpponent(playerPositions.right, rightPlayer)}
                 </section>
 
                 {/* Middle Row - Desktop layout */}
