@@ -64,6 +64,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [mobileChatDraft, setMobileChatDraft] = useState("");
+    const [chatScrollTrigger, setChatScrollTrigger] = useState(0);
 
     useEffect(() => {
         const stored = getStoredSession();
@@ -551,10 +552,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }));
     };
 
-    // Reset unread when chat opens
+    // Reset unread and trigger scroll when chat opens
     useEffect(() => {
         if (isChatOpen) {
             setUnreadCount(0);
+            // Increment scroll trigger to force scroll to bottom
+            setChatScrollTrigger(prev => prev + 1);
         }
     }, [isChatOpen]);
 
@@ -900,15 +903,37 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
             {/* Mobile chat drawer (Dialog) */}
             <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
-                <DialogContent hideCloseButton className="md:hidden fixed bottom-0 left-0 right-0 top-auto mx-0 w-full max-w-none rounded-t-2xl p-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom duration-200 max-h-[70dvh]">
-                    <div className="flex flex-col h-full">
+                <DialogContent
+                    hideCloseButton
+                    className={cn(
+                        "md:hidden fixed bottom-0 left-0 right-0 top-auto mx-0 w-full max-w-none p-0 max-h-[70dvh]",
+                        // Rounded corners and border
+                        "rounded-t-2xl border-t border-x border-border/50",
+                        // Shadow for depth
+                        "shadow-[0_-4px_20px_rgba(0,0,0,0.15)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.4)]",
+                        // Smooth slide-up animation
+                        "data-[state=open]:animate-in data-[state=closed]:animate-out",
+                        "data-[state=open]:slide-in-from-bottom-full data-[state=closed]:slide-out-to-bottom-full",
+                        "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+                        "duration-300 ease-out"
+                    )}
+                >
+                    <div className="flex flex-col h-full max-h-[70dvh]">
+                        {/* Drag handle indicator */}
+                        <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
+                            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                        </div>
                         {/* Header with close button */}
-                        <div className="relative flex items-center justify-between border-b bg-background/95 px-4 py-3 flex-shrink-0">
+                        <div className="relative flex items-center justify-between border-b border-border/50 bg-background/95 backdrop-blur-sm px-4 py-2.5 flex-shrink-0">
                             <h2 className="text-base font-semibold">Chat</h2>
-                            <DialogClose aria-label="Close chat" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-muted/70 text-foreground/80 backdrop-blur transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">
+                            <DialogClose
+                                aria-label="Close chat"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-muted/70 text-foreground/80 backdrop-blur transition-all hover:bg-muted hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring active:scale-95"
+                            >
                                 ✕
                             </DialogClose>
                         </div>
+                        {/* Chat content with proper scrolling */}
                         <div className="flex-1 p-3 min-h-0 overflow-hidden">
                             <ChatBox
                                 messages={displayMessages}
@@ -919,6 +944,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                                 onDraftChange={setMobileChatDraft}
                                 hideCard={true}
                                 keepFocusAfterSend={true}
+                                scrollTrigger={chatScrollTrigger}
                             />
                         </div>
                     </div>
