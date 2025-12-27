@@ -456,28 +456,19 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             onStateChange: (state) => {
                 setConnectionState(state);
 
-                // Only add chat messages for state transitions, not repeats
+                // Track state transitions for logging
                 if (lastConnectionStateRef.current === state) {
                     return;
                 }
                 lastConnectionStateRef.current = state;
 
-                // Show connection status in chat
+                // Log connection state changes (connection status now shown in banner)
                 if (state === ConnectionState.CONNECTED) {
-                    addChatMessage({
-                        senderUuid: "SYSTEM",
-                        content: "Connected to game server"
-                    });
+                    console.log("Connected to game server");
                 } else if (state === ConnectionState.RECONNECTING) {
-                    addChatMessage({
-                        senderUuid: "SYSTEM",
-                        content: "Connection lost. Reconnecting..."
-                    });
+                    console.log("Connection lost. Reconnecting...");
                 } else if (state === ConnectionState.FAILED) {
-                    addChatMessage({
-                        senderUuid: "SYSTEM",
-                        content: "Failed to reconnect. Please refresh the page."
-                    });
+                    console.log("Failed to reconnect. Please refresh the page.");
                 }
             },
             maxReconnectAttempts: 10,
@@ -835,6 +826,23 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                         </div>
                     </div>
                 </header>
+
+                {/* Connection Status Banner */}
+                {(connectionState === ConnectionState.RECONNECTING || connectionState === ConnectionState.FAILED) && (
+                    <div className={cn(
+                        "flex items-center justify-center gap-2 rounded-lg px-3 py-2 sm:px-4 sm:py-3 text-sm font-medium shadow-md animate-in slide-in-from-top duration-300",
+                        connectionState === ConnectionState.RECONNECTING
+                            ? "bg-orange-100 text-orange-900 border border-orange-300 dark:bg-orange-950 dark:text-orange-200 dark:border-orange-800"
+                            : "bg-red-100 text-red-900 border border-red-300 dark:bg-red-950 dark:text-red-200 dark:border-red-800"
+                    )}>
+                        <WifiOff className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 animate-pulse" />
+                        <span className="text-xs sm:text-sm">
+                            {connectionState === ConnectionState.RECONNECTING
+                                ? "Connection lost. Reconnecting..."
+                                : "Connection failed. Please refresh the page."}
+                        </span>
+                    </div>
+                )}
 
                 <div className="flex flex-1 flex-col gap-3 sm:gap-6 overflow-hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                     <div className="flex flex-col gap-3 sm:gap-6 overflow-auto md:pr-2">
