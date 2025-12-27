@@ -511,7 +511,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
 
         if (!isConnected || !socket?.isConnected()) {
             console.warn("Cannot send move: not connected");
-            alert("Cannot play cards: connection lost. Please wait for reconnection.");
             return;
         }
 
@@ -534,7 +533,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
     const handlePass = () => {
         if (!isConnected || !socket?.isConnected()) {
             console.warn("Cannot pass: not connected");
-            alert("Cannot pass: connection lost. Please wait for reconnection.");
             return;
         }
 
@@ -1182,10 +1180,19 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     {/* Center Game Area */}
                     <div className="flex flex-1 flex-col items-center justify-center gap-2">
                         {/* Connection status banner */}
-                        {!isConnected && (
-                            <div className="flex items-center gap-2 rounded-lg border-2 border-orange-500 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 dark:border-orange-400 dark:bg-orange-950/50 dark:text-orange-300">
-                                <WifiOff className="h-4 w-4 animate-pulse" />
-                                <span>Connection lost - reconnecting...</span>
+                        {(connectionState === ConnectionState.RECONNECTING || connectionState === ConnectionState.FAILED) && (
+                            <div className={cn(
+                                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium shadow-md animate-in slide-in-from-top duration-300",
+                                connectionState === ConnectionState.RECONNECTING
+                                    ? "bg-orange-100 text-orange-900 border-2 border-orange-500 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-400"
+                                    : "bg-red-100 text-red-900 border-2 border-red-500 dark:bg-red-950/50 dark:text-red-300 dark:border-red-400"
+                            )}>
+                                <WifiOff className="h-4 w-4 flex-shrink-0 animate-pulse" />
+                                <span className="text-xs sm:text-sm">
+                                    {connectionState === ConnectionState.RECONNECTING
+                                        ? "Connection lost. Reconnecting..."
+                                        : "Connection failed. Please refresh the page."}
+                                </span>
                             </div>
                         )}
                         <Card className="w-full max-w-3xl overflow-hidden border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
@@ -1254,10 +1261,19 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 {/* Mobile: Center Game Area - Large focus on gameplay */}
                 <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto py-3 px-2 md:hidden">
                     {/* Connection status banner - mobile */}
-                    {!isConnected && (
-                        <div className="flex items-center gap-1.5 rounded-lg border-2 border-orange-500 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 dark:border-orange-400 dark:bg-orange-950/50 dark:text-orange-300">
-                            <WifiOff className="h-3 w-3 animate-pulse" />
-                            <span>Reconnecting...</span>
+                    {(connectionState === ConnectionState.RECONNECTING || connectionState === ConnectionState.FAILED) && (
+                        <div className={cn(
+                            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium shadow-md animate-in slide-in-from-top duration-300",
+                            connectionState === ConnectionState.RECONNECTING
+                                ? "bg-orange-100 text-orange-900 border-2 border-orange-500 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-400"
+                                : "bg-red-100 text-red-900 border-2 border-red-500 dark:bg-red-950/50 dark:text-red-300 dark:border-red-400"
+                        )}>
+                            <WifiOff className="h-3 w-3 flex-shrink-0 animate-pulse" />
+                            <span>
+                                {connectionState === ConnectionState.RECONNECTING
+                                    ? "Reconnecting..."
+                                    : "Connection failed"}
+                            </span>
                         </div>
                     )}
 
