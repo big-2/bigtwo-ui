@@ -180,9 +180,9 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                 <span className="text-xs sm:text-sm font-medium text-foreground truncate">{displayName}</span>
                             </div>
 
-                            {/* Stats section - hidden on small mobile, visible on sm+ */}
+                            {/* Stats section - visible on all screen sizes */}
                             {gamesPlayed > 0 && (
-                                <div className="hidden xs:flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs flex-shrink-0">
+                                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs flex-shrink-0">
                                     {/* Wins */}
                                     <div className="flex items-center gap-0.5 sm:gap-1">
                                         <Trophy className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-yellow-500 flex-shrink-0" />
