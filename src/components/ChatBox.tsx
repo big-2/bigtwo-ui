@@ -20,19 +20,33 @@ interface ChatBoxProps {
     hideCard?: boolean;
     // Keep input focused after sending (useful for mobile)
     keepFocusAfterSend?: boolean;
+    // Trigger scroll to bottom when this value changes (useful for modal open)
+    scrollTrigger?: number;
 }
 
-const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage, draftValue, onDraftChange, hideCard = false, keepFocusAfterSend = false }) => {
+const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage, draftValue, onDraftChange, hideCard = false, keepFocusAfterSend = false, scrollTrigger }) => {
     const isControlled = typeof draftValue === "string" && typeof onDraftChange === "function";
     const [uncontrolledInput, setUncontrolledInput] = useState<string>("");
     const chatInput = isControlled ? (draftValue as string) : uncontrolledInput;
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
+
+    // Scroll to bottom when scrollTrigger changes (e.g., when modal opens)
+    useEffect(() => {
+        if (scrollTrigger !== undefined && scrollTrigger > 0) {
+            // Use a small delay to ensure the container is fully rendered
+            const timeoutId = setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+            }, 50);
+            return () => clearTimeout(timeoutId);
+        }
+    }, [scrollTrigger]);
 
     const handleSend = () => {
         if (chatInput.trim() === "") return;
@@ -69,8 +83,19 @@ const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage, draftValue, 
 
     const content = (
         <div className="flex flex-1 flex-col gap-3 overflow-hidden">
-            <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-1">
+            <ScrollArea
+                ref={scrollAreaRef}
+                className={cn(
+                    "flex-1 pr-2",
+                    // Smooth scrolling
+                    "[&>[data-radix-scroll-area-viewport]]:scroll-smooth",
+                    // Make scrollbar more visible
+                    "[&>[data-radix-scroll-area-scrollbar]]:w-2",
+                    "[&>[data-radix-scroll-area-scrollbar]>div]:bg-muted-foreground/40",
+                    "[&>[data-radix-scroll-area-scrollbar]:hover>div]:bg-muted-foreground/60"
+                )}
+            >
+                <div className="space-y-1 pr-2">
                     {messages.map((msg, index) => {
                         const { sender, content } = parseMessage(msg.text);
                         const isSystem = sender === "SYSTEM";
