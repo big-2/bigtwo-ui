@@ -1,10 +1,10 @@
 import React from "react";
 import { Card, CardContent } from "./ui/card";
 
-const GAME_DESCRIPTION = "Big Two Online - Play the classic Big Two card game online with multiplayer support! Big Two (also known as Big 2, Deuces, or Chinese Poker) is a popular multiplayer card game for 2-4 players. Play Big Two online for free and compete with friends in real-time.";
+const GAME_DESCRIPTION = "Big Two (also known as Big 2, Deuces, or Chinese Poker) is a classic multiplayer card game for 2-4 players. Compete with friends in real-time to be the first to play all your cards!";
 
 const HOW_TO_PLAY = [
-    "Play Big Two online with 2-4 players in multiplayer mode",
+    "Join a game with 2-4 players in multiplayer mode",
     "Each player starts with 13 cards from a standard deck",
     "Play cards in combinations: singles, pairs, triples, or 5-card hands",
     "Each play must beat the previous combination",
@@ -18,14 +18,14 @@ const CARD_RANKINGS = {
     suits: "♦ < ♣ < ♥ < ♠",
 };
 
-const CALL_TO_ACTION = "Start playing Big Two online now - create or join a multiplayer room!";
+const CALL_TO_ACTION = "Create or join a room to start playing!";
 
 const AboutBigTwo: React.FC = () => {
     return (
         <Card className="w-full lg:w-96">
             <CardContent className="space-y-4 p-6 lg:p-8">
                 <header>
-                    <h2 className="text-xl font-bold lg:text-2xl">Play Big Two Online - Free Multiplayer</h2>
+                    <h2 className="text-xl font-bold lg:text-2xl">About Big Two</h2>
                 </header>
                 <article className="space-y-3 text-sm text-muted-foreground">
                     <p>{GAME_DESCRIPTION}</p>
