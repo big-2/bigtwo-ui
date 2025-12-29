@@ -1,13 +1,15 @@
 import React from "react";
 import { Card, CardContent } from "./ui/card";
 
-const GAME_DESCRIPTION = "Big Two (also known as Deuces or Chinese Poker) is a popular card game for 2-4 players. The goal is to be the first player to play all your cards.";
+const GAME_DESCRIPTION = "Big Two (also known as Big 2, Deuces, or Chinese Poker) is a classic multiplayer card game for 2-4 players. Compete with friends in real-time to be the first to play all your cards!";
 
 const HOW_TO_PLAY = [
-    "Each player starts with 13 cards",
+    "Join a game with 2-4 players in multiplayer mode",
+    "Each player starts with 13 cards from a standard deck",
     "Play cards in combinations: singles, pairs, triples, or 5-card hands",
     "Each play must beat the previous combination",
     "Pass if you can't or don't want to play",
+    "First player to play all cards wins!"
 ];
 
 const CARD_RANKINGS = {

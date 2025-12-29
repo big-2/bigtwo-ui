@@ -36,13 +36,20 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
 
     return (
         <div className="flex min-h-[calc(100vh-60px)] items-start justify-center px-2 py-4 sm:px-4 sm:py-8">
-            <div className="flex w-full max-w-7xl flex-col gap-4 sm:gap-6 lg:flex-row">
-                {/* Room List Section */}
-                <section className="flex-1">
+            <div className="flex w-full max-w-7xl flex-col gap-3 sm:gap-4">
+                {/* Hero Section - SEO optimized with H1, visible on all devices */}
+                <section className="text-center px-2" aria-label="Welcome">
+                    <h1 className="text-xl font-bold mb-1 sm:text-2xl lg:text-3xl">Big Two - Free Online Multiplayer Card Game</h1>
+                    <p className="text-xs text-muted-foreground sm:text-sm">Play Big 2 with friends in real-time. Free for 2-4 players, no download required.</p>
+                </section>
+
+                <div className="flex w-full flex-col gap-4 sm:gap-6 lg:flex-row">
+                    {/* Room List Section */}
+                    <section className="flex-1">
                     <Card>
                         <CardContent className="space-y-3 p-3 sm:space-y-4 sm:p-6 lg:space-y-6 lg:p-8">
                             <header className="flex flex-row items-center justify-between gap-2">
-                                <h1 className="text-lg font-bold sm:text-xl lg:text-2xl">Available Rooms</h1>
+                                <h2 className="text-lg font-bold sm:text-xl lg:text-2xl">Available Rooms</h2>
                                 <div className="flex items-center gap-2">
                                     <Button
                                         onClick={handleCreateRoom}
@@ -153,6 +160,7 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                 <aside className="hidden sm:block lg:w-96">
                     <AboutBigTwo />
                 </aside>
+                </div>
             </div>
         </div>
     );
