@@ -148,3 +148,21 @@ export const getRoomStats = async (roomId: string): Promise<RoomStats | null> =>
         throw error;
     }
 };
+
+/**
+ * Get the number of players currently online (connected via WebSocket)
+ * GET /online
+ */
+export interface OnlinePlayersResponse {
+    online_players: number;
+}
+
+export const getOnlinePlayers = async (): Promise<number | null> => {
+    try {
+        const response = await axios.get<OnlinePlayersResponse>(`${API_URL}/online`);
+        return response.data.online_players;
+    } catch (error) {
+        console.error('Failed to fetch online players:', error);
+        return null;
+    }
+};
