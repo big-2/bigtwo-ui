@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
 import { useScreenSize } from "../hooks/useMediaQuery";
+import { getRankDisplay } from "../utils/cardDisplay";
 
 // Card dimension constants for responsive sizing
 // All dimensions use exact 5:7 aspect ratio to match aspect-[5/7] used elsewhere
@@ -148,7 +149,7 @@ const Card: React.FC<CardProps> = ({
                 className={cn(rankFontSize, "font-bold")}
                 style={{ color: getSuitColor(suit, isDarkMode) }}
             >
-                {rank}
+                {getRankDisplay(rank)}
             </span>
             <span
                 className={suitFontSize}

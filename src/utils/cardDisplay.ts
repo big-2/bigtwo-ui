@@ -41,3 +41,13 @@ export const getSuitSymbol = (suit: string): string => {
     }
 };
 
+/**
+ * Get the display text for a card rank
+ * Converts "T" (ten) to "10" for better readability
+ * @param rank - The rank character (3-9, T, J, Q, K, A, 2)
+ * @returns Display text for the rank
+ */
+export const getRankDisplay = (rank: string): string => {
+    return rank === "T" ? "10" : rank;
+};
+

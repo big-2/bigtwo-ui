@@ -3,7 +3,7 @@ import { WebSocketMessage } from "../types.websocket";
 import { ReconnectingWebSocket, ConnectionState } from "../services/websocket-reconnect";
 import PlayerHand from "./PlayerHand";
 import { sortSelectedCards, SortType, findCardsByRank } from "../utils/cardSorting";
-import { getSuitColorClass, getSuitSymbol } from "../utils/cardDisplay";
+import { getSuitColorClass, getSuitSymbol, getRankDisplay } from "../utils/cardDisplay";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -920,7 +920,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                                 getSuitColorClass(suit, theme)
                                             )}
                                         >
-                                            <span className="leading-none">{rank}</span>
+                                            <span className="leading-none">{getRankDisplay(rank)}</span>
                                             <span className="text-[8px] leading-none">{getSuitSymbol(suit)}</span>
                                         </div>
                                     );
@@ -987,7 +987,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                             )}
                             style={{ zIndex: cards.length - index }}
                         >
-                            <span className="leading-tight">{rank}</span>
+                            <span className="leading-tight">{getRankDisplay(rank)}</span>
                             <span className="text-2xl leading-tight sm:text-3xl md:text-4xl">{getSuitSymbol(suit)}</span>
                         </div>
                     );
@@ -1033,7 +1033,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                     getSuitColorClass(suit, theme)
                                 )}
                             >
-                                <span>{rank}</span>
+                                <span>{getRankDisplay(rank)}</span>
                                 <span className="text-xl sm:text-2xl md:text-3xl">{getSuitSymbol(suit)}</span>
                             </div>
                         );
@@ -1222,7 +1222,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                                                     getSuitColorClass(suit, theme)
                                                                 )}
                                                             >
-                                                                <span>{rank}</span>
+                                                                <span>{getRankDisplay(rank)}</span>
                                                                 <span className="text-lg md:text-xl">{getSuitSymbol(suit)}</span>
                                                             </div>
                                                         );
@@ -1300,7 +1300,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                                         getSuitColorClass(suit, theme)
                                                     )}
                                                 >
-                                                    <span>{rank}</span>
+                                                    <span>{getRankDisplay(rank)}</span>
                                                     <span className="text-2xl">{getSuitSymbol(suit)}</span>
                                                 </div>
                                             );
@@ -1353,7 +1353,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                                                         getSuitColorClass(suit, theme)
                                                     )}
                                                 >
-                                                    <span>{rank}</span>
+                                                    <span>{getRankDisplay(rank)}</span>
                                                     <span className="text-2xl">{getSuitSymbol(suit)}</span>
                                                 </div>
                                             );
