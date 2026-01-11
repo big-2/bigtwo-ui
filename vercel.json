@@ -4,6 +4,19 @@
   "outputDirectory": "dist",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "destination": "https://big2.app/:path*",
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
+          "value": "www.big2.app"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
