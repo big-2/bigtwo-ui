@@ -40,7 +40,7 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                 {/* Hero Section - SEO optimized with H1, visible on all devices */}
                 <section className="text-center px-2" aria-label="Welcome">
                     <h1 className="text-xl font-bold mb-1 sm:text-2xl lg:text-3xl">Big Two - Free Online Multiplayer Card Game</h1>
-                    <p className="text-xs text-muted-foreground sm:text-sm">Play Big 2 with friends in real-time. Free for 2-4 players, no download required.</p>
+                    <p className="text-xs text-muted-foreground sm:text-sm">Play Big 2 with friends in real-time. Free for 4 players, no download required.</p>
                 </section>
 
                 <div className="flex w-full flex-col gap-4 sm:gap-6 lg:flex-row">
