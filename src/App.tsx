@@ -1,11 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 import { Alert } from "./components/ui/alert";
 import Home from "./components/Home";
 import RoomContainer from "./components/RoomContainer";
 import Header from "./components/Header";
 import { useSessionContext } from "./contexts/SessionContext";
+import SeoHead from "./components/SeoHead";
+import { FaqPage, HowToPlayPage, RulesPage, StrategyPage } from "./components/SeoPages";
 import "./index.css"; // Ensure global styles are included
+
+const RoomPage: React.FC<{ username: string }> = ({ username }) => {
+    const { roomId } = useParams<{ roomId: string }>();
+
+    return (
+        <>
+            <SeoHead
+                title="Big Two Game Room | big2.app"
+                description="Live Big Two multiplayer room on big2.app."
+                canonicalPath={roomId ? `/room/${roomId}` : "/"}
+                robots="noindex, nofollow"
+            />
+            <RoomContainer username={username} />
+        </>
+    );
+};
 
 const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
@@ -53,7 +71,11 @@ const App: React.FC = () => {
                     )}
                     <Routes>
                         <Route path="/" element={<Home onJoinRoom={handleJoinRoom} userUuid={userUuid} />} />
-                        <Route path="/room/:roomId" element={<RoomContainer username={username} />} />
+                        <Route path="/how-to-play" element={<HowToPlayPage />} />
+                        <Route path="/rules" element={<RulesPage />} />
+                        <Route path="/strategy" element={<StrategyPage />} />
+                        <Route path="/faq" element={<FaqPage />} />
+                        <Route path="/room/:roomId" element={<RoomPage username={username} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </div>
