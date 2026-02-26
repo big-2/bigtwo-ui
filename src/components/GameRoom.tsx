@@ -56,7 +56,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [selfUuid, setSelfUuid] = useState<string>("");
     const [botUuids, setBotUuids] = useState<Set<string>>(new Set());
     const [readyPlayers, setReadyPlayers] = useState<Set<string>>(new Set());
-    const [botDifficulty, setBotDifficulty] = useState<"easy" | "medium" | "hard">("easy");
+    const [botDifficulty, setBotDifficulty] = useState<"easy" | "medium" | "hard" | "ai">("easy");
     const [addingBot, setAddingBot] = useState(false);
     const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
     const [linkCopied, setLinkCopied] = useState(false);

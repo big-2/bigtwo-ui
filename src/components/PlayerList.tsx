@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { cn } from "../lib/utils";
 import { PlayerStats } from "../types.stats";
 
-type BotDifficulty = "easy" | "medium" | "hard";
+type BotDifficulty = "easy" | "medium" | "hard" | "ai";
 const MAX_PLAYERS = 4;
 const MIN_WIN_STREAK_DISPLAY = 2;
 
@@ -115,6 +115,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                 <option value="easy">Easy</option>
                                 <option value="medium">Medium</option>
                                 <option value="hard">Hard</option>
+                                <option value="ai">AI</option>
                             </select>
                             <Button
                                 onClick={onAddBot}

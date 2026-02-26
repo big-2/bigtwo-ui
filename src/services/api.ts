@@ -86,19 +86,19 @@ export const getRoomDetails = async (roomId: string): Promise<RoomResponse | nul
 
 // Bot API Types
 export interface AddBotRequest {
-    difficulty?: "easy" | "medium" | "hard";
+    difficulty?: "easy" | "medium" | "hard" | "ai";
 }
 
 export interface BotResponse {
     uuid: string;
     name: string;
-    difficulty: "easy" | "medium" | "hard";
+    difficulty: "easy" | "medium" | "hard" | "ai";
 }
 
 // Bot management API
 export const addBotToRoom = async (
     roomId: string,
-    difficulty: "easy" | "medium" | "hard" = "easy"
+    difficulty: "easy" | "medium" | "hard" | "ai" = "easy"
 ): Promise<BotResponse | null> => {
     try {
         console.log(`Adding ${difficulty} bot to room:`, roomId);
