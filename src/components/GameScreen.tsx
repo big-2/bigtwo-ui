@@ -10,7 +10,7 @@ import { Card, CardContent } from "./ui/card";
 import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
-import { HelpCircle, WifiOff } from "lucide-react";
+import { BrainCircuit, HelpCircle, WifiOff } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -90,8 +90,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     {displayName || "Opponent"}
                 </span>
                 {isBot && (
-                    <Badge variant="secondary" className="px-1 py-0 text-[10px] uppercase tracking-wide flex-shrink-0">
-                        Bot
+                    <Badge variant="secondary" className="px-1 py-0 text-[10px] uppercase tracking-wide flex-shrink-0 inline-flex items-center gap-1">
+                        <BrainCircuit className="h-2.5 w-2.5" />
+                        AI
                     </Badge>
                 )}
             </div>
@@ -891,8 +892,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                         {displayName}
                     </span>
                     {isBot && (
-                        <span className="text-[8px] px-1 rounded bg-secondary text-secondary-foreground">
-                            BOT
+                        <span className="inline-flex items-center gap-0.5 text-[8px] px-1 rounded bg-secondary text-secondary-foreground">
+                            <BrainCircuit className="h-2 w-2" />
+                            AI
                         </span>
                     )}
                 </div>

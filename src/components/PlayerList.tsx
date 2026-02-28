@@ -102,7 +102,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                         <div className="hidden sm:flex items-center gap-2">
                             <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                                <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
+                                <BrainCircuit className="h-3 w-3 sm:h-4 sm:w-4" />
                                 {botUuids.size} bot{botUuids.size === 1 ? "" : "s"}
                             </Badge>
                         </div>
@@ -184,7 +184,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                             <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
                                 <div className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 flex items-center justify-center">
                                     {isBot ? (
-                                        <Bot aria-hidden className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                                        <BrainCircuit aria-hidden className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-600 dark:text-indigo-300" />
                                     ) : (
                                         <span
                                             aria-label={connectedPlayers.has(uuid) ? "Connected" : "Disconnected"}
