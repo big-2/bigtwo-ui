@@ -31,6 +31,7 @@ const SeoHead = ({ title, description, canonicalPath, robots = "index, follow" }
     useEffect(() => {
         const origin = "https://big2.app";
         const canonicalUrl = `${origin}${canonicalPath}`;
+        const socialImageUrl = `${origin}/bigtwo.png`;
 
         document.title = title;
         upsertMeta('meta[name="description"]', "name", "description", description);
@@ -38,9 +39,13 @@ const SeoHead = ({ title, description, canonicalPath, robots = "index, follow" }
         upsertMeta('meta[property="og:title"]', "property", "og:title", title);
         upsertMeta('meta[property="og:description"]', "property", "og:description", description);
         upsertMeta('meta[property="og:url"]', "property", "og:url", canonicalUrl);
-        upsertMeta('meta[property="twitter:title"]', "property", "twitter:title", title);
-        upsertMeta('meta[property="twitter:description"]', "property", "twitter:description", description);
-        upsertMeta('meta[property="twitter:url"]', "property", "twitter:url", canonicalUrl);
+        upsertMeta('meta[property="og:type"]', "property", "og:type", "website");
+        upsertMeta('meta[property="og:image"]', "property", "og:image", socialImageUrl);
+        upsertMeta('meta[name="twitter:card"]', "name", "twitter:card", "summary_large_image");
+        upsertMeta('meta[name="twitter:title"]', "name", "twitter:title", title);
+        upsertMeta('meta[name="twitter:description"]', "name", "twitter:description", description);
+        upsertMeta('meta[name="twitter:url"]', "name", "twitter:url", canonicalUrl);
+        upsertMeta('meta[name="twitter:image"]', "name", "twitter:image", socialImageUrl);
         upsertCanonical(canonicalUrl);
     }, [title, description, canonicalPath, robots]);
 

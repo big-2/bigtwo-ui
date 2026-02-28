@@ -15,9 +15,49 @@
           "value": "www.big2.app"
         }
       ]
+    },
+    {
+      "source": "/how-to-play/",
+      "destination": "/how-to-play",
+      "permanent": true
+    },
+    {
+      "source": "/rules/",
+      "destination": "/rules",
+      "permanent": true
+    },
+    {
+      "source": "/strategy/",
+      "destination": "/strategy",
+      "permanent": true
+    },
+    {
+      "source": "/faq/",
+      "destination": "/faq",
+      "permanent": true
     }
   ],
   "rewrites": [
+    {
+      "source": "/how-to-play",
+      "destination": "/how-to-play/index.html"
+    },
+    {
+      "source": "/rules",
+      "destination": "/rules/index.html"
+    },
+    {
+      "source": "/strategy",
+      "destination": "/strategy/index.html"
+    },
+    {
+      "source": "/faq",
+      "destination": "/faq/index.html"
+    },
+    {
+      "source": "/room/:path*",
+      "destination": "/index.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

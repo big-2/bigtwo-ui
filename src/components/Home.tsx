@@ -40,7 +40,7 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
         <>
             <SeoHead
                 title="Big Two Online - Free Multiplayer Card Game | big2.app"
-                description="Play Big Two online for free with friends. Learn rules, strategies, and start a real-time 4-player game instantly."
+                description="Play Big Two online for free with friends or challenge an AI agent trained with self-play and reinforcement learning. Start a real-time 4-player game instantly."
                 canonicalPath="/"
             />
             <div className="flex min-h-[calc(100vh-60px)] items-start justify-center px-2 py-4 sm:px-4 sm:py-8">
@@ -181,6 +181,24 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                                     <li><Link className="underline text-primary" to="/strategy">Big Two Strategy Tips</Link></li>
                                     <li><Link className="underline text-primary" to="/faq">Big Two FAQ</Link></li>
                                 </ul>
+                            </CardContent>
+                        </Card>
+                    </section>
+
+                    <section className="w-full">
+                        <Card>
+                            <CardContent className="space-y-4 p-4 sm:p-6">
+                                <h2 className="text-lg font-bold sm:text-xl">Play Big Two Against A Trained AI Agent</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Want a tougher challenge? You can play Big Two online against our AI bot, built with self-play and reinforcement learning.
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    In simple terms: the AI practices by playing thousands of Big Two games against versions of itself, then learns which moves help it win more often.
+                                    Over time, it gets better at timing, hand control, and endgame decisions.
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    If you are learning Big 2 strategy, this is a great way to improve fast. Join a room, invite friends, or test your skill against the AI and see how your decisions compare.
+                                </p>
                             </CardContent>
                         </Card>
                     </section>
