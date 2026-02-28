@@ -123,7 +123,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                 </span>
                                 <select
                                     className={cn(
-                                        "rounded-md border border-input bg-background pl-7 pr-2 py-1.5 text-xs sm:pl-8 sm:px-3 sm:py-2 sm:text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary",
+                                        "min-w-[120px] rounded-md border border-input bg-background pl-8 pr-7 py-1.5 text-xs sm:min-w-[140px] sm:pl-9 sm:pr-8 sm:py-2 sm:text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary",
                                         isAiBotSelected && "border-indigo-500 text-indigo-700 shadow-[0_0_0_1px_rgba(99,102,241,0.25)] dark:text-indigo-300"
                                     )}
                                     value={botDifficulty}
