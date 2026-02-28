@@ -1,5 +1,5 @@
 import React from "react";
-import { Bot, Trash2, Trophy, BarChart3, Flame } from "lucide-react";
+import { Bot, BrainCircuit, Trash2, Trophy, BarChart3, Flame } from "lucide-react";
 
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { cn } from "../lib/utils";
 import { PlayerStats } from "../types.stats";
 
-type BotDifficulty = "easy" | "medium" | "hard" | "ai";
+type BotDifficulty = "easy" | "ai";
 const MAX_PLAYERS = 4;
 const MIN_WIN_STREAK_DISPLAY = 2;
 
@@ -54,6 +54,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
     onKickPlayer,
     onToggleReady,
 }) => {
+    const isAiBotSelected = botDifficulty === "ai";
+
     const getDisplayName = (uuid: string) => {
         if (mapping[uuid]) {
             return mapping[uuid];
@@ -105,18 +107,34 @@ const PlayerList: React.FC<PlayerListProps> = ({
                             </Badge>
                         </div>
                         <div className="flex items-center gap-1.5 sm:gap-2">
-                            <select
-                                className="rounded-md border border-input bg-background px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                                value={botDifficulty}
-                                onChange={handleDifficultyChange}
-                                disabled={addingBot || !canAddBot}
-                                aria-label="Select bot difficulty"
-                            >
-                                <option value="easy">Easy</option>
-                                <option value="medium">Medium</option>
-                                <option value="hard">Hard</option>
-                                <option value="ai">AI</option>
-                            </select>
+                            <div className="relative">
+                                <span
+                                    className={cn(
+                                        "pointer-events-none absolute inset-y-0 left-2 flex items-center",
+                                        isAiBotSelected ? "text-indigo-600" : "text-muted-foreground"
+                                    )}
+                                    aria-hidden
+                                >
+                                    {isAiBotSelected ? (
+                                        <BrainCircuit className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    ) : (
+                                        <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    )}
+                                </span>
+                                <select
+                                    className={cn(
+                                        "rounded-md border border-input bg-background pl-7 pr-2 py-1.5 text-xs sm:pl-8 sm:px-3 sm:py-2 sm:text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary",
+                                        isAiBotSelected && "border-indigo-500 text-indigo-700 shadow-[0_0_0_1px_rgba(99,102,241,0.25)] dark:text-indigo-300"
+                                    )}
+                                    value={botDifficulty}
+                                    onChange={handleDifficultyChange}
+                                    disabled={addingBot || !canAddBot}
+                                    aria-label="Select bot type"
+                                >
+                                    <option value="easy">Dummy Bot</option>
+                                    <option value="ai">AI Bot</option>
+                                </select>
+                            </div>
                             <Button
                                 onClick={onAddBot}
                                 disabled={addingBot || !canAddBot}
