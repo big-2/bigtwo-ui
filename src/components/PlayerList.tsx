@@ -15,6 +15,7 @@ interface PlayerListProps {
     players: string[];
     mapping: Record<string, string>;
     botUuids: Set<string>;
+    botDifficultyByUuid: Record<string, BotDifficulty>;
     readyPlayers: Set<string>;
     connectedPlayers: Set<string>;
     currentUserUuid?: string;
@@ -37,6 +38,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
     players,
     mapping,
     botUuids,
+    botDifficultyByUuid,
     readyPlayers,
     connectedPlayers,
     currentUserUuid,
@@ -166,6 +168,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
                     const displayName = getDisplayName(uuid);
                     const isBot = botUuids.has(uuid);
+                    const isAiBot = isBot && ((botDifficultyByUuid[uuid] ?? (/\bai\b/i.test(displayName) ? "ai" : "easy")) === "ai");
                     const isCurrentUser = uuid === currentUserUuid || displayName === currentUsername;
                     const isHostPlayer = uuid === hostUuid;
                     const isReady = readyPlayers.has(uuid);
@@ -184,7 +187,11 @@ const PlayerList: React.FC<PlayerListProps> = ({
                             <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
                                 <div className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 flex items-center justify-center">
                                     {isBot ? (
-                                        <BrainCircuit aria-hidden className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-600 dark:text-indigo-300" />
+                                        isAiBot ? (
+                                            <BrainCircuit aria-hidden className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-600 dark:text-indigo-300" />
+                                        ) : (
+                                            <Bot aria-hidden className="h-3 w-3 sm:h-4 sm:w-4 text-slate-600 dark:text-slate-300" />
+                                        )
                                     ) : (
                                         <span
                                             aria-label={connectedPlayers.has(uuid) ? "Connected" : "Disconnected"}

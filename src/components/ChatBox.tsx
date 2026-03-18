@@ -138,7 +138,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage, draftValue, 
                     value={chatInput}
                     onChange={(e) => {
                         if (isControlled) {
-                            onDraftChange && onDraftChange(e.target.value);
+                            onDraftChange?.(e.target.value);
                         } else {
                             setUncontrolledInput(e.target.value);
                         }
