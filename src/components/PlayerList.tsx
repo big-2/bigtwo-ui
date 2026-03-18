@@ -168,7 +168,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
                     const displayName = getDisplayName(uuid);
                     const isBot = botUuids.has(uuid);
-                    const isAiBot = isBot && ((botDifficultyByUuid[uuid] ?? (/\bai\b/i.test(displayName) ? "ai" : "easy")) === "ai");
+                    const isAiBot = isBot && botDifficultyByUuid[uuid] === "ai";
                     const isCurrentUser = uuid === currentUserUuid || displayName === currentUsername;
                     const isHostPlayer = uuid === hostUuid;
                     const isReady = readyPlayers.has(uuid);
