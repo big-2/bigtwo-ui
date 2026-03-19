@@ -31,9 +31,18 @@ interface GameRoomProps {
 }
 
 type MessageHandler = (message: WebSocketMessage) => void;
+type BotDifficulty = "easy" | "ai";
 
 // Maximum number of chat messages to keep in history
 const MAX_CHAT_MESSAGES = 100;
+
+const normalizeBotDifficulty = (difficulty?: string): BotDifficulty => {
+    if (difficulty?.toLowerCase() === "ai") {
+        return "ai";
+    }
+
+    return "easy";
+};
 
 const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) => {
     const navigate = useNavigate();
@@ -56,7 +65,8 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [selfUuid, setSelfUuid] = useState<string>("");
     const [botUuids, setBotUuids] = useState<Set<string>>(new Set());
     const [readyPlayers, setReadyPlayers] = useState<Set<string>>(new Set());
-    const [botDifficulty, setBotDifficulty] = useState<"easy" | "ai">("easy");
+    const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>("easy");
+    const [botDifficultyByUuid, setBotDifficultyByUuid] = useState<Record<string, BotDifficulty>>({});
     const [addingBot, setAddingBot] = useState(false);
     const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
     const [linkCopied, setLinkCopied] = useState(false);
@@ -133,6 +143,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     players?: string[];
                     mapping?: Record<string, string>;
                     bot_uuids?: string[];
+                    bot_difficulties?: Record<string, BotDifficulty | string>;
                     ready_players?: string[];
                     host_uuid?: string | null;
                     connected_players?: string[];
@@ -140,6 +151,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 const playersFromServer = payload?.players;
                 const mapping = payload?.mapping;
                 const botUuidsFromServer = payload?.bot_uuids;
+                const botDifficultiesFromServer = payload?.bot_difficulties;
                 const readyPlayersFromServer = payload?.ready_players;
                 const hostUuidFromServer = payload?.host_uuid;
                 const connectedFromServer = payload?.connected_players;
@@ -173,6 +185,15 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     // Use bot UUIDs from server if available
                     if (Array.isArray(botUuidsFromServer)) {
                         setBotUuids(new Set(botUuidsFromServer));
+                        setBotDifficultyByUuid(() => {
+                            const next: Record<string, BotDifficulty> = {};
+
+                            for (const botUuid of botUuidsFromServer) {
+                                next[botUuid] = normalizeBotDifficulty(botDifficultiesFromServer?.[botUuid]);
+                            }
+
+                            return next;
+                        });
                     }
 
                     // Update ready players from server
@@ -221,6 +242,17 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     const newSet = new Set(prev);
                     newSet.delete(leftPlayerUuid);
                     return newSet;
+                });
+
+                // Remove bot difficulty metadata if this player was a bot
+                setBotDifficultyByUuid((prev) => {
+                    if (!(leftPlayerUuid in prev)) {
+                        return prev;
+                    }
+
+                    const next = { ...prev };
+                    delete next[leftPlayerUuid];
+                    return next;
                 });
             },
 
@@ -362,9 +394,14 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
             // Bot message handlers
             BOT_ADDED: (message) => {
-                const payload = message.payload as { bot_uuid?: string; bot_name?: string };
+                const payload = message.payload as {
+                    bot_uuid?: string;
+                    bot_name?: string;
+                    bot_difficulty?: string;
+                };
                 const botUuid = payload?.bot_uuid;
                 const botName = payload?.bot_name ?? "Bot";
+                const resolvedDifficulty = normalizeBotDifficulty(payload?.bot_difficulty);
 
                 if (!botUuid) {
                     return;
@@ -373,6 +410,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 console.log(`Bot added: ${botName} (${botUuid})`);
 
                 setBotUuids(prev => new Set([...prev, botUuid]));
+                setBotDifficultyByUuid((prev) => ({
+                    ...prev,
+                    [botUuid]: resolvedDifficulty,
+                }));
 
                 // Add system message to chat
                 addChatMessage({
@@ -395,6 +436,15 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     const newSet = new Set(prev);
                     newSet.delete(botUuid);
                     return newSet;
+                });
+                setBotDifficultyByUuid((prev) => {
+                    if (!(botUuid in prev)) {
+                        return prev;
+                    }
+
+                    const next = { ...prev };
+                    delete next[botUuid];
+                    return next;
                 });
 
                 // Add system message to chat
@@ -611,6 +661,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             const result = await addBotToRoom(roomId, botDifficulty);
             if (result) {
                 console.log("Bot added successfully:", result);
+                setBotDifficultyByUuid((prev) => ({
+                    ...prev,
+                    [result.uuid]: normalizeBotDifficulty(result.difficulty),
+                }));
             } else {
                 console.error("Failed to add bot");
                 // Show error notification to user
@@ -619,6 +673,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     content: "Failed to add bot. Room may be full or you may not be the host."
                 });
             }
+        } catch (error) {
+            console.error("Error adding bot:", error);
+            addChatMessage({
+                senderUuid: "SYSTEM",
+                content: "Failed to add bot. Please try again."
+            });
         } finally {
             setAddingBot(false);
         }
@@ -858,6 +918,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                             isHost={isHost}
                             addingBot={addingBot}
                             botDifficulty={botDifficulty}
+                            botDifficultyByUuid={botDifficultyByUuid}
                             canAddBot={canAddBot}
                             playerStats={roomStats?.player_stats}
                             gamesPlayed={roomStats?.games_played || 0}

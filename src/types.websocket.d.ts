@@ -115,6 +115,7 @@ export interface PlayersListPayload {
     players: string[];
     mapping: { [uuid: string]: string };
     bot_uuids: string[];
+    bot_difficulties: { [uuid: string]: "easy" | "medium" | "hard" | "ai" };
     ready_players: string[];
     host_uuid?: string | null;
     connected_players: string[];
@@ -169,6 +170,7 @@ export interface BotAddedMessage {
 export interface BotAddedPayload {
     bot_uuid: string;
     bot_name: string;
+    bot_difficulty: "easy" | "medium" | "hard" | "ai";
 }
 /**
  * Model for bot removed messages.
