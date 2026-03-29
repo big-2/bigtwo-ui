@@ -10,7 +10,7 @@ import { Card, CardContent } from "./ui/card";
 import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
-import { BrainCircuit, HelpCircle, WifiOff } from "lucide-react";
+import { Bot, BrainCircuit, HelpCircle, WifiOff } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -33,6 +33,7 @@ interface GameScreenProps {
     };
     mapping: Record<string, string>; // uuid to display name mapping
     botUuids?: Set<string>; // Set of bot UUIDs
+    botDifficultyByUuid?: Record<string, "easy" | "ai">;
     onReturnToLobby?: () => void;
     connectionState?: ConnectionState;
 }
@@ -62,7 +63,17 @@ interface GameState {
     focusedCardIndex: number | null; // Track which card has keyboard focus (cursor)
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initialGameData, mapping, botUuids = new Set(), onReturnToLobby, connectionState = ConnectionState.CONNECTED }) => {
+const GameScreen: React.FC<GameScreenProps> = ({
+    username,
+    uuid,
+    socket,
+    initialGameData,
+    mapping,
+    botUuids = new Set(),
+    botDifficultyByUuid = {},
+    onReturnToLobby,
+    connectionState = ConnectionState.CONNECTED,
+}) => {
     const { theme } = useThemeContext();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -74,10 +85,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         return mapping[uuidOrName] || uuidOrName;
     };
 
+    const getBotDifficulty = (playerUuid: string) => botDifficultyByUuid[playerUuid] ?? "easy";
+
     // Helper function to render player name with bot badge if applicable
     const renderPlayerName = (playerUuid: string, mapping: Record<string, string>, size: "xs" | "sm" | "md" | "lg" = "xs") => {
         const displayName = getDisplayName(playerUuid, mapping);
         const isBot = botUuids.has(playerUuid);
+        const isAiBot = isBot && getBotDifficulty(playerUuid) === "ai";
 
         return (
             <div className="flex items-center justify-center gap-1.5 text-foreground min-w-0">
@@ -91,8 +105,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                 </span>
                 {isBot && (
                     <Badge variant="secondary" className="px-1 py-0 text-[10px] uppercase tracking-wide flex-shrink-0 inline-flex items-center gap-1">
-                        <BrainCircuit className="h-2.5 w-2.5" />
-                        AI
+                        {isAiBot ? (
+                            <BrainCircuit className="h-2.5 w-2.5" />
+                        ) : (
+                            <Bot className="h-2.5 w-2.5" />
+                        )}
+                        {isAiBot ? "AI" : "Bot"}
                     </Badge>
                 )}
             </div>
@@ -866,6 +884,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
         const isActive = gameState.currentTurn === playerUuid;
         const displayName = getDisplayName(playerUuid, gameState.uuidToName);
         const isBot = botUuids.has(playerUuid);
+        const isAiBot = isBot && getBotDifficulty(playerUuid) === "ai";
         const lastPlayed = gameState.lastPlaysByPlayer[playerUuid];
 
         return (
@@ -893,8 +912,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ username, uuid, socket, initial
                     </span>
                     {isBot && (
                         <span className="inline-flex items-center gap-0.5 text-[8px] px-1 rounded bg-secondary text-secondary-foreground">
-                            <BrainCircuit className="h-2 w-2" />
-                            AI
+                            {isAiBot ? (
+                                <BrainCircuit className="h-2 w-2" />
+                            ) : (
+                                <Bot className="h-2 w-2" />
+                            )}
+                            {isAiBot ? "AI" : "Bot"}
                         </span>
                     )}
                 </div>
