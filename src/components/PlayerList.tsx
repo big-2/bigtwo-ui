@@ -1,5 +1,5 @@
 import React from "react";
-import { Bot, BrainCircuit, Trash2, Trophy, BarChart3, Flame } from "lucide-react";
+import { Bot, BrainCircuit, Trash2, Trophy, BarChart3, Flame, Layers3 } from "lucide-react";
 
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -173,6 +173,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     const isHostPlayer = uuid === hostUuid;
                     const isReady = readyPlayers.has(uuid);
                     const stats = playerStats?.[uuid];
+                    const hasCardsRemaining = stats?.cards_remaining !== undefined;
                     const showWinStreak = stats && stats.current_win_streak >= MIN_WIN_STREAK_DISPLAY;
 
                     return (
@@ -217,15 +218,26 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                         </span>
                                     </div>
 
-                                    {/* Score */}
+                                    {/* Cards remaining or score fallback */}
                                     <div className="flex items-center gap-0.5 sm:gap-1">
-                                        <BarChart3 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500 flex-shrink-0" />
-                                        <span className={cn(
-                                            'font-mono tabular-nums',
-                                            (stats?.total_score ?? 0) <= 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
-                                        )}>
-                                            {stats?.total_score ?? 0}
-                                        </span>
+                                        {hasCardsRemaining ? (
+                                            <>
+                                                <Layers3 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500 flex-shrink-0" />
+                                                <span className="font-mono tabular-nums">
+                                                    {stats?.cards_remaining ?? 0}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <BarChart3 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500 flex-shrink-0" />
+                                                <span className={cn(
+                                                    'font-mono tabular-nums',
+                                                    (stats?.total_score ?? 0) <= 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
+                                                )}>
+                                                    {stats?.total_score ?? 0}
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
 
                                     {/* Win streak */}

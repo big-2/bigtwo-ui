@@ -836,7 +836,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 mapping={uuidToName}
                 botUuids={botUuids}
                 botDifficultyByUuid={botDifficultyByUuid}
-                roomStats={roomStats}
                 onReturnToLobby={handleReturnToLobby}
                 connectionState={connectionState}
             />

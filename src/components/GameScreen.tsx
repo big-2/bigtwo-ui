@@ -11,7 +11,6 @@ import { cn } from "../lib/utils";
 import { useThemeContext } from "../contexts/ThemeContext";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { Bot, BrainCircuit, HelpCircle, WifiOff } from "lucide-react";
-import { RoomStats } from "../types.stats";
 import {
     Dialog,
     DialogContent,
@@ -35,7 +34,6 @@ interface GameScreenProps {
     mapping: Record<string, string>; // uuid to display name mapping
     botUuids?: Set<string>; // Set of bot UUIDs
     botDifficultyByUuid?: Record<string, "easy" | "ai">;
-    roomStats?: RoomStats | null;
     onReturnToLobby?: () => void;
     connectionState?: ConnectionState;
 }
@@ -73,7 +71,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
     mapping,
     botUuids = new Set(),
     botDifficultyByUuid = {},
-    roomStats,
     onReturnToLobby,
     connectionState = ConnectionState.CONNECTED,
 }) => {
@@ -824,62 +821,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
         return `${player.cardCount} cards`;
     };
 
-    const renderPostGameSummary = (compact = false) => {
-        const summaryPlayers = gameState.playerList
-            .map((playerUuid) => gameState.players.find((player) => player.name === playerUuid))
-            .filter((player): player is Player => Boolean(player))
-            .sort((left, right) => Number(right.name === gameState.winner) - Number(left.name === gameState.winner));
-
-        return (
-            <div className={cn("w-full rounded-2xl border border-border/70 bg-background/60", compact ? "p-3" : "p-4")}>
-                <p className={cn("mb-3 font-semibold text-foreground", compact ? "text-sm" : "text-base")}>
-                    Final table
-                </p>
-                <div className="grid gap-2">
-                    {summaryPlayers.map((player) => {
-                        const isWinner = player.name === gameState.winner;
-                        const displayName = getDisplayName(player.name, gameState.uuidToName);
-                        const wins = roomStats?.player_stats[player.name]?.wins;
-
-                        return (
-                            <div
-                                key={player.name}
-                                className={cn(
-                                    "grid items-center gap-2 rounded-xl border px-3 py-2",
-                                    "grid-cols-[minmax(0,1fr)_auto_auto]",
-                                    isWinner
-                                        ? "border-emerald-400/70 bg-emerald-500/10"
-                                        : "border-border/70 bg-card/80"
-                                )}
-                            >
-                                <div className="flex min-w-0 items-center gap-2">
-                                    <span className={cn("truncate font-medium", compact ? "text-sm" : "text-sm md:text-base")}>
-                                        {displayName}
-                                    </span>
-                                    {isWinner && (
-                                        <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
-                                            Winner
-                                        </Badge>
-                                    )}
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cards left</p>
-                                    <p className="font-mono text-sm font-semibold tabular-nums">{player.cardCount}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Wins</p>
-                                    <p className="font-mono text-sm font-semibold tabular-nums">
-                                        {wins ?? "..."}
-                                    </p>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
     const renderTopCardBacks = (count?: number) => (
         <div className="flex items-center justify-center">
             {Array.from({ length: Math.min(count ?? 0, 13) }).map((_, index) => (
@@ -1314,7 +1255,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                                 </div>
                                             </div>
                                         )}
-                                        {renderPostGameSummary()}
                                         <Button
                                             onClick={onReturnToLobby}
                                             size="default"
@@ -1393,7 +1333,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                     </div>
                                 </div>
                             )}
-                            {renderPostGameSummary(true)}
                             <Button
                                 onClick={onReturnToLobby}
                                 size="default"
