@@ -1005,43 +1005,46 @@ const GameScreen: React.FC<GameScreenProps> = ({
     const renderLastPlayedForPlayer = (playerUuid: string) => {
         const cards = gameState.lastPlaysByPlayer[playerUuid];
 
-        // No data yet
+        const containerClassName = "flex h-[54px] w-[132px] items-center justify-center overflow-hidden sm:h-[64px] sm:w-[168px] md:h-[76px] md:w-[220px]";
+
         if (!cards) {
-            return null;
+            return <div className={containerClassName} aria-hidden />;
         }
 
-        // Player passed - show PASS badge
         if (cards.length === 0) {
             return (
-                <Badge variant="secondary" className="px-3 py-1.5 text-xs uppercase tracking-wide bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300 font-semibold">
-                    Pass
-                </Badge>
+                <div className={containerClassName}>
+                    <Badge variant="secondary" className="min-w-[88px] justify-center px-3 py-1.5 text-xs uppercase tracking-wide bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300 font-semibold">
+                        Pass
+                    </Badge>
+                </div>
             );
         }
 
-        // Player played cards - show larger cards
         return (
-            <div className="flex items-center gap-0.5 sm:gap-1">
-                {cards.map((card, index) => {
-                    const suit = card.slice(-1);
-                    const rank = card.slice(0, -1);
+            <div className={containerClassName}>
+                <div className="flex items-center justify-center">
+                    {cards.map((card, index) => {
+                        const suit = card.slice(-1);
+                        const rank = card.slice(0, -1);
 
-                    return (
-                        <div
-                            key={`${playerUuid}-${card}-${index}`}
-                            className={cn(
-                                "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
-                                "w-12 aspect-[5/7] text-sm sm:w-16 sm:text-base md:w-20 md:text-lg",
-                                getSuitColorClass(suit, theme),
-                                index > 0 && "-ml-1.5 sm:-ml-2 md:-ml-3"
-                            )}
-                            style={{ zIndex: cards.length - index }}
-                        >
-                            <span className="leading-tight">{getRankDisplay(rank)}</span>
-                            <span className="text-2xl leading-tight sm:text-3xl md:text-4xl">{getSuitSymbol(suit)}</span>
-                        </div>
-                    );
-                })}
+                        return (
+                            <div
+                                key={`${playerUuid}-${card}-${index}`}
+                                className={cn(
+                                    "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
+                                    "w-8 aspect-[5/7] text-[10px] sm:w-10 sm:text-xs md:w-12 md:text-sm",
+                                    getSuitColorClass(suit, theme),
+                                    index > 0 && "-ml-2 sm:-ml-3 md:-ml-4"
+                                )}
+                                style={{ zIndex: cards.length - index }}
+                            >
+                                <span className="leading-tight">{getRankDisplay(rank)}</span>
+                                <span className="text-sm leading-tight sm:text-lg md:text-2xl">{getSuitSymbol(suit)}</span>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         );
     };
@@ -1062,14 +1065,14 @@ const GameScreen: React.FC<GameScreenProps> = ({
         const mobileLabel = mobileLabelOverride ?? (isSelfPlay ? "You" : displayName.slice(0, 8));
 
         return (
-            <div className="flex flex-col items-center gap-1.5 sm:gap-2">
-                <span className="hidden text-sm uppercase tracking-wide text-muted-foreground md:block">
+            <div className="grid h-full w-full grid-rows-[18px_minmax(0,1fr)] items-center gap-2">
+                <span className="hidden text-center text-sm uppercase tracking-wide text-muted-foreground md:block">
                     {desktopLabel}
                 </span>
-                <span className="block text-xs uppercase tracking-wide text-muted-foreground md:hidden">
+                <span className="block text-center text-xs uppercase tracking-wide text-muted-foreground md:hidden">
                     {mobileLabel}
                 </span>
-                <div className="flex flex-wrap justify-center gap-1 sm:gap-1.5 md:gap-2">
+                <div className="flex h-full items-center justify-center overflow-hidden">
                     {gameState.lastPlayedCards.map((card, index) => {
                         const suit = card.slice(-1);
                         const rank = card.slice(0, -1);
@@ -1079,12 +1082,14 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                 key={`${card}-${index}`}
                                 className={cn(
                                     "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
-                                    "h-14 w-10 text-xs sm:h-16 sm:w-12 sm:text-sm md:h-20 md:w-14 md:text-lg",
-                                    getSuitColorClass(suit, theme)
+                                    "h-14 w-10 text-xs sm:h-16 sm:w-12 sm:text-sm md:h-[72px] md:w-[52px] md:text-base",
+                                    getSuitColorClass(suit, theme),
+                                    index > 0 && "-ml-2 sm:-ml-3 md:-ml-4"
                                 )}
+                                style={{ zIndex: gameState.lastPlayedCards.length - index }}
                             >
                                 <span>{getRankDisplay(rank)}</span>
-                                <span className="text-xl sm:text-2xl md:text-3xl">{getSuitSymbol(suit)}</span>
+                                <span className="text-xl sm:text-2xl md:text-[28px]">{getSuitSymbol(suit)}</span>
                             </div>
                         );
                     })}
