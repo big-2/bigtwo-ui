@@ -197,15 +197,29 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     // Responsive card dimensions based on screen size
     const cardDimensions = CARD_DIMENSIONS[screenSize];
     const isMobileOrTablet = screenSize !== 'desktop';
-    const horizontalPadding = isMobileOrTablet ? 12 : screenSize === 'desktop' ? 16 : 12;
 
     const getDropIndicatorLeft = (targetIndex: number) => {
+        const handElement = handRef.current;
         const cardSpan = cardDimensions.width + cardDimensions.gap;
-        const baseOffset = horizontalPadding - cardDimensions.gap / 2;
-        const maxOffset = horizontalPadding + Math.max(cards.length - 1, 0) * cardSpan + cardDimensions.width;
+        const fallbackPadding = isMobileOrTablet ? 12 : 16;
+        const computedStyles = handElement ? window.getComputedStyle(handElement) : null;
+        const paddingLeft = computedStyles ? Number.parseFloat(computedStyles.paddingLeft) || fallbackPadding : fallbackPadding;
+        const paddingRight = computedStyles ? Number.parseFloat(computedStyles.paddingRight) || fallbackPadding : fallbackPadding;
+        const availableWidth = handElement
+            ? Math.max(0, handElement.clientWidth - paddingLeft - paddingRight)
+            : 0;
+        const contentWidth = cards.length > 0
+            ? cards.length * cardDimensions.width + Math.max(cards.length - 1, 0) * cardDimensions.gap
+            : 0;
+        const centeredOffset = !isMobileOrTablet && availableWidth > contentWidth
+            ? (availableWidth - contentWidth) / 2
+            : 0;
+        const startOffset = paddingLeft + centeredOffset;
+        const baseOffset = startOffset - cardDimensions.gap / 2;
+        const maxOffset = startOffset + Math.max(cards.length - 1, 0) * cardSpan + cardDimensions.width;
         const desiredOffset = baseOffset + targetIndex * cardSpan;
 
-        return Math.max(horizontalPadding - 4, Math.min(desiredOffset, maxOffset));
+        return Math.max(startOffset - 4, Math.min(desiredOffset, maxOffset));
     };
 
     const handleDragStart = (card: string, index: number) => {
