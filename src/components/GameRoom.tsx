@@ -101,7 +101,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
 
     // Fetch initial stats when room loads
     useEffect(() => {
-        const fetchStats = async () => {
+        const loadInitialStats = async () => {
             try {
                 const stats = await getRoomStats(roomId);
                 setRoomStats(stats);
@@ -117,7 +117,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             }
         };
 
-        fetchStats();
+        void loadInitialStats();
     }, [roomId]);
 
     // WebSocket message handlers
