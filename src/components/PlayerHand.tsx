@@ -14,14 +14,14 @@ const CARD_DIMENSIONS = {
     gap: -28, // Reduced overlap for better card visibility
   },
   tablet: {
-    width: 65,
-    height: 91,
+    width: 60,
+    height: 84,
     gap: -20, // Less overlap on tablet
   },
   desktop: {
-    width: 90,
-    height: 126,
-    gap: 12,
+    width: 76,
+    height: 106,
+    gap: 8,
   },
 } as const;
 
@@ -198,6 +198,30 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     const cardDimensions = CARD_DIMENSIONS[screenSize];
     const isMobileOrTablet = screenSize !== 'desktop';
 
+    const getDropIndicatorLeft = (targetIndex: number) => {
+        const handElement = handRef.current;
+        const cardSpan = cardDimensions.width + cardDimensions.gap;
+        const fallbackPadding = isMobileOrTablet ? 12 : 16;
+        const computedStyles = handElement ? window.getComputedStyle(handElement) : null;
+        const paddingLeft = computedStyles ? Number.parseFloat(computedStyles.paddingLeft) || fallbackPadding : fallbackPadding;
+        const paddingRight = computedStyles ? Number.parseFloat(computedStyles.paddingRight) || fallbackPadding : fallbackPadding;
+        const availableWidth = handElement
+            ? Math.max(0, handElement.clientWidth - paddingLeft - paddingRight)
+            : 0;
+        const contentWidth = cards.length > 0
+            ? cards.length * cardDimensions.width + Math.max(cards.length - 1, 0) * cardDimensions.gap
+            : 0;
+        const centeredOffset = !isMobileOrTablet && availableWidth > contentWidth
+            ? (availableWidth - contentWidth) / 2
+            : 0;
+        const startOffset = paddingLeft + centeredOffset;
+        const baseOffset = startOffset - cardDimensions.gap / 2;
+        const maxOffset = startOffset + Math.max(cards.length - 1, 0) * cardSpan + cardDimensions.width;
+        const desiredOffset = baseOffset + targetIndex * cardSpan;
+
+        return Math.max(startOffset - 4, Math.min(desiredOffset, maxOffset));
+    };
+
     const handleDragStart = (card: string, index: number) => {
         setDraggedIndex(index);
 
@@ -341,7 +365,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
         <div
             ref={handRef}
             className={cn(
-                "flex w-full flex-nowrap overflow-x-auto rounded-xl border border-slate-200/60 bg-white/50 p-2 sm:p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40",
+                "relative flex w-full flex-nowrap overflow-x-auto rounded-xl border border-slate-200/60 bg-white/50 p-2 sm:p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40",
                 isMobileOrTablet ? "justify-start snap-x snap-proximity" : "justify-center"
             )}
             style={{
@@ -355,6 +379,15 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
             onDragOver={handleHandDragOver}
             onDrop={handleHandDrop}
         >
+            {dropTargetIndex !== null && (
+                <div
+                    className="pointer-events-none absolute bottom-2 top-2 z-[120] flex items-center"
+                    style={{ left: `${getDropIndicatorLeft(dropTargetIndex)}px` }}
+                >
+                    <div className="h-[72%] w-1 rounded-full bg-primary shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_14px_rgba(59,130,246,0.45)] dark:shadow-[0_0_0_2px_rgba(15,23,42,0.95),0_0_14px_rgba(96,165,250,0.5)]" />
+                </div>
+            )}
+
             {cards.map((card, index) => {
                 const isSelected = selectedCards.includes(card);
                 const isFocused = focusedCardIndex === index;
@@ -381,19 +414,6 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
                     />
                 );
             })}
-
-            {dropTargetIndex === cards.length && (
-                <div
-                    className="flex items-center justify-center rounded-lg border-2 border-dashed border-primary/60 bg-primary/10 text-sm font-semibold text-primary"
-                    style={{
-                        width: `${cardDimensions.width}px`,
-                        height: `${cardDimensions.height}px`,
-                        minWidth: `${cardDimensions.width}px`
-                    }}
-                >
-                    Drop here
-                </div>
-            )}
         </div>
     );
 };
