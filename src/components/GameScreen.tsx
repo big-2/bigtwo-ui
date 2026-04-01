@@ -1095,7 +1095,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
     // Theme-responsive background styling
     const containerClassName = cn(
-        "flex h-full min-h-0 w-full justify-center bg-gradient-to-br",
+        "flex h-[calc(100dvh-60px)] min-h-0 w-full justify-center overflow-hidden bg-gradient-to-br",
         theme === "light"
             ? "from-slate-50 via-blue-50/60 to-blue-100/70"
             : "from-slate-950 via-slate-900 to-slate-800",
@@ -1184,9 +1184,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 </DialogContent>
             </Dialog>
 
-            <div className="flex h-full min-h-0 w-full flex-col px-2 py-1">
+            <div className="flex h-full min-h-0 w-full flex-col overflow-hidden px-2 py-1">
                 {/* Top Player - Desktop layout */}
-                <section className="hidden flex-shrink-0 flex-col items-center justify-start gap-2 py-0.5 md:flex">
+                <section className="hidden flex-shrink-0 flex-col items-center justify-start gap-1 py-0.5 md:flex">
                     {/* Bottom Region: Player info and card backs */}
                     <div className="flex items-center gap-3">
                         <Badge
@@ -1208,30 +1208,30 @@ const GameScreen: React.FC<GameScreenProps> = ({
                     </div>
 
                     {/* Top Region: Last played cards */}
-                    <div className="flex items-center justify-center min-h-[60px] md:min-h-[70px] min-w-[100px] md:min-w-[120px]">
+                    <div className="flex items-center justify-center min-h-[44px] md:min-h-[56px] min-w-[100px] md:min-w-[120px]">
                         {renderLastPlayedForPlayer(playerPositions.top)}
                     </div>
                 </section>
 
                 {/* Mobile: Compact Opponents Bar - All 3 opponents in one row (turn order: left to right) */}
-                <section className="flex flex-shrink-0 items-center justify-around gap-1 py-2 px-1 bg-muted/20 rounded-lg md:hidden">
+                <section className="flex flex-shrink-0 items-center justify-around gap-1 rounded-lg bg-muted/20 px-1 py-1.5 md:hidden">
                     {renderMobileOpponent(playerPositions.right, rightPlayer)}
                     {renderMobileOpponent(playerPositions.top, topPlayer)}
                     {renderMobileOpponent(playerPositions.left, leftPlayer)}
                 </section>
 
                 {/* Middle Row - Desktop layout */}
-                <section className="hidden min-h-0 grid flex-1 grid-cols-[100px_1fr_100px] lg:grid-cols-[160px_1fr_160px] items-center gap-2 lg:gap-4 overflow-hidden py-1 md:grid">
+                <section className="hidden min-h-0 grid flex-1 grid-cols-[92px_1fr_92px] lg:grid-cols-[132px_1fr_132px] items-center gap-1.5 lg:gap-3 overflow-hidden py-0.5 md:grid">
                     {/* Left Player - Rotated 90deg clockwise */}
-                    <div className="flex items-center justify-center px-4">
+                    <div className="flex items-center justify-center px-2 lg:px-4">
                         {renderSidePlayer(playerPositions.left, leftPlayer, "left")}
                     </div>
 
                     {/* Center Game Area */}
-                    <div className="flex flex-1 flex-col items-center justify-center gap-2">
+                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5">
                         {renderConnectionBanner()}
                         <Card className="w-full max-w-3xl overflow-hidden border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
-                            <CardContent className="grid min-h-[300px] grid-rows-[auto_minmax(0,1fr)] gap-4 p-4 md:min-h-[340px] md:p-5">
+                            <CardContent className="grid min-h-[220px] grid-rows-[auto_minmax(0,1fr)] gap-3 p-3 md:min-h-[250px] md:p-4">
                                 {gameState.gameWon ? (
                                     <div className="flex h-full flex-col items-center justify-center gap-3 w-full">
                                         <p className="text-xl md:text-2xl font-bold text-emerald-500 flex-shrink-0">
@@ -1274,10 +1274,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                         </Button>
                                     </div>
                                 ) : (
-                                    <div className="grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-5">
-                                        <div className="flex min-h-[56px] items-center justify-center">
+                                    <div className="grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-3">
+                                        <div className="flex min-h-[48px] items-center justify-center">
                                             <div className={cn(
-                                                "flex min-h-[52px] min-w-[220px] items-center justify-center rounded-full border px-5 py-3 text-center text-lg font-semibold shadow-sm transition-colors",
+                                                "flex min-h-[44px] min-w-[210px] items-center justify-center rounded-full border px-4 py-2 text-center text-base font-semibold shadow-sm transition-colors",
                                                 isCurrentTurn
                                                     ? "border-primary/40 bg-primary/8 text-primary"
                                                     : "border-border/70 bg-background/70 text-foreground"
@@ -1287,7 +1287,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                                     : `${getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn`}
                                             </div>
                                         </div>
-                                        <div className="flex min-h-[176px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/35 px-4 py-5">
+                                        <div className="flex min-h-[132px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/35 px-3 py-3">
                                             {gameState.lastPlayedCards.length > 0 ? (
                                                 renderLastPlayedCards()
                                             ) : (
@@ -1308,17 +1308,17 @@ const GameScreen: React.FC<GameScreenProps> = ({
                     </div>
 
                     {/* Right Player - Rotated 270deg clockwise (-90deg) */}
-                    <div className="flex items-center justify-center px-4">
+                    <div className="flex items-center justify-center px-2 lg:px-4">
                         {renderSidePlayer(playerPositions.right, rightPlayer, "right")}
                     </div>
                 </section>
 
                 {/* Mobile: Center Game Area - Large focus on gameplay */}
-                <section className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto py-3 px-2 md:hidden">
+                <section className="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-hidden py-2 px-2 md:hidden">
                     {renderConnectionBanner(true)}
 
                     {gameState.gameWon ? (
-                        <div className="flex min-h-[260px] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-primary/10 bg-card/90 px-4 py-5 text-center shadow-lg">
+                        <div className="flex min-h-[210px] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-primary/10 bg-card/90 px-4 py-4 text-center shadow-lg">
                             <p className="text-xl font-bold text-emerald-500">
                                 🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
                             </p>
@@ -1357,10 +1357,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
                             </Button>
                         </div>
                     ) : (
-                        <div className="grid min-h-[260px] w-full grid-rows-[auto_minmax(0,1fr)] gap-4 rounded-2xl border border-primary/10 bg-card/90 px-4 py-5 shadow-lg">
+                        <div className="grid min-h-[196px] w-full grid-rows-[auto_minmax(0,1fr)] gap-3 rounded-2xl border border-primary/10 bg-card/90 px-3 py-4 shadow-lg">
                             <div className="flex items-center justify-center">
                                 <div className={cn(
-                                    "flex min-h-[48px] min-w-[200px] items-center justify-center rounded-full border px-4 py-2.5 text-center text-base font-semibold shadow-sm transition-colors",
+                                    "flex min-h-[42px] min-w-[190px] items-center justify-center rounded-full border px-4 py-2 text-center text-sm font-semibold shadow-sm transition-colors",
                                     isCurrentTurn
                                         ? "border-primary/40 bg-primary/8 text-primary"
                                         : "border-border/70 bg-background/70 text-foreground"
@@ -1371,7 +1371,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                 </div>
                             </div>
 
-                            <div className="flex min-h-[152px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/35 px-3 py-4">
+                            <div className="flex min-h-[118px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/35 px-3 py-3">
                                 {gameState.lastPlayedCards.length > 0 ? (
                                     <div className="flex flex-col items-center gap-2 w-full">
                                         <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -1413,7 +1413,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 </section>
 
                 {/* Bottom Player */}
-                <section className="mt-auto flex flex-shrink-0 flex-col gap-1.5 pt-1">
+                <section className="mt-auto flex flex-shrink-0 flex-col gap-1 pt-1">
                     {/* Desktop: Full layout with sort buttons and badge */}
                     <div className="hidden items-center justify-between md:flex">
                         <div className="flex gap-2">
@@ -1422,7 +1422,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                 size="sm"
                                 onClick={() => handleSortCards("numerical")}
                                 title="Sort by rank (3 smallest, 2 biggest)"
-                                className="h-8 px-3 text-xs"
+                                className="h-7 px-3 text-xs"
                             >
                                 Rank
                             </Button>
@@ -1431,7 +1431,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                 size="sm"
                                 onClick={() => handleSortCards("suit")}
                                 title="Sort by suit (♦♣♥♠)"
-                                className="h-8 px-3 text-xs"
+                                className="h-7 px-3 text-xs"
                             >
                                 Suit
                             </Button>
@@ -1439,7 +1439,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                         <Badge
                             variant={gameState.currentTurn === uuid ? "secondary" : "outline"}
                             className={cn(
-                                "flex min-h-[36px] min-w-[120px] flex-col items-center justify-center rounded-lg px-3 py-2 text-center text-xs uppercase tracking-wide",
+                                "flex min-h-[32px] min-w-[120px] flex-col items-center justify-center rounded-lg px-3 py-1.5 text-center text-xs uppercase tracking-wide",
                                 gameState.currentTurn === uuid && !gameState.gameWon && "border-primary/50 bg-primary/10 ring-1 ring-primary/30"
                             )}
                         >
@@ -1454,14 +1454,14 @@ const GameScreen: React.FC<GameScreenProps> = ({
                     </div>
 
                     {/* Mobile: Compact layout with sort and user info combined */}
-                    <div className="flex items-center justify-between gap-1.5 md:hidden">
+                    <div className="flex items-center justify-between gap-1 md:hidden">
                         <div className="flex gap-1.5">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleSortCards("numerical")}
                                 title="Sort by rank"
-                                className="h-8 px-2.5 text-xs"
+                                className="h-7 px-2 text-xs"
                             >
                                 Rank
                             </Button>
@@ -1470,7 +1470,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                 size="sm"
                                 onClick={() => handleSortCards("suit")}
                                 title="Sort by suit"
-                                className="h-8 px-2.5 text-xs"
+                                className="h-7 px-2 text-xs"
                             >
                                 Suit
                             </Button>
@@ -1478,7 +1478,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                         <Badge
                             variant={gameState.currentTurn === uuid ? "secondary" : "outline"}
                             className={cn(
-                                "flex h-8 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                                "flex h-7 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold",
                                 gameState.currentTurn === uuid && !gameState.gameWon && "border-primary/50 bg-primary/10 ring-1 ring-primary/30"
                             )}
                         >
@@ -1489,7 +1489,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                         </Badge>
                     </div>
 
-                    <div className="flex justify-center">
+                    <div className="flex min-h-0 justify-center">
                         <PlayerHand
                             cards={currentPlayer?.cards || []}
                             selectedCards={gameState.selectedCards}
@@ -1500,10 +1500,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
                     </div>
 
                     {/* Desktop: Larger buttons */}
-                    <div className="hidden flex-wrap items-center justify-center gap-3 pb-1 md:flex">
+                    <div className="hidden flex-wrap items-center justify-center gap-2 pb-1 md:flex">
                         <Button
                             className="min-w-[120px]"
-                            size="lg"
+                            size="sm"
                             onClick={handlePlayCards}
                             disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || gameState.gameWon}
                         >
@@ -1515,7 +1515,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                         <Button
                             variant="outline"
                             className="min-w-[120px]"
-                            size="lg"
+                            size="sm"
                             onClick={handleDeselectAll}
                             disabled={gameState.selectedCards.length === 0}
                             title={gameState.selectedCards.length === 0 ? "No cards selected" : "Deselect all selected cards"}
@@ -1525,7 +1525,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                         <Button
                             variant="outline"
                             className="min-w-[120px] border-orange-400 text-orange-600 hover:bg-orange-50 dark:border-orange-500 dark:text-orange-300 dark:hover:bg-orange-500/10"
-                            size="lg"
+                            size="sm"
                             onClick={handlePass}
                             disabled={!isCurrentTurn || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
                             title={gameState.gameWon
@@ -1541,7 +1541,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                     </div>
 
                     {/* Mobile: Compact buttons */}
-                    <div className="flex items-center justify-center gap-2 pb-2 md:hidden">
+                    <div className="flex items-center justify-center gap-2 pb-1 md:hidden">
                         <Button
                             className="flex-1 max-w-[110px] h-9 text-sm"
                             size="sm"

@@ -14,14 +14,14 @@ const CARD_DIMENSIONS = {
     gap: -28, // Reduced overlap for better card visibility
   },
   tablet: {
-    width: 65,
-    height: 91,
+    width: 60,
+    height: 84,
     gap: -20, // Less overlap on tablet
   },
   desktop: {
-    width: 90,
-    height: 126,
-    gap: 12,
+    width: 76,
+    height: 106,
+    gap: 8,
   },
 } as const;
 
