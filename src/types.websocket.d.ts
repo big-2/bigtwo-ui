@@ -158,6 +158,7 @@ export interface GameWonMessage {
 }
 export interface GameWonPayload {
     winner: string;
+    winning_hand?: string[];
 }
 /**
  * Model for bot added messages.
