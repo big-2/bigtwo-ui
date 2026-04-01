@@ -824,14 +824,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
         return `${player.cardCount} cards`;
     };
 
-    const getPlayerWins = (playerUuid: string) => {
-        if (!roomStats) {
-            return null;
-        }
-
-        return roomStats.player_stats[playerUuid]?.wins ?? 0;
-    };
-
     const renderPostGameSummary = (compact = false) => {
         const summaryPlayers = gameState.playerList
             .map((playerUuid) => gameState.players.find((player) => player.name === playerUuid))
@@ -840,26 +832,21 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
         return (
             <div className={cn("w-full rounded-2xl border border-border/70 bg-background/60", compact ? "p-3" : "p-4")}>
-                <div className="mb-3 flex items-center justify-between gap-2">
-                    <p className={cn("font-semibold text-foreground", compact ? "text-sm" : "text-base")}>
-                        Final table
-                    </p>
-                    <Badge variant="outline" className="text-[11px] uppercase tracking-wide">
-                        {roomStats ? `${roomStats.games_played} games` : "Syncing stats"}
-                    </Badge>
-                </div>
+                <p className={cn("mb-3 font-semibold text-foreground", compact ? "text-sm" : "text-base")}>
+                    Final table
+                </p>
                 <div className="grid gap-2">
                     {summaryPlayers.map((player) => {
-                        const wins = getPlayerWins(player.name);
                         const isWinner = player.name === gameState.winner;
                         const displayName = getDisplayName(player.name, gameState.uuidToName);
+                        const wins = roomStats?.player_stats[player.name]?.wins;
 
                         return (
                             <div
                                 key={player.name}
                                 className={cn(
                                     "grid items-center gap-2 rounded-xl border px-3 py-2",
-                                    compact ? "grid-cols-[minmax(0,1fr)_auto_auto]" : "grid-cols-[minmax(0,1fr)_auto_auto_auto]",
+                                    "grid-cols-[minmax(0,1fr)_auto_auto]",
                                     isWinner
                                         ? "border-emerald-400/70 bg-emerald-500/10"
                                         : "border-border/70 bg-card/80"
@@ -882,17 +869,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                 <div className="text-right">
                                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Wins</p>
                                     <p className="font-mono text-sm font-semibold tabular-nums">
-                                        {wins === null ? "..." : wins}
+                                        {wins ?? "..."}
                                     </p>
                                 </div>
-                                {!compact && (
-                                    <div className="text-right">
-                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Result</p>
-                                        <p className={cn("text-sm font-semibold", isWinner ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-                                            {isWinner ? "Won" : "Lost"}
-                                        </p>
-                                    </div>
-                                )}
                             </div>
                         );
                     })}

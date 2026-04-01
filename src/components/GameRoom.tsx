@@ -35,7 +35,6 @@ type BotDifficulty = "easy" | "ai";
 
 // Maximum number of chat messages to keep in history
 const MAX_CHAT_MESSAGES = 100;
-const POST_GAME_STATS_REFRESH_DELAYS_MS = [150, 500, 1200];
 
 const normalizeBotDifficulty = (difficulty?: string): BotDifficulty => {
     if (difficulty?.toLowerCase() === "ai") {
@@ -76,32 +75,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [unreadCount, setUnreadCount] = useState(0);
     const [mobileChatDraft, setMobileChatDraft] = useState("");
     const [chatScrollTrigger, setChatScrollTrigger] = useState(0);
-
-    const fetchRoomStats = useCallback(async (minGamesPlayed?: number) => {
-        for (const delayMs of POST_GAME_STATS_REFRESH_DELAYS_MS) {
-            if (delayMs > 0) {
-                await new Promise<void>((resolve) => {
-                    window.setTimeout(resolve, delayMs);
-                });
-            }
-
-            try {
-                const stats = await getRoomStats(roomId);
-
-                if (!stats) {
-                    continue;
-                }
-
-                setRoomStats(stats);
-
-                if (minGamesPlayed === undefined || stats.games_played >= minGamesPlayed) {
-                    return;
-                }
-            } catch (error) {
-                console.error("Failed to refresh room stats:", error);
-            }
-        }
-    }, [roomId]);
 
     useEffect(() => {
         const stored = getStoredSession();
@@ -393,8 +366,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                         content: `🎉 ${winnerName} won the game!`
                     });
 
-                    void fetchRoomStats((roomStats?.games_played ?? 0) + 1);
-
                     // Note: We don't automatically return to lobby here because:
                     // 1. GameScreen shows the win screen with "Return to Lobby" button
                     // 2. User clicks button → calls handleReturnToLobby → returns to lobby
@@ -497,7 +468,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 setRoomStats(stats);
             },
         };
-    }, [uuidToName, selfUuid, username, roomId, addChatMessage, hostName, fetchRoomStats, roomStats?.games_played]);
+    }, [uuidToName, selfUuid, username, roomId, addChatMessage, hostName]);
 
     const messageHandlers = useRef<Record<string, MessageHandler>>({});
 
