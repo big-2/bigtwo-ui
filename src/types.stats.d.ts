@@ -7,6 +7,7 @@ export interface PlayerStats {
   uuid: string;
   games_played: number;
   wins: number;
+  cards_remaining?: number;
   total_score: number;
   current_win_streak: number;
   best_win_streak: number;

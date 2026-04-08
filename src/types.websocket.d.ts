@@ -158,6 +158,7 @@ export interface GameWonMessage {
 }
 export interface GameWonPayload {
     winner: string;
+    winning_hand?: string[];
 }
 /**
  * Model for bot added messages.
@@ -211,6 +212,7 @@ export interface StatsUpdatedPayload {
                 uuid: string;
                 games_played: number;
                 wins: number;
+                cards_remaining?: number;
                 total_score: number;
                 current_win_streak: number;
                 best_win_streak: number;
