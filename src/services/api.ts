@@ -3,6 +3,11 @@ import { components } from "../types";
 import { getNormalizedApiUrl } from "../utils/config";
 import { clearSession } from "./session";
 import { RoomStats } from "../types.stats";
+import {
+    CompletedGameDetailResponse,
+    PlayerProfileStatsResponse,
+    PlayerRecentGamesResponse,
+} from "../types.profile";
 
 const API_URL = getNormalizedApiUrl();
 
@@ -164,5 +169,42 @@ export const getOnlinePlayers = async (): Promise<number | null> => {
     } catch (error) {
         console.error('Failed to fetch online players:', error);
         return null;
+    }
+};
+
+export const getMyProfileStats = async (): Promise<PlayerProfileStatsResponse> => {
+    try {
+        const response = await axios.get<PlayerProfileStatsResponse>(`${API_URL}/player/me/stats`);
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch profile stats:', error);
+        throw error;
+    }
+};
+
+export const getMyRecentGames = async (limit = 20): Promise<PlayerRecentGamesResponse> => {
+    try {
+        const response = await axios.get<PlayerRecentGamesResponse>(`${API_URL}/player/me/games`, {
+            params: { limit },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch recent games:', error);
+        throw error;
+    }
+};
+
+export const getCompletedGame = async (
+    gameId: string
+): Promise<CompletedGameDetailResponse | null> => {
+    try {
+        const response = await axios.get<CompletedGameDetailResponse>(`${API_URL}/games/${gameId}`);
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+            return null;
+        }
+        console.error('Failed to fetch completed game detail:', error);
+        throw error;
     }
 };

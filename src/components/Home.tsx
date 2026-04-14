@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createRoom, getRooms, RoomResponse } from "../services/api";
-import { RefreshCw } from "lucide-react";
+import { BarChart3, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -49,6 +49,14 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                 <section className="text-center px-2" aria-label="Welcome">
                     <h1 className="text-xl font-bold mb-1 sm:text-2xl lg:text-3xl">Big Two - Free Online Multiplayer Card Game</h1>
                     <p className="text-xs text-muted-foreground sm:text-sm">Play Big 2 with friends in real-time. Free for 4 players, no download required.</p>
+                    <div className="mt-3 flex justify-center">
+                        <Button asChild variant="outline" size="sm">
+                            <Link to="/me/stats">
+                                <BarChart3 className="h-4 w-4" />
+                                View My Stats
+                            </Link>
+                        </Button>
+                    </div>
                 </section>
 
                     <div className="flex w-full flex-col gap-4 sm:gap-6 lg:flex-row">

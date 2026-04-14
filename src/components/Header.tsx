@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { BarChart3, Users } from "lucide-react";
 import { Badge } from "./ui/badge";
 import ThemeToggle from "./ThemeToggle";
 import { getOnlinePlayers } from "../services/api";
+import { Button } from "./ui/button";
 
 interface HeaderProps {
     username: string;
@@ -11,6 +12,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ username }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [onlineCount, setOnlineCount] = useState<number | null>(null);
 
     const handleBack = () => {
@@ -58,6 +60,16 @@ const Header: React.FC<HeaderProps> = ({ username }) => {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3">
+                    <Button
+                        type="button"
+                        variant={location.pathname === "/me/stats" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => navigate("/me/stats")}
+                        className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
+                    >
+                        <BarChart3 className="h-4 w-4" />
+                        <span className="hidden sm:inline">My Stats</span>
+                    </Button>
                     <Badge variant="secondary" className="px-2 py-0.5 text-xs sm:px-3 sm:py-1 sm:text-sm max-w-[100px] sm:max-w-none truncate">
                         {username}
                     </Badge>
