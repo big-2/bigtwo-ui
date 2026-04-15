@@ -763,10 +763,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         // The player is still in the room, just viewing the lobby instead of game
         setGameStarted(false);
         setGameData(null);
+        setActiveCardCounts({});
         void getRoomStats(roomId)
             .then((stats) => {
                 setRoomStats(stats);
-                setActiveCardCounts({});
             })
             .catch((error) => {
                 console.error("Failed to refresh room stats after returning to lobby:", error);

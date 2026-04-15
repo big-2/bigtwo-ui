@@ -31,6 +31,7 @@ const MyStatsPage: React.FC = () => {
     const [isDetailLoading, setIsDetailLoading] = useState(false);
     const [pageError, setPageError] = useState<string | null>(null);
     const [detailError, setDetailError] = useState<string | null>(null);
+    const [detailRefreshKey, setDetailRefreshKey] = useState(0);
 
     const selectedGameId = searchParams.get("game");
     const selectedGameSummary =
@@ -130,10 +131,15 @@ const MyStatsPage: React.FC = () => {
         return () => {
             cancelled = true;
         };
-    }, [selectedGameId]);
+    }, [selectedGameId, detailRefreshKey]);
 
     const handleSelectGame = (gameId: string) => {
         setSearchParams({ game: gameId });
+    };
+
+    const handleRefresh = async () => {
+        await loadProfile();
+        setDetailRefreshKey((key) => key + 1);
     };
 
     const hasHistory =
@@ -178,7 +184,7 @@ const MyStatsPage: React.FC = () => {
                                     Back To Lobby
                                 </Link>
                             </Button>
-                            <Button variant="secondary" onClick={() => void loadProfile()}>
+                            <Button variant="secondary" onClick={() => void handleRefresh()}>
                                 <RefreshCcw className="h-4 w-4" />
                                 Refresh
                             </Button>
@@ -264,7 +270,7 @@ const MyStatsPage: React.FC = () => {
                             <Button asChild>
                                 <Link to="/">Create or join a room</Link>
                             </Button>
-                            <Button variant="outline" onClick={() => void loadProfile()}>
+                            <Button variant="outline" onClick={() => void handleRefresh()}>
                                 Check Again
                             </Button>
                         </CardContent>
