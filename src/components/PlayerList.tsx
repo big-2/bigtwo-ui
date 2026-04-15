@@ -176,7 +176,11 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     const isReady = readyPlayers.has(uuid);
                     const stats = playerStats?.[uuid];
                     const activeCardCount = activeCardCounts?.[uuid];
-                    const cardsRemaining = activeCardCount ?? stats?.cards_remaining;
+                    const isShowingActiveCardCount = activeCardCount !== undefined;
+                    const cardsRemaining = activeCardCount ?? stats?.cards_remaining ?? 0;
+                    const cardsRemainingLabel = isShowingActiveCardCount
+                        ? "Cards left in current game"
+                        : "Cards left this series";
                     const showWinStreak = stats && stats.current_win_streak >= MIN_WIN_STREAK_DISPLAY;
 
                     return (
@@ -227,16 +231,12 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                     {/* Cards remaining */}
                                     <div
                                         className="inline-flex items-center gap-0.5 rounded-full border bg-background px-1.5 py-0.5 sm:gap-1"
-                                        title="Cards left"
-                                        aria-label={
-                                            cardsRemaining === undefined
-                                                ? "Cards left not available"
-                                                : `${cardsRemaining} cards left`
-                                        }
+                                        title={cardsRemainingLabel}
+                                        aria-label={`${cardsRemaining} ${cardsRemainingLabel.toLowerCase()}`}
                                     >
                                         <Layers3 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500 flex-shrink-0" />
                                         <span className="font-semibold font-mono tabular-nums">
-                                            {cardsRemaining ?? "—"}
+                                            {cardsRemaining}
                                         </span>
                                     </div>
 
