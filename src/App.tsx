@@ -7,6 +7,7 @@ import Header from "./components/Header";
 import { useSessionContext } from "./contexts/SessionContext";
 import SeoHead from "./components/SeoHead";
 import { FaqPage, HowToPlayPage, RulesPage, StrategyPage } from "./components/SeoPages";
+import MyStatsPage from "./components/MyStatsPage";
 import "./index.css"; // Ensure global styles are included
 
 const RoomPage: React.FC<{ username: string }> = ({ username }) => {
@@ -75,6 +76,7 @@ const App: React.FC = () => {
                         <Route path="/rules" element={<RulesPage />} />
                         <Route path="/strategy" element={<StrategyPage />} />
                         <Route path="/faq" element={<FaqPage />} />
+                        <Route path="/me/stats" element={<MyStatsPage />} />
                         <Route path="/room/:roomId" element={<RoomPage username={username} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

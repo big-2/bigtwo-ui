@@ -28,6 +28,7 @@ interface GameScreenProps {
         cards: string[];
         currentTurn: string;
         playerList: string[];
+        cardCounts?: Record<string, number>;
         lastPlayedCards?: string[];
         lastPlayedBy?: string;
     };
@@ -192,6 +193,12 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 initialGameData.lastPlayedCards || [],
                 initialGameData.lastPlayedBy || "",
             );
+            if (initialGameData.cardCounts) {
+                gameState.players = gameState.players.map(player => ({
+                    ...player,
+                    cardCount: initialGameData.cardCounts?.[player.name] ?? player.cardCount,
+                }));
+            }
             return { ...gameState, uuidToName: mapping };
         }
 

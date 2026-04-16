@@ -1,5 +1,5 @@
 import React from "react";
-import { Bot, BrainCircuit, Trash2, Trophy, BarChart3, Flame, Layers3 } from "lucide-react";
+import { Bot, BrainCircuit, Trash2, Trophy, Flame, Layers3 } from "lucide-react";
 
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -26,6 +26,7 @@ interface PlayerListProps {
     botDifficulty: BotDifficulty;
     canAddBot: boolean;
     playerStats?: Record<string, PlayerStats>;
+    activeCardCounts?: Record<string, number>;
     gamesPlayed?: number;
     onBotDifficultyChange: (difficulty: BotDifficulty) => void;
     onAddBot: () => void;
@@ -49,6 +50,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
     botDifficulty,
     canAddBot,
     playerStats,
+    activeCardCounts,
     gamesPlayed = 0,
     onBotDifficultyChange,
     onAddBot,
@@ -173,7 +175,12 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     const isHostPlayer = uuid === hostUuid;
                     const isReady = readyPlayers.has(uuid);
                     const stats = playerStats?.[uuid];
-                    const hasCardsRemaining = stats?.cards_remaining !== undefined;
+                    const activeCardCount = activeCardCounts?.[uuid];
+                    const isShowingActiveCardCount = activeCardCount !== undefined;
+                    const cardsRemaining = activeCardCount ?? stats?.cards_remaining ?? 0;
+                    const cardsRemainingLabel = isShowingActiveCardCount
+                        ? "Cards left in current game"
+                        : "Cards left this series";
                     const showWinStreak = stats && stats.current_win_streak >= MIN_WIN_STREAK_DISPLAY;
 
                     return (
@@ -208,49 +215,45 @@ const PlayerList: React.FC<PlayerListProps> = ({
                             </div>
 
                             {/* Stats section - visible on all screen sizes */}
-                            {gamesPlayed > 0 && (
-                                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs flex-shrink-0">
+                            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs flex-shrink-0 text-foreground">
                                     {/* Wins */}
-                                    <div className="flex items-center gap-0.5 sm:gap-1">
+                                    <div
+                                        className="inline-flex items-center gap-0.5 rounded-full border bg-background px-1.5 py-0.5 sm:gap-1"
+                                        title="Wins"
+                                        aria-label={`${stats?.wins ?? 0} wins`}
+                                    >
                                         <Trophy className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-yellow-500 flex-shrink-0" />
                                         <span className="font-semibold font-mono tabular-nums">
                                             {stats?.wins ?? 0}
                                         </span>
                                     </div>
 
-                                    {/* Cards remaining or score fallback */}
-                                    <div className="flex items-center gap-0.5 sm:gap-1">
-                                        {hasCardsRemaining ? (
-                                            <>
-                                                <Layers3 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500 flex-shrink-0" />
-                                                <span className="font-mono tabular-nums">
-                                                    {stats?.cards_remaining ?? 0}
-                                                </span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <BarChart3 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500 flex-shrink-0" />
-                                                <span className={cn(
-                                                    'font-mono tabular-nums',
-                                                    (stats?.total_score ?? 0) <= 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
-                                                )}>
-                                                    {stats?.total_score ?? 0}
-                                                </span>
-                                            </>
-                                        )}
+                                    {/* Cards remaining */}
+                                    <div
+                                        className="inline-flex items-center gap-0.5 rounded-full border bg-background px-1.5 py-0.5 sm:gap-1"
+                                        title={cardsRemainingLabel}
+                                        aria-label={`${cardsRemaining} ${cardsRemainingLabel.toLowerCase()}`}
+                                    >
+                                        <Layers3 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500 flex-shrink-0" />
+                                        <span className="font-semibold font-mono tabular-nums">
+                                            {cardsRemaining}
+                                        </span>
                                     </div>
 
                                     {/* Win streak */}
-                                    {showWinStreak && (
-                                        <div className="flex items-center gap-0.5 sm:gap-1">
+                                    {gamesPlayed > 0 && showWinStreak && (
+                                        <div
+                                            className="inline-flex items-center gap-0.5 rounded-full border bg-background px-1.5 py-0.5 sm:gap-1"
+                                            title="Current win streak"
+                                            aria-label={`${stats.current_win_streak} game win streak`}
+                                        >
                                             <Flame className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-orange-500 flex-shrink-0" />
                                             <span className="font-semibold font-mono text-orange-600 dark:text-orange-400 tabular-nums">
                                                 {stats.current_win_streak}
                                             </span>
                                         </div>
                                     )}
-                                </div>
-                            )}
+                            </div>
 
                             {/* Badges section */}
                             <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">

@@ -59,6 +59,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         cards: string[],
         currentTurn: string,
         playerList: string[],
+        cardCounts?: Record<string, number>,
         lastPlayedCards?: string[],
         lastPlayedBy?: string,
     } | null>(null);
@@ -69,6 +70,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [botDifficultyByUuid, setBotDifficultyByUuid] = useState<Record<string, BotDifficulty>>({});
     const [addingBot, setAddingBot] = useState(false);
     const [roomStats, setRoomStats] = useState<RoomStats | null>(null);
+    const [activeCardCounts, setActiveCardCounts] = useState<Record<string, number>>({});
     const [linkCopied, setLinkCopied] = useState(false);
     const [connectedPlayers, setConnectedPlayers] = useState<Set<string>>(new Set());
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -313,6 +315,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     cards?: string[];
                     current_turn?: string;
                     player_list?: string[];
+                    card_counts?: Record<string, number>;
                     last_played_cards?: string[];
                     last_played_by?: string;
                 };
@@ -325,9 +328,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     cards: payload.cards,
                     currentTurn: payload.current_turn,
                     playerList: payload.player_list,
+                    cardCounts: payload.card_counts,
                     lastPlayedCards: payload.last_played_cards,
                     lastPlayedBy: payload.last_played_by,
                 });
+                setActiveCardCounts(payload.card_counts ?? {});
                 setGameStarted(true);
 
                 // Clear ready states to mirror backend behavior (backend clears ready states when game starts)
@@ -338,9 +343,20 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             // Game message handlers
             MOVE: () => console.log("MOVE message received"),
             MOVE_PLAYED: (message) => {
-                const payload = message.payload as { player?: string; cards?: unknown };
+                const payload = message.payload as {
+                    player?: string;
+                    cards?: unknown;
+                    remaining_cards?: number;
+                };
                 const playerUuid = payload?.player;
                 const cards = Array.isArray(payload?.cards) ? (payload?.cards as string[]) : undefined;
+
+                if (playerUuid && typeof payload?.remaining_cards === "number") {
+                    setActiveCardCounts((prev) => ({
+                        ...prev,
+                        [playerUuid]: payload.remaining_cards!,
+                    }));
+                }
 
                 if (cards && cards.length > 0 && playerUuid) {
                     setGameData(prev => prev ? {
@@ -365,6 +381,10 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                         senderUuid: "SYSTEM",
                         content: `🎉 ${winnerName} won the game!`
                     });
+                    setActiveCardCounts((prev) => ({
+                        ...prev,
+                        [winnerUuid]: 0,
+                    }));
 
                     // Note: We don't automatically return to lobby here because:
                     // 1. GameScreen shows the win screen with "Return to Lobby" button
@@ -743,6 +763,14 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         // The player is still in the room, just viewing the lobby instead of game
         setGameStarted(false);
         setGameData(null);
+        setActiveCardCounts({});
+        void getRoomStats(roomId)
+            .then((stats) => {
+                setRoomStats(stats);
+            })
+            .catch((error) => {
+                console.error("Failed to refresh room stats after returning to lobby:", error);
+            });
     };
 
     const handleCopyRoomLink = async () => {
@@ -922,6 +950,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                             botDifficultyByUuid={botDifficultyByUuid}
                             canAddBot={canAddBot}
                             playerStats={roomStats?.player_stats}
+                            activeCardCounts={activeCardCounts}
                             gamesPlayed={roomStats?.games_played || 0}
                             onBotDifficultyChange={setBotDifficulty}
                             onAddBot={handleAddBot}
