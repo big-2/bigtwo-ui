@@ -162,92 +162,95 @@ const MyStatsPage: React.FC = () => {
                 robots="noindex, nofollow"
             />
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-                <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <TrendingUp className="h-4 w-4" />
-                                <span>Personal profile</span>
+                <section className="relative overflow-hidden rounded-[28px] border border-border/70 bg-gradient-to-br from-card via-card to-primary/10 p-5 shadow-[0_24px_56px_-32px_rgba(15,23,42,0.45)] sm:p-6 dark:to-primary/15">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_38%),radial-gradient(circle_at_top_right,rgba(45,212,191,0.2),transparent_42%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.22),transparent_36%),radial-gradient(circle_at_top_right,rgba(45,212,191,0.24),transparent_40%)]" />
+                    <div className="relative flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <TrendingUp className="h-4 w-4 text-primary" />
+                                    <span>Personal profile</span>
+                                </div>
+                                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                                    My Stats
+                                </h1>
+                                <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
+                                    See your lifetime Big Two record, recent matches, and per-match
+                                    breakdowns for this anonymous profile.
+                                </p>
                             </div>
-                            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                                My Stats
-                            </h1>
-                            <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-                                See your lifetime Big Two record, recent matches, and per-match
-                                breakdowns for this anonymous profile.
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button variant="outline" asChild>
+                                    <Link to="/">
+                                        <ArrowLeft className="h-4 w-4" />
+                                        Back To Lobby
+                                    </Link>
+                                </Button>
+                                <Button variant="secondary" onClick={() => void handleRefresh()}>
+                                    <RefreshCcw className="h-4 w-4" />
+                                    Refresh
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Button variant="outline" asChild>
-                                <Link to="/">
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Back To Lobby
-                                </Link>
-                            </Button>
-                            <Button variant="secondary" onClick={() => void handleRefresh()}>
-                                <RefreshCcw className="h-4 w-4" />
-                                Refresh
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                        <StatCard
-                            label="Games Played"
-                            value={formatNumber(stats?.summary.games_played ?? 0)}
-                            hint="Lifetime completed matches"
-                        />
-                        <StatCard
-                            label="Wins"
-                            value={formatNumber(stats?.summary.wins ?? 0)}
-                            hint="Finished first"
-                        />
-                        <StatCard
-                            label="Win Rate"
-                            value={formatPercent(stats?.summary.win_rate ?? 0)}
-                            hint="Across all completed matches"
-                        />
-                        <StatCard
-                            label="Current Streak"
-                            value={formatNumber(stats?.summary.current_win_streak ?? 0)}
-                            hint="Consecutive wins right now"
-                        />
-                        <StatCard
-                            label="Best Streak"
-                            value={formatNumber(stats?.summary.best_win_streak ?? 0)}
-                            hint="Best run so far"
-                        />
-                    </div>
-                    <div className="grid gap-3 lg:grid-cols-3">
-                        <div className="lg:col-span-2">
-                            <PlayMixCard
-                                passes={stats?.play_style.total_passes ?? 0}
-                                singles={stats?.play_style.total_single_plays ?? 0}
-                                pairs={stats?.play_style.total_pair_plays ?? 0}
-                                triples={stats?.play_style.total_triple_plays ?? 0}
-                                fiveCardHands={stats?.play_style.total_five_card_plays ?? 0}
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                            <StatCard
+                                label="Games Played"
+                                value={formatNumber(stats?.summary.games_played ?? 0)}
+                                hint="Lifetime completed matches"
+                            />
+                            <StatCard
+                                label="Wins"
+                                value={formatNumber(stats?.summary.wins ?? 0)}
+                                hint="Finished first"
+                            />
+                            <StatCard
+                                label="Win Rate"
+                                value={formatPercent(stats?.summary.win_rate ?? 0)}
+                                hint="Across all completed matches"
+                            />
+                            <StatCard
+                                label="Current Streak"
+                                value={formatNumber(stats?.summary.current_win_streak ?? 0)}
+                                hint="Consecutive wins right now"
+                            />
+                            <StatCard
+                                label="Best Streak"
+                                value={formatNumber(stats?.summary.best_win_streak ?? 0)}
+                                hint="Best run so far"
                             />
                         </div>
-                        <SmallSummaryCard
-                            title="Recent Form"
-                            description={`${formatPercent(
-                                stats?.recent_form.last_10.win_rate ?? 0
-                            )} over the last 10 matches`}
-                            badge={`${stats?.recent_form.last_10.wins ?? 0} wins`}
-                        />
-                        <SmallSummaryCard
-                            title="Human-Only Games"
-                            description={`${formatPercent(
-                                stats?.splits.human_only.win_rate ?? 0
-                            )} win rate without bots`}
-                            badge={`${stats?.splits.human_only.games_played ?? 0} games`}
-                        />
-                        <SmallSummaryCard
-                            title="Games With Bots"
-                            description={`${formatPercent(
-                                stats?.splits.with_bots.win_rate ?? 0
-                            )} win rate when bots joined`}
-                            badge={`${stats?.splits.with_bots.games_played ?? 0} games`}
-                        />
+                        <div className="grid gap-3 lg:grid-cols-3">
+                            <div className="lg:col-span-2">
+                                <PlayMixCard
+                                    passes={stats?.play_style.total_passes ?? 0}
+                                    singles={stats?.play_style.total_single_plays ?? 0}
+                                    pairs={stats?.play_style.total_pair_plays ?? 0}
+                                    triples={stats?.play_style.total_triple_plays ?? 0}
+                                    fiveCardHands={stats?.play_style.total_five_card_plays ?? 0}
+                                />
+                            </div>
+                            <SmallSummaryCard
+                                title="Recent Form"
+                                description={`${formatPercent(
+                                    stats?.recent_form.last_10.win_rate ?? 0
+                                )} over the last 10 matches`}
+                                badge={`${stats?.recent_form.last_10.wins ?? 0} wins`}
+                            />
+                            <SmallSummaryCard
+                                title="Human-Only Games"
+                                description={`${formatPercent(
+                                    stats?.splits.human_only.win_rate ?? 0
+                                )} win rate without bots`}
+                                badge={`${stats?.splits.human_only.games_played ?? 0} games`}
+                            />
+                            <SmallSummaryCard
+                                title="Games With Bots"
+                                description={`${formatPercent(
+                                    stats?.splits.with_bots.win_rate ?? 0
+                                )} win rate when bots joined`}
+                                badge={`${stats?.splits.with_bots.games_played ?? 0} games`}
+                            />
+                        </div>
                     </div>
                 </section>
 
@@ -298,10 +301,10 @@ const MyStatsPage: React.FC = () => {
                                                 key={game.game_id}
                                                 type="button"
                                                 onClick={() => handleSelectGame(game.game_id)}
-                                                className={`w-full rounded-xl border p-4 text-left transition-colors ${
+                                                className={`w-full rounded-xl border border-border/70 p-4 text-left transition-all duration-200 ${
                                                     selectedGameId === game.game_id
-                                                        ? "border-primary bg-primary/5"
-                                                        : "hover:bg-accent/60"
+                                                        ? "border-primary/60 bg-primary/10 shadow-sm"
+                                                        : "bg-background/35 hover:bg-accent/70"
                                                 }`}
                                             >
                                                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -466,7 +469,7 @@ const StatCard: React.FC<{ label: string; value: string; hint: string }> = ({
     value,
     hint,
 }) => (
-    <Card>
+    <Card className="border-border/70 bg-background/50 dark:bg-background/35">
         <CardContent className="space-y-2 p-4">
             <p className="text-sm text-muted-foreground">{label}</p>
             <p className="text-2xl font-semibold tracking-tight">{value}</p>
@@ -480,7 +483,7 @@ const SmallSummaryCard: React.FC<{
     description: string;
     badge: string;
 }> = ({ title, description, badge }) => (
-    <Card>
+    <Card className="border-border/70 bg-background/45 dark:bg-background/30">
         <CardContent className="flex items-start justify-between gap-3 p-4">
             <div className="space-y-1">
                 <p className="font-medium">{title}</p>
@@ -519,7 +522,7 @@ const PlayMixCard: React.FC<{
     }));
 
     return (
-        <Card className="border-slate-200/80 bg-gradient-to-br from-slate-50 to-white shadow-sm">
+        <Card className="border-border/70 bg-background/45 shadow-none dark:bg-background/30">
             <CardContent className="space-y-4 p-5 sm:p-6">
                 <div>
                     <p className="text-sm font-medium text-foreground">Play Mix</p>
@@ -531,7 +534,7 @@ const PlayMixCard: React.FC<{
                     {segmentsWithPercentages.map((segment) => (
                         <div
                             key={segment.key}
-                            className="space-y-2 rounded-xl border bg-background/70 p-3"
+                            className="space-y-2 rounded-xl border border-border/60 bg-background/60 p-3 dark:bg-background/40"
                         >
                             <div className="flex items-center justify-between gap-3">
                                 <div className="min-w-0">
@@ -553,7 +556,7 @@ const PlayMixCard: React.FC<{
                         </div>
                     ))}
                 </div>
-                <div className="rounded-xl border border-dashed bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                <div className="rounded-xl border border-dashed border-border/70 bg-background/55 px-3 py-2 text-xs text-muted-foreground dark:bg-background/35">
                     Percentages are rounded to whole numbers and always add up to 100%.
                 </div>
             </CardContent>
@@ -562,7 +565,7 @@ const PlayMixCard: React.FC<{
 };
 
 const SummaryDatum: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-    <div className="rounded-xl border bg-background/60 p-3">
+    <div className="rounded-xl border border-border/60 bg-background/60 p-3 dark:bg-background/35">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
         <p className="mt-1 truncate text-sm font-medium sm:text-base">{value}</p>
     </div>
@@ -572,7 +575,7 @@ const PlayerDetailRow: React.FC<{
     player: CompletedGameDetailPlayer;
     currentUserUuid: string;
 }> = ({ player, currentUserUuid }) => (
-    <div className="rounded-xl border p-3">
+    <div className="rounded-xl border border-border/70 bg-background/35 p-3 dark:bg-background/20">
         <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
                 <span className="font-medium">

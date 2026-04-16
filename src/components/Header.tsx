@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({ username }) => {
     }, []);
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-14 items-center justify-between px-4">
                 <div className="flex items-center gap-2 sm:gap-4">
                     <button
@@ -50,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({ username }) => {
                     {onlineCount !== null && (
                         <Badge
                             variant="outline"
-                            className="flex items-center gap-1 px-1.5 py-0.5 text-xs sm:px-2 sm:py-1 border-green-500/50 text-green-600 dark:text-green-400"
+                            className="flex items-center gap-1 border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-xs text-emerald-700 sm:px-2 sm:py-1 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200"
                         >
                             <Users className="w-3 h-3" />
                             <span>{onlineCount}</span>
