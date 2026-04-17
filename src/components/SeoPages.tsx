@@ -27,7 +27,7 @@ export const HowToPlayPage: React.FC = () => (
         <article className="space-y-6">
             <header className="space-y-2">
                 <h1 className="text-3xl font-bold">How To Play Big Two</h1>
-                <p className="text-muted-foreground">A fast walkthrough of Big Two basics for new players.</p>
+                <p className="text-muted-foreground">A practical walkthrough of setup, turn flow, valid hands, and what wins the round.</p>
             </header>
             <section>
                 <h2 className="text-2xl font-semibold">Game Setup</h2>
@@ -46,8 +46,26 @@ export const HowToPlayPage: React.FC = () => (
                 </ul>
             </section>
             <section>
+                <h2 className="text-2xl font-semibold">Valid Hands</h2>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                    <li>Single cards, pairs, and three of a kind.</li>
+                    <li>Five-card hands such as straights, flushes, full houses, four of a kind, and straight flushes.</li>
+                    <li>You normally need to match the previous hand type and card count to beat it.</li>
+                </ul>
+            </section>
+            <section>
+                <h2 className="text-2xl font-semibold">How A Round Resets</h2>
+                <p className="mt-2">
+                    If three other players pass, the last player to make a legal play takes control and can start a new round with any valid hand.
+                    That reset is one of the biggest tactical moments in Big Two because it lets you choose the hand type opponents must answer.
+                </p>
+            </section>
+            <section>
                 <h2 className="text-2xl font-semibold">Winning</h2>
-                <p className="mt-2">You win the round by being the first player to play all 13 cards.</p>
+                <p className="mt-2">
+                    You win by being the first player to empty all 13 cards. In online Big Two, that usually means balancing immediate control with
+                    keeping a clean endgame hand for your last few turns.
+                </p>
             </section>
             <RelatedLinks />
         </article>
@@ -64,7 +82,7 @@ export const RulesPage: React.FC = () => (
         <article className="space-y-6">
             <header className="space-y-2">
                 <h1 className="text-3xl font-bold">Big Two Rules</h1>
-                <p className="text-muted-foreground">Reference rules and rankings used in Big Two online games.</p>
+                <p className="text-muted-foreground">Reference rules, card order, hand rankings, and comparison logic for standard online play.</p>
             </header>
             <section>
                 <h2 className="text-2xl font-semibold">Card Rank Order</h2>
@@ -84,8 +102,25 @@ export const RulesPage: React.FC = () => (
                 </ul>
             </section>
             <section>
+                <h2 className="text-2xl font-semibold">Five-Card Hand Order</h2>
+                <p className="mt-2">
+                    In the standard order used by most online Big Two tables, straights rank below flushes, flushes rank below full houses, full houses
+                    rank below four of a kind, and straight flushes are the highest five-card hand.
+                </p>
+            </section>
+            <section>
                 <h2 className="text-2xl font-semibold">Beating A Hand</h2>
-                <p className="mt-2">To beat a play, you must play the same hand type and card count, except where local table rules allow five-card hierarchy overrides.</p>
+                <p className="mt-2">
+                    To beat a play, you normally match the same hand type and card count with a higher-ranking version. Five-card hands are the main exception,
+                    because stronger categories can beat weaker ones when table rules allow standard Big Two hierarchy.
+                </p>
+            </section>
+            <section>
+                <h2 className="text-2xl font-semibold">Common Rule Variations</h2>
+                <p className="mt-2">
+                    Big Two is not perfectly standardized. Some groups change suit order, allow bombs to beat 2s, or score leftover cards differently.
+                    When you compare guides online, that variation is why details can look inconsistent across sources.
+                </p>
             </section>
             <RelatedLinks />
         </article>
@@ -102,19 +137,33 @@ export const StrategyPage: React.FC = () => (
         <article className="space-y-6">
             <header className="space-y-2">
                 <h1 className="text-3xl font-bold">Big Two Strategy Tips</h1>
-                <p className="text-muted-foreground">Simple decisions that improve win rate over time.</p>
+                <p className="text-muted-foreground">Practical ways to keep control, protect power cards, and convert strong hands into wins.</p>
             </header>
             <section>
                 <h2 className="text-2xl font-semibold">Protect High Cards</h2>
-                <p className="mt-2">Do not waste 2s and high pairs early unless you gain clear tempo or reduce risk immediately.</p>
+                <p className="mt-2">Do not waste 2s and high pairs early unless you gain tempo immediately or stop an opponent from going out.</p>
             </section>
             <section>
                 <h2 className="text-2xl font-semibold">Plan Around Five-Card Hands</h2>
                 <p className="mt-2">Strong five-card hands can swing control. Keep flexible structures until you know if you need a finisher.</p>
             </section>
             <section>
+                <h2 className="text-2xl font-semibold">Lead With Purpose</h2>
+                <p className="mt-2">
+                    When you win control, choose a lead that strains the table. Sometimes the best opening is not your strongest card, but the hand type
+                    that leaves opponents with the fewest clean replies.
+                </p>
+            </section>
+            <section>
                 <h2 className="text-2xl font-semibold">Track What Is Gone</h2>
                 <p className="mt-2">Counting played 2s, aces, and top suits helps you decide when to push and when to pass.</p>
+            </section>
+            <section>
+                <h2 className="text-2xl font-semibold">Shape Your Endgame Early</h2>
+                <p className="mt-2">
+                    The last three to five cards matter more than most players think. Try to avoid getting stuck with awkward leftovers that can only be played
+                    in one sequence.
+                </p>
             </section>
             <RelatedLinks />
         </article>
@@ -144,6 +193,20 @@ export const FaqPage: React.FC = () => (
             <section>
                 <h2 className="text-2xl font-semibold">What is the highest card?</h2>
                 <p className="mt-2">The 2 is the highest rank. Suit order then breaks ties, with Spades highest.</p>
+            </section>
+            <section>
+                <h2 className="text-2xl font-semibold">Is Big Two the same as Pusoy Dos?</h2>
+                <p className="mt-2">
+                    They are closely related and often treated as the same family of game, but house rules and naming can vary by country and community.
+                </p>
+            </section>
+            <section>
+                <h2 className="text-2xl font-semibold">Can I play Big Two on mobile?</h2>
+                <p className="mt-2">Yes. big2.app works in modern mobile browsers as well as desktop browsers.</p>
+            </section>
+            <section>
+                <h2 className="text-2xl font-semibold">Do I need to create an account?</h2>
+                <p className="mt-2">No. You can create or join a room without registration.</p>
             </section>
             <RelatedLinks />
         </article>
