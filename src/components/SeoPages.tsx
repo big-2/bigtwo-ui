@@ -12,9 +12,65 @@ const RelatedLinks: React.FC = () => (
             <li><Link className="text-primary underline" to="/rules">Official-Style Rules</Link></li>
             <li><Link className="text-primary underline" to="/strategy">Strategy Tips</Link></li>
             <li><Link className="text-primary underline" to="/faq">Big Two FAQ</Link></li>
+            <li><Link className="text-primary underline" to="/pusoy-dos">Pusoy Dos Online</Link></li>
+            <li><Link className="text-primary underline" to="/dai-di">Dai Di Online</Link></li>
+            <li><Link className="text-primary underline" to="/choh-dai-di">Choh Dai Di Online</Link></li>
+            <li><Link className="text-primary underline" to="/capsa-banting">Capsa Banting Online</Link></li>
             <li><Link className="text-primary underline" to="/">Play Big Two Online</Link></li>
         </ul>
     </nav>
+);
+
+const AliasPage: React.FC<{
+    title: string;
+    description: string;
+    canonicalPath: string;
+    heading: string;
+    intro: string;
+    originLabel: string;
+    comparisonCopy: string;
+}> = ({ title, description, canonicalPath, heading, intro, originLabel, comparisonCopy }) => (
+    <section className={PAGE_CONTAINER}>
+        <SeoHead title={title} description={description} canonicalPath={canonicalPath} />
+        <article className="space-y-6">
+            <header className="space-y-2">
+                <h1 className="text-3xl font-bold">{heading}</h1>
+                <p className="text-muted-foreground">{intro}</p>
+            </header>
+            <section>
+                <h2 className="text-2xl font-semibold">What Players Mean By {originLabel}</h2>
+                <p className="mt-2">
+                    {comparisonCopy}
+                </p>
+            </section>
+            <section>
+                <h2 className="text-2xl font-semibold">Why Play On big2.app</h2>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                    <li>Clean modern browser app built for quick Big 2 games with friends.</li>
+                    <li>Create a room fast, invite friends, and start a real-time 4-player game without installing anything.</li>
+                    <li>Practice against bots when you do not have a full table ready.</li>
+                    <li>Track personal stats and recent match history after your completed games.</li>
+                    <li>Works on desktop and mobile, so casual games are easier to spin up and share.</li>
+                </ul>
+            </section>
+            <section>
+                <h2 className="text-2xl font-semibold">Rules And Variants</h2>
+                <p className="mt-2">
+                    Big Two style games are not perfectly standardized. Names shift by country, and table rules can differ on suit order,
+                    five-card hand ranking, and special overrides. The core experience here is the familiar climbing game: unload all 13 cards
+                    first by beating the current play with stronger singles, pairs, triples, and five-card hands.
+                </p>
+            </section>
+            <section>
+                <h2 className="text-2xl font-semibold">Play With Friends Or Against Bots</h2>
+                <p className="mt-2">
+                    If you already know the game, the main pitch is simple: this is a more modern Big 2 app for quick private games with friends
+                    and useful bot practice when nobody else is online.
+                </p>
+            </section>
+            <RelatedLinks />
+        </article>
+    </section>
 );
 
 export const HowToPlayPage: React.FC = () => (
@@ -211,4 +267,52 @@ export const FaqPage: React.FC = () => (
             <RelatedLinks />
         </article>
     </section>
+);
+
+export const PusoyDosPage: React.FC = () => (
+    <AliasPage
+        title="Pusoy Dos Online | Modern Big 2 App With Friends And Bots | big2.app"
+        description="Play Pusoy Dos online in a modern browser app. Create private games with friends or practice against bots on big2.app."
+        canonicalPath="/pusoy-dos"
+        heading="Pusoy Dos Online"
+        intro="Play the Big Two style climbing card game in a cleaner, more modern browser app built for quick games with friends and bot practice."
+        originLabel="Pusoy Dos"
+        comparisonCopy="Pusoy Dos is commonly used as the local name for the same game family many players call Big Two or Big 2. Exact house rules can vary, but if you are looking for Pusoy Dos online, you are usually looking for this same core climbing card game."
+    />
+);
+
+export const DaiDiPage: React.FC = () => (
+    <AliasPage
+        title="Dai Di Online | Play Modern Big 2 In Your Browser | big2.app"
+        description="Play Dai Di online with friends or against bots in a modern browser app. Fast private rooms, mobile-friendly play, and no download."
+        canonicalPath="/dai-di"
+        heading="Dai Di Online"
+        intro="If you know the game as Dai Di, this is the same fast multiplayer climbing card game in a more polished web app."
+        originLabel="Dai Di"
+        comparisonCopy="Dai Di is one of the established names for Big Two. Depending on region and family rules, details may shift slightly, but the main idea is unchanged: shed all your cards first by answering the current hand with a stronger one."
+    />
+);
+
+export const ChohDaiDiPage: React.FC = () => (
+    <AliasPage
+        title="Choh Dai Di Online | Big Two With Friends Or Bots | big2.app"
+        description="Play Choh Dai Di online in a modern Big Two web app. Start private rooms with friends or sharpen your game against bots."
+        canonicalPath="/choh-dai-di"
+        heading="Choh Dai Di Online"
+        intro="A modern online home for players who know the game as Choh Dai Di and want a cleaner browser experience."
+        originLabel="Choh Dai Di"
+        comparisonCopy="Choh Dai Di, Choi Dai Di, and Big Two usually refer to the same card game family. Players searching this term are usually looking for an easy-to-share online version with smooth gameplay, friend rooms, and useful practice options."
+    />
+);
+
+export const CapsaBantingPage: React.FC = () => (
+    <AliasPage
+        title="Capsa Banting Online | Modern Big 2 Browser Game | big2.app"
+        description="Play Capsa Banting online in a modern browser game. Invite friends to a private table or practice the Big Two style rules against bots."
+        canonicalPath="/capsa-banting"
+        heading="Capsa Banting Online"
+        intro="If you are searching for Capsa Banting online, big2.app gives you the same core game in a cleaner browser interface."
+        originLabel="Capsa Banting"
+        comparisonCopy="Capsa Banting is another regional name used for the Big Two family of climbing games. Rule details can vary by table, but players searching this term are generally looking for the same race to empty all 13 cards first."
+    />
 );

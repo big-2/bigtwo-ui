@@ -39,16 +39,16 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
     return (
         <>
             <SeoHead
-                title="Big Two Online - Free Multiplayer Card Game | big2.app"
-                description="Play Big Two online for free with friends or challenge an AI agent trained with self-play and reinforcement learning. Start a real-time 4-player game instantly."
+                title="Big Two Online | Play With Friends, Bots, Stats And Match History | big2.app"
+                description="Play Big Two online in a clean browser app. Create private games with friends, practice against bots, and track stats and recent match history."
                 canonicalPath="/"
             />
             <div className="flex min-h-[calc(100vh-60px)] items-start justify-center px-2 py-4 sm:px-4 sm:py-8">
                 <div className="flex w-full max-w-7xl flex-col gap-3 sm:gap-4">
                 {/* Hero Section - SEO optimized with H1, visible on all devices */}
                 <section className="text-center px-2" aria-label="Welcome">
-                    <h1 className="text-xl font-bold mb-1 sm:text-2xl lg:text-3xl">Big Two - Free Online Multiplayer Card Game</h1>
-                    <p className="text-xs text-muted-foreground sm:text-sm">Play Big 2 with friends in real-time. Free for 4 players, no download required.</p>
+                    <h1 className="text-xl font-bold mb-1 sm:text-2xl lg:text-3xl">Big Two Online With Friends, Bots, Stats And Match History</h1>
+                    <p className="text-xs text-muted-foreground sm:text-sm">Play Big 2 in a clean browser app. Start private games with friends, practice against bots, and track your recent results.</p>
                     <div className="mt-3 flex justify-center">
                         <Button asChild variant="outline" size="sm">
                             <Link to="/me/stats">
@@ -182,12 +182,29 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                         <Card>
                             <CardContent className="space-y-3 p-4 sm:p-6">
                                 <h2 className="text-lg font-bold sm:text-xl">Big Two Guides</h2>
-                                <p className="text-sm text-muted-foreground">Learn rules and strategy, then jump into a match.</p>
+                                <p className="text-sm text-muted-foreground">Learn the rules, improve your decisions, and then jump into a tracked match.</p>
                                 <ul className="list-disc space-y-1 pl-5 text-sm">
                                     <li><Link className="underline text-primary" to="/how-to-play">How to Play Big Two</Link></li>
                                     <li><Link className="underline text-primary" to="/rules">Big Two Rules and Rankings</Link></li>
                                     <li><Link className="underline text-primary" to="/strategy">Big Two Strategy Tips</Link></li>
                                     <li><Link className="underline text-primary" to="/faq">Big Two FAQ</Link></li>
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    </section>
+
+                    <section className="w-full">
+                        <Card>
+                            <CardContent className="space-y-3 p-4 sm:p-6">
+                                <h2 className="text-lg font-bold sm:text-xl">Big Two Around The World</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Big Two is also known by several regional names. If you searched for one of these, you are in the right place.
+                                </p>
+                                <ul className="list-disc space-y-1 pl-5 text-sm">
+                                    <li><Link className="underline text-primary" to="/pusoy-dos">Pusoy Dos online</Link></li>
+                                    <li><Link className="underline text-primary" to="/dai-di">Dai Di online</Link></li>
+                                    <li><Link className="underline text-primary" to="/choh-dai-di">Choh Dai Di online</Link></li>
+                                    <li><Link className="underline text-primary" to="/capsa-banting">Capsa Banting online</Link></li>
                                 </ul>
                             </CardContent>
                         </Card>
@@ -205,7 +222,7 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                                     Over time, it gets better at timing, hand control, and endgame decisions.
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                    If you are learning Big 2 strategy, this is a great way to improve fast. Join a room, invite friends, or test your skill against the AI and see how your decisions compare.
+                                    If you are learning Big 2 strategy, this is a practical way to improve fast. Join a room, invite friends, or test your skill against the AI and then review your stats and recent completed matches.
                                 </p>
                             </CardContent>
                         </Card>

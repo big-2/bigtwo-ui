@@ -6,7 +6,16 @@ import RoomContainer from "./components/RoomContainer";
 import Header from "./components/Header";
 import { useSessionContext } from "./contexts/SessionContext";
 import SeoHead from "./components/SeoHead";
-import { FaqPage, HowToPlayPage, RulesPage, StrategyPage } from "./components/SeoPages";
+import {
+    CapsaBantingPage,
+    ChohDaiDiPage,
+    DaiDiPage,
+    FaqPage,
+    HowToPlayPage,
+    PusoyDosPage,
+    RulesPage,
+    StrategyPage,
+} from "./components/SeoPages";
 import MyStatsPage from "./components/MyStatsPage";
 import "./index.css"; // Ensure global styles are included
 
@@ -76,6 +85,10 @@ const App: React.FC = () => {
                         <Route path="/rules" element={<RulesPage />} />
                         <Route path="/strategy" element={<StrategyPage />} />
                         <Route path="/faq" element={<FaqPage />} />
+                        <Route path="/pusoy-dos" element={<PusoyDosPage />} />
+                        <Route path="/dai-di" element={<DaiDiPage />} />
+                        <Route path="/choh-dai-di" element={<ChohDaiDiPage />} />
+                        <Route path="/capsa-banting" element={<CapsaBantingPage />} />
                         <Route path="/me/stats" element={<MyStatsPage />} />
                         <Route path="/room/:roomId" element={<RoomPage username={username} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />

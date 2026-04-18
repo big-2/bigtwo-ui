@@ -205,6 +205,186 @@ const ROUTES = [
             },
         ],
     },
+    {
+        route: "/pusoy-dos",
+        title: "Pusoy Dos Online | Modern Big 2 App With Friends And Bots | big2.app",
+        description: "Play Pusoy Dos online in a modern browser app. Create private games with friends or practice against bots on big2.app.",
+        heading: "Pusoy Dos Online",
+        intro: "Play the Big Two style climbing card game in a cleaner, more modern browser app built for quick games with friends and bot practice.",
+        sections: [
+            {
+                title: "What Players Mean By Pusoy Dos",
+                paragraphs: [
+                    "Pusoy Dos is commonly used as the local name for the same game family many players call Big Two or Big 2. Exact house rules can vary, but if you are looking for Pusoy Dos online, you are usually looking for this same core climbing card game.",
+                ],
+            },
+            {
+                title: "Why Play On big2.app",
+                list: [
+                    "Clean modern browser app built for quick Big 2 games with friends.",
+                    "Create a room fast, invite friends, and start a real-time 4-player game without installing anything.",
+                    "Practice against bots when you do not have a full table ready.",
+                    "Track personal stats and recent match history after your completed games.",
+                    "Works on desktop and mobile for quick shared games.",
+                ],
+            },
+            {
+                title: "Rules And Variants",
+                paragraphs: [
+                    "Like many Big Two variants, naming and house rules can shift by country and table. The core loop stays the same: be first to unload all 13 cards by beating the current play with a stronger hand.",
+                ],
+            },
+        ],
+        faq: [
+            {
+                question: "Is Pusoy Dos the same as Big Two?",
+                answer: "Often yes in practice. The names usually refer to the same core climbing card game family, though house rules can vary.",
+            },
+            {
+                question: "Can I play Pusoy Dos with friends online?",
+                answer: "Yes. On big2.app you can create a room and invite friends into a private browser game.",
+            },
+            {
+                question: "Can I practice Pusoy Dos against bots?",
+                answer: "Yes. big2.app supports bot play, which makes it easier to practice when a full table is not available.",
+            },
+        ],
+    },
+    {
+        route: "/dai-di",
+        title: "Dai Di Online | Play Modern Big 2 In Your Browser | big2.app",
+        description: "Play Dai Di online with friends or against bots in a modern browser app. Fast private rooms, mobile-friendly play, and no download.",
+        heading: "Dai Di Online",
+        intro: "If you know the game as Dai Di, this is the same fast multiplayer climbing card game in a more polished web app.",
+        sections: [
+            {
+                title: "What Players Mean By Dai Di",
+                paragraphs: [
+                    "Dai Di is one of the established names for Big Two. Depending on region and family rules, details may shift slightly, but the main idea is unchanged: shed all your cards first by answering the current hand with a stronger one.",
+                ],
+            },
+            {
+                title: "Why Play On big2.app",
+                list: [
+                    "Clean modern browser app built for quick friend games.",
+                    "Real-time private rooms for friend groups.",
+                    "Bot games when you want practice or a quick solo session.",
+                    "Track personal stats and recent match history after completed games.",
+                    "No download required on desktop or mobile.",
+                ],
+            },
+            {
+                title: "Rules And Variants",
+                paragraphs: [
+                    "Regional Dai Di tables can differ on suit order and some five-card comparisons, but the familiar Big Two style flow remains the same throughout the game.",
+                ],
+            },
+        ],
+        faq: [
+            {
+                question: "Is Dai Di different from Big 2?",
+                answer: "Usually they refer to the same game family, with some variation in table rules and naming by region.",
+            },
+            {
+                question: "Can I play Dai Di online without installing an app?",
+                answer: "Yes. big2.app runs in your browser, so you can start games without a separate download.",
+            },
+            {
+                question: "Does big2.app work on mobile for Dai Di games?",
+                answer: "Yes. The site works in modern mobile browsers as well as desktop browsers.",
+            },
+        ],
+    },
+    {
+        route: "/choh-dai-di",
+        title: "Choh Dai Di Online | Big Two With Friends Or Bots | big2.app",
+        description: "Play Choh Dai Di online in a modern Big Two web app. Start private rooms with friends or sharpen your game against bots.",
+        heading: "Choh Dai Di Online",
+        intro: "A modern online home for players who know the game as Choh Dai Di and want a cleaner browser experience.",
+        sections: [
+            {
+                title: "What Players Mean By Choh Dai Di",
+                paragraphs: [
+                    "Choh Dai Di, Choi Dai Di, and Big Two usually refer to the same card game family. Players searching this term are usually looking for an easy-to-share online version with smooth gameplay, friend rooms, and useful practice options.",
+                ],
+            },
+            {
+                title: "Why Play On big2.app",
+                list: [
+                    "Clean modern browser app designed for quick room creation and sharing.",
+                    "Invite friends into a private table without extra install friction.",
+                    "Use bots for practice when you do not have four human players available.",
+                    "Track personal stats and recent match history after completed games.",
+                    "Runs on both desktop and mobile browsers.",
+                ],
+            },
+            {
+                title: "Rules And Variants",
+                paragraphs: [
+                    "Different families and regions may use slightly different Choh Dai Di conventions, but the core game is still the same race to empty your cards first by climbing over the active hand.",
+                ],
+            },
+        ],
+        faq: [
+            {
+                question: "Is Choh Dai Di the same as Big Two?",
+                answer: "Usually yes. It is generally another name for the same climbing card game family.",
+            },
+            {
+                question: "Can I use big2.app for private Choh Dai Di games?",
+                answer: "Yes. You can create a room and share it with friends for private browser play.",
+            },
+            {
+                question: "Why make a Choh Dai Di page if the game is Big Two?",
+                answer: "Because many players search with the regional name first, and a dedicated page helps them find the right game faster.",
+            },
+        ],
+    },
+    {
+        route: "/capsa-banting",
+        title: "Capsa Banting Online | Modern Big 2 Browser Game | big2.app",
+        description: "Play Capsa Banting online in a modern browser game. Invite friends to a private table or practice the Big Two style rules against bots.",
+        heading: "Capsa Banting Online",
+        intro: "If you are searching for Capsa Banting online, big2.app gives you the same core game in a cleaner browser interface.",
+        sections: [
+            {
+                title: "What Players Mean By Capsa Banting",
+                paragraphs: [
+                    "Capsa Banting is another regional name used for the Big Two family of climbing games. Rule details can vary by table, but players searching this term are generally looking for the same race to empty all 13 cards first.",
+                ],
+            },
+            {
+                title: "Why Play On big2.app",
+                list: [
+                    "Clean modern browser app for quick private games and practice.",
+                    "Fast room creation for friend groups.",
+                    "Bot support for practice and solo play.",
+                    "Track personal stats and recent match history after completed games.",
+                    "Browser-based access on mobile and desktop.",
+                ],
+            },
+            {
+                title: "Rules And Variants",
+                paragraphs: [
+                    "As with other names in this game family, Capsa Banting tables can differ slightly on rankings and special cases. The core loop remains the same climbing structure familiar to Big Two players.",
+                ],
+            },
+        ],
+        faq: [
+            {
+                question: "Is Capsa Banting the same as Big Two?",
+                answer: "In most search contexts, yes. It refers to the same broader climbing card game family.",
+            },
+            {
+                question: "Can I play Capsa Banting online with friends on big2.app?",
+                answer: "Yes. Create a room, share it with friends, and play in the browser.",
+            },
+            {
+                question: "Does big2.app have bots for Capsa Banting style play?",
+                answer: "Yes. Bot play helps when you want to practice or fill a table faster.",
+            },
+        ],
+    },
 ];
 
 const replaceTag = (html, pattern, replacement) => {
