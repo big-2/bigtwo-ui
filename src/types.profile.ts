@@ -1,3 +1,5 @@
+export type ProfileStatsGameFilter = "all" | "human_only" | "with_bots";
+
 export interface PlayerStatsSummary {
     games_played: number;
     wins: number;

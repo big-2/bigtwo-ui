@@ -5,6 +5,7 @@ import { clearSession } from "./session";
 import { RoomStats } from "../types.stats";
 import {
     CompletedGameDetailResponse,
+    ProfileStatsGameFilter,
     PlayerProfileStatsResponse,
     PlayerRecentGamesResponse,
 } from "../types.profile";
@@ -172,9 +173,13 @@ export const getOnlinePlayers = async (): Promise<number | null> => {
     }
 };
 
-export const getMyProfileStats = async (): Promise<PlayerProfileStatsResponse> => {
+export const getMyProfileStats = async (
+    filter: ProfileStatsGameFilter = "all"
+): Promise<PlayerProfileStatsResponse> => {
     try {
-        const response = await axios.get<PlayerProfileStatsResponse>(`${API_URL}/player/me/stats`);
+        const response = await axios.get<PlayerProfileStatsResponse>(`${API_URL}/player/me/stats`, {
+            params: { filter },
+        });
         return response.data;
     } catch (error) {
         console.error('Failed to fetch profile stats:', error);
@@ -182,10 +187,13 @@ export const getMyProfileStats = async (): Promise<PlayerProfileStatsResponse> =
     }
 };
 
-export const getMyRecentGames = async (limit = 20): Promise<PlayerRecentGamesResponse> => {
+export const getMyRecentGames = async (
+    limit = 20,
+    filter: ProfileStatsGameFilter = "all"
+): Promise<PlayerRecentGamesResponse> => {
     try {
         const response = await axios.get<PlayerRecentGamesResponse>(`${API_URL}/player/me/games`, {
-            params: { limit },
+            params: { limit, filter },
         });
         return response.data;
     } catch (error) {
