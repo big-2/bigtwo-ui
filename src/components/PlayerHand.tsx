@@ -1,8 +1,7 @@
 import React, { useState, useRef } from "react";
 import { cn } from "../lib/utils";
-import { useThemeContext } from "../contexts/ThemeContext";
 import { useScreenSize } from "../hooks/useMediaQuery";
-import { getRankDisplay } from "../utils/cardDisplay";
+import PlayingCard from "./PlayingCard";
 
 // Card dimension constants for responsive sizing
 // All dimensions use exact 5:7 aspect ratio to match aspect-[5/7] used elsewhere
@@ -40,6 +39,7 @@ interface CardProps {
     selectedCards: string[];
     width: number;
     height: number;
+    registerCardRef?: (card: string, element: HTMLDivElement | null) => void;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -56,36 +56,9 @@ const Card: React.FC<CardProps> = ({
     isDropTarget,
     selectedCards,
     width,
-    height
+    height,
+    registerCardRef
 }) => {
-    const { theme } = useThemeContext();
-    const isDarkMode = theme === "dark";
-    const suit = card.slice(-1);
-    const rank = card.slice(0, -1);
-
-    const getSuitColor = (suit: string, isDarkMode: boolean) => {
-        switch (suit) {
-            case 'H':
-            case 'D':
-                return '#ff6b6b';
-            case 'S':
-            case 'C':
-                return isDarkMode ? '#ffffff' : '#000000';
-            default:
-                return isDarkMode ? '#ffffff' : '#000000';
-        }
-    };
-
-    const getSuitSymbol = (suit: string) => {
-        switch (suit) {
-            case 'H': return '♥';
-            case 'D': return '♦';
-            case 'S': return '♠';
-            case 'C': return '♣';
-            default: return suit;
-        }
-    };
-
     const handleDragStart = (e: React.DragEvent) => {
         e.dataTransfer.effectAllowed = 'move';
 
@@ -121,9 +94,11 @@ const Card: React.FC<CardProps> = ({
     const suitFontSize = height < 90 ? 'text-xl' : 'text-3xl';
 
     return (
-        <div
+        <PlayingCard
+            ref={(element) => registerCardRef?.(card, element)}
+            card={card}
             className={cn(
-                "relative flex cursor-pointer select-none flex-col items-center justify-center rounded-lg border-2 bg-white transition-all duration-200 dark:bg-slate-900 snap-start",
+                "relative cursor-pointer transition-all duration-200 snap-start",
                 isSelected ? "-translate-y-4 border-primary shadow-lg" : "border-slate-200 dark:border-slate-700",
                 isFocused && "ring-[3px] ring-amber-500 ring-offset-2 dark:ring-amber-400",
                 isDragging && "opacity-80",
@@ -141,29 +116,18 @@ const Card: React.FC<CardProps> = ({
             onDrop={handleDrop}
             onDragLeave={handleDragLeave}
             draggable
-            data-suit={suit}
             data-batch-count={isSelected && isDragging ? selectedCards.length : undefined}
             title={card}
+            rankClassName={cn(rankFontSize, "font-bold")}
+            suitClassName={suitFontSize}
         >
-            <span
-                className={cn(rankFontSize, "font-bold")}
-                style={{ color: getSuitColor(suit, isDarkMode) }}
-            >
-                {getRankDisplay(rank)}
-            </span>
-            <span
-                className={suitFontSize}
-                style={{ color: getSuitColor(suit, isDarkMode) }}
-            >
-                {getSuitSymbol(suit)}
-            </span>
             {isDropTarget && <div className="absolute inset-x-0 bottom-0 h-1 rounded-b bg-primary" />}
             {isSelected && isDragging && selectedCards.length > 1 && (
                 <div className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground shadow">
                     {selectedCards.length}
                 </div>
             )}
-        </div>
+        </PlayingCard>
     );
 };
 
@@ -173,6 +137,7 @@ interface PlayerHandProps {
     focusedCardIndex?: number | null;
     onCardClick: (card: string) => void;
     onCardsReorder: (newOrder: string[]) => void;
+    registerCardRef?: (card: string, element: HTMLDivElement | null) => void;
 }
 
 const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -180,7 +145,8 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     selectedCards,
     focusedCardIndex = null,
     onCardClick,
-    onCardsReorder
+    onCardsReorder,
+    registerCardRef
 }) => {
     const [draggedCards, setDraggedCards] = useState<string[]>([]);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -411,6 +377,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
                         selectedCards={selectedCards}
                         width={cardDimensions.width}
                         height={cardDimensions.height}
+                        registerCardRef={registerCardRef}
                     />
                 );
             })}

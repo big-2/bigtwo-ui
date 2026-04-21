@@ -1,4 +1,5 @@
 const removeTrailingSlash = (url: string): string => url.replace(/\/+$/, '');
+const CARD_FLIGHT_ANIMATION_STORAGE_KEY = 'bigtwo.cardFlightAnimations';
 
 export const assertEnvValue = (value: string | undefined, name: string): string => {
     if (!value || value.trim().length === 0) {
@@ -20,6 +21,34 @@ export const getNormalizedApiUrl = (): string => {
 
 export const getNormalizedWsUrl = (): string => {
     return normalizeUrl(import.meta.env.VITE_WS_URL, 'ws://127.0.0.1:3000');
+};
+
+const parseBooleanSetting = (value: string | undefined | null): boolean | null => {
+    if (value === undefined || value === null) {
+        return null;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on', 'enabled'].includes(normalized)) {
+        return true;
+    }
+    if (['0', 'false', 'no', 'off', 'disabled'].includes(normalized)) {
+        return false;
+    }
+
+    return null;
+};
+
+export const isCardFlightAnimationEnabled = (): boolean => {
+    const localOverride = typeof window !== 'undefined'
+        ? parseBooleanSetting(window.localStorage.getItem(CARD_FLIGHT_ANIMATION_STORAGE_KEY))
+        : null;
+
+    if (localOverride !== null) {
+        return localOverride;
+    }
+
+    return parseBooleanSetting(import.meta.env.VITE_CARD_FLIGHT_ANIMATIONS) ?? true;
 };
 
 export const validateEnvironment = (): void => {
