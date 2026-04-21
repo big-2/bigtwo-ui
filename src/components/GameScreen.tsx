@@ -103,7 +103,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
     // Track cycling state for cards with same rank
     const rankCycleIndexRef = useRef<Record<string, number>>({});
     const handCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-    const opponentSourceRefs = useRef<Record<string, HTMLElement | null>>({});
+    const opponentSourceRefs = useRef<Record<string, Record<string, HTMLElement>>>({});
     const desktopTableTargetRef = useRef<HTMLDivElement | null>(null);
     const mobileTableTargetRef = useRef<HTMLDivElement | null>(null);
     const desktopCardLaneTargetRef = useRef<HTMLDivElement | null>(null);
@@ -201,15 +201,26 @@ const GameScreen: React.FC<GameScreenProps> = ({
         }
     }, []);
 
-    const registerOpponentSourceRef = useCallback((playerUuid: string, element: HTMLElement | null) => {
-        if (!playerUuid) {
+    const registerOpponentSourceRef = useCallback((playerUuid: string, sourceKey: string, element: HTMLElement | null) => {
+        if (!playerUuid || !sourceKey) {
             return;
         }
 
         if (element) {
-            opponentSourceRefs.current[playerUuid] = element;
+            opponentSourceRefs.current[playerUuid] = {
+                ...opponentSourceRefs.current[playerUuid],
+                [sourceKey]: element,
+            };
         } else {
-            delete opponentSourceRefs.current[playerUuid];
+            const playerSources = opponentSourceRefs.current[playerUuid];
+            if (!playerSources) {
+                return;
+            }
+
+            delete playerSources[sourceKey];
+            if (Object.keys(playerSources).length === 0) {
+                delete opponentSourceRefs.current[playerUuid];
+            }
         }
     }, []);
 
@@ -243,7 +254,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 .filter((element): element is HTMLDivElement => Boolean(element))
                 .map(rectFromElement)
             : (() => {
-                const sourceRect = getVisibleElementRect([opponentSourceRefs.current[playerUuid]]);
+                const sourceRect = getVisibleElementRect(Object.values(opponentSourceRefs.current[playerUuid] ?? {}));
                 return sourceRect ? cards.map(() => sourceRect) : [];
             })();
 
@@ -1142,7 +1153,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
         return (
             <div
-                ref={(element) => registerOpponentSourceRef(playerUuid, element)}
+                ref={(element) => registerOpponentSourceRef(playerUuid, `desktop-${rotation}`, element)}
                 className={cn("flex flex-col gap-1.5 sm:gap-2", rotationClass, "origin-center")}
             >
                 {/* Top Region: Last played cards */}
@@ -1192,7 +1203,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
         return (
             <div
-                ref={(element) => registerOpponentSourceRef(playerUuid, element)}
+                ref={(element) => registerOpponentSourceRef(playerUuid, "mobile", element)}
                 key={playerUuid}
                 className={cn(
                     "relative flex min-h-[78px] flex-col items-center gap-0.5 overflow-visible rounded-lg px-2 py-1.5 transition-colors",
@@ -1455,7 +1466,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 <section className="hidden flex-shrink-0 flex-col items-center justify-start gap-1 py-0.5 md:flex">
                     {/* Bottom Region: Player info and card backs */}
                     <div
-                        ref={(element) => registerOpponentSourceRef(playerPositions.top, element)}
+                        ref={(element) => registerOpponentSourceRef(playerPositions.top, "desktop-top", element)}
                         className="flex items-center gap-3"
                     >
                         <Badge
