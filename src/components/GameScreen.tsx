@@ -118,6 +118,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
     const [isActionPacing, setIsActionPacing] = useState(false);
     const actionPacingTimeoutRef = useRef<number | null>(null);
     const gameProgressionBlockedRef = useRef(false);
+    const gameProgressionResetTokenRef = useRef(0);
     const queuedGameProgressionMessagesRef = useRef<WebSocketMessage[]>([]);
     const isDrainingGameProgressionQueueRef = useRef(false);
     const drainGameProgressionQueueRef = useRef<() => void>(() => undefined);
@@ -147,6 +148,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
     }, [clearActionPacingTimeout]);
 
     const resetGameProgressionQueue = useCallback(() => {
+        gameProgressionResetTokenRef.current += 1;
         clearActionPacingTimeout();
         queuedGameProgressionMessagesRef.current = [];
         gameProgressionBlockedRef.current = false;
@@ -226,6 +228,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
     const playCardFlight = useCallback((playerUuid: string, cards: string[]) => {
         const paceDelayMs = actionPaceDelayMsRef.current;
+        const resetToken = gameProgressionResetTokenRef.current;
         blockGameProgressionRef.current();
 
         if (!canAnimateCardFlights || cards.length === 0) {
@@ -272,6 +275,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
             targetRect,
             sourceKind: isSelfPlay ? "self" : "opponent",
         }).then(() => {
+            if (gameProgressionResetTokenRef.current !== resetToken) {
+                return;
+            }
+
             releaseGameProgressionAfterRef.current(paceDelayMs);
             setSuppressedTablePlayKey(currentKey => currentKey === playKey ? null : currentKey);
         });
@@ -657,6 +664,14 @@ const GameScreen: React.FC<GameScreenProps> = ({
         }
     }, []);
 
+    const handleParsedMessageSafely = useCallback((message: WebSocketMessage) => {
+        try {
+            handleParsedMessage(message);
+        } catch (error) {
+            console.error("Error processing WebSocket message:", error);
+        }
+    }, [handleParsedMessage]);
+
     const drainGameProgressionQueue = useCallback(() => {
         if (gameProgressionBlockedRef.current || isDrainingGameProgressionQueueRef.current) {
             return;
@@ -667,13 +682,13 @@ const GameScreen: React.FC<GameScreenProps> = ({
             while (!gameProgressionBlockedRef.current && queuedGameProgressionMessagesRef.current.length > 0) {
                 const nextMessage = queuedGameProgressionMessagesRef.current.shift();
                 if (nextMessage) {
-                    handleParsedMessage(nextMessage);
+                    handleParsedMessageSafely(nextMessage);
                 }
             }
         } finally {
             isDrainingGameProgressionQueueRef.current = false;
         }
-    }, [handleParsedMessage]);
+    }, [handleParsedMessageSafely]);
 
     useEffect(() => {
         drainGameProgressionQueueRef.current = drainGameProgressionQueue;
@@ -692,11 +707,11 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 return;
             }
 
-            handleParsedMessage(message);
+            handleParsedMessageSafely(message);
         } catch (error) {
             console.error("Error processing WebSocket message:", error);
         }
-    }, [handleParsedMessage]);
+    }, [handleParsedMessageSafely]);
 
     // Set up WebSocket message listener for game-specific messages
     useEffect(() => {
