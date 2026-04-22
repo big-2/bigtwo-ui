@@ -39,10 +39,20 @@ const parseBooleanSetting = (value: string | undefined | null): boolean | null =
     return null;
 };
 
+const getStoredCardFlightAnimationOverride = (): boolean | null => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    try {
+        return parseBooleanSetting(window.localStorage.getItem(CARD_FLIGHT_ANIMATION_STORAGE_KEY));
+    } catch {
+        return null;
+    }
+};
+
 export const isCardFlightAnimationEnabled = (): boolean => {
-    const localOverride = typeof window !== 'undefined'
-        ? parseBooleanSetting(window.localStorage.getItem(CARD_FLIGHT_ANIMATION_STORAGE_KEY))
-        : null;
+    const localOverride = getStoredCardFlightAnimationOverride();
 
     if (localOverride !== null) {
         return localOverride;

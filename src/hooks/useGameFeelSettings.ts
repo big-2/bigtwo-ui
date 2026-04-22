@@ -64,7 +64,11 @@ export const useGameFeelSettings = () => {
     const [settings, setSettings] = useState<GameFeelSettings>(loadGameFeelSettings);
 
     useEffect(() => {
-        window.localStorage.setItem(GAME_FEEL_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+        try {
+            window.localStorage.setItem(GAME_FEEL_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+        } catch {
+            // Ignore unavailable storage and keep the in-memory settings usable.
+        }
     }, [settings]);
 
     return {
