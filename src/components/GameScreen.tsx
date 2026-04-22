@@ -232,7 +232,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
         blockGameProgressionRef.current();
 
         if (!canAnimateCardFlights || cards.length === 0) {
-            const passDelayMs = cards.length === 0
+            const passDelayMs = cards.length === 0 && paceDelayMs > 0
                 ? paceDelayMs + passPacingAnimationMsRef.current
                 : paceDelayMs;
             releaseGameProgressionAfterRef.current(passDelayMs);
