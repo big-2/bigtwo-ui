@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { cn } from "../lib/utils";
 import { PlayerStats } from "../types.stats";
 
-type BotDifficulty = "easy" | "ai";
+type BotDifficulty = "easy" | "ai" | "expert";
 const MAX_PLAYERS = 4;
 const MIN_WIN_STREAK_DISPLAY = 2;
 
@@ -58,7 +58,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
     onKickPlayer,
     onToggleReady,
 }) => {
-    const isAiBotSelected = botDifficulty === "ai";
+    const isAdvancedBotSelected = botDifficulty === "ai" || botDifficulty === "expert";
 
     const getDisplayName = (uuid: string) => {
         if (mapping[uuid]) {
@@ -115,11 +115,11 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                 <span
                                     className={cn(
                                         "pointer-events-none absolute inset-y-0 left-2 flex items-center",
-                                        isAiBotSelected ? "text-indigo-600" : "text-muted-foreground"
+                                        isAdvancedBotSelected ? "text-indigo-600" : "text-muted-foreground"
                                     )}
                                     aria-hidden
                                 >
-                                    {isAiBotSelected ? (
+                                    {isAdvancedBotSelected ? (
                                         <BrainCircuit className="h-3 w-3 sm:h-4 sm:w-4" />
                                     ) : (
                                         <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -128,7 +128,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                 <select
                                     className={cn(
                                         "min-w-[120px] rounded-md border border-input bg-background pl-8 pr-7 py-1.5 text-xs sm:min-w-[140px] sm:pl-9 sm:pr-8 sm:py-2 sm:text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary",
-                                        isAiBotSelected && "border-indigo-500 text-indigo-700 shadow-[0_0_0_1px_rgba(99,102,241,0.25)] dark:text-indigo-300"
+                                        isAdvancedBotSelected && "border-indigo-500 text-indigo-700 shadow-[0_0_0_1px_rgba(99,102,241,0.25)] dark:text-indigo-300"
                                     )}
                                     value={botDifficulty}
                                     onChange={handleDifficultyChange}
@@ -137,6 +137,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                                 >
                                     <option value="easy">Dummy Bot</option>
                                     <option value="ai">AI Bot</option>
+                                    <option value="expert">Expert Bot</option>
                                 </select>
                             </div>
                             <Button
@@ -170,7 +171,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
                     const displayName = getDisplayName(uuid);
                     const isBot = botUuids.has(uuid);
-                    const isAiBot = isBot && botDifficultyByUuid[uuid] === "ai";
+                    const difficulty = botDifficultyByUuid[uuid];
+                    const isAiBot = isBot && (difficulty === "ai" || difficulty === "expert");
                     const isCurrentUser = uuid === currentUserUuid || displayName === currentUsername;
                     const isHostPlayer = uuid === hostUuid;
                     const isReady = readyPlayers.has(uuid);

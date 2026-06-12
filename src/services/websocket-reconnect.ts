@@ -22,6 +22,7 @@ export enum ConnectionState {
     DISCONNECTED = 'DISCONNECTED',
     RECONNECTING = 'RECONNECTING',
     FAILED = 'FAILED',
+    CONNECTED_ELSEWHERE = 'CONNECTED_ELSEWHERE',
 }
 
 export interface WebSocketConfig {
@@ -33,6 +34,8 @@ export interface WebSocketConfig {
     onMessage: (message: string) => void;
     /** Callback for connection state changes */
     onStateChange?: (state: ConnectionState) => void;
+    /** Callback when server closes this connection because same player connected elsewhere */
+    onConnectedElsewhere?: () => void;
     /** Maximum number of reconnection attempts (default: 10) */
     maxReconnectAttempts?: number;
     /** Base delay for exponential backoff in ms (default: 1000) */
@@ -76,6 +79,7 @@ export class ReconnectingWebSocket {
     private heartbeatTimeout: NodeJS.Timeout | null = null;
     private heartbeatInterval: NodeJS.Timeout | null = null;
     private awaitingHeartbeatAck = false;
+    private connectedElsewhere = false;
 
     constructor(config: WebSocketConfig) {
         // Validate configuration
@@ -425,6 +429,12 @@ export class ReconnectingWebSocket {
                 // Don't pass HEARTBEAT_ACK to application handlers - it's internal
                 return;
             }
+            if (parsed.type === 'ERROR' && parsed.payload?.error_type === 'connected_elsewhere') {
+                this.connectedElsewhere = true;
+                this.shouldReconnect = false;
+                this.config.onConnectedElsewhere?.();
+                this.updateState(ConnectionState.CONNECTED_ELSEWHERE);
+            }
         } catch (e) {
             // Not JSON or parsing failed, continue normally
             console.debug('[WebSocket] Non-JSON message or parse error:', e);
@@ -443,6 +453,11 @@ export class ReconnectingWebSocket {
 
         // Clean close code (1000) means normal closure
         const isNormalClose = event.code === 1000;
+
+        if (this.connectedElsewhere) {
+            this.updateState(ConnectionState.CONNECTED_ELSEWHERE);
+            return;
+        }
 
         // Update state before attempting reconnection
         if (this.manualClose || isNormalClose) {

@@ -52,6 +52,9 @@ const App: React.FC = () => {
     const handleJoinRoom = async (roomId: string) => {
         try {
             setError(null);
+            if (location.pathname === `/room/${roomId}`) {
+                return;
+            }
             navigate(`/room/${roomId}`);
         } catch (error) {
             setError("An unexpected error occurred. Please try again.");

@@ -14,6 +14,12 @@ const API_URL = getNormalizedApiUrl();
 
 export type RoomResponse = components["schemas"]["RoomResponse"];
 
+export interface CurrentRoomResponse {
+    room: RoomResponse;
+    is_connected: boolean;
+    has_active_game: boolean;
+}
+
 // Configure axios to include session ID from localStorage in Authorization header
 axios.interceptors.request.use((config) => {
     const sessionId = localStorage.getItem('session_id');
@@ -79,6 +85,30 @@ export const getRooms = async (): Promise<RoomResponse[]> => {
     }
 };
 
+export const getCurrentRoom = async (): Promise<CurrentRoomResponse | null> => {
+    try {
+        const response = await axios.get<CurrentRoomResponse | null>(`${API_URL}/room/current`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching current room:", error);
+        return null;
+    }
+};
+
+export const leaveRoom = async (roomId: string): Promise<boolean> => {
+    try {
+        await axios.post(`${API_URL}/room/${roomId}/leave`, {});
+        return true;
+    } catch (error) {
+        console.error("Error leaving room:", error);
+        if (axios.isAxiosError(error) && error.response) {
+            console.error("Response status:", error.response.status);
+            console.error("Response data:", error.response.data);
+        }
+        return false;
+    }
+};
+
 export const getRoomDetails = async (roomId: string): Promise<RoomResponse | null> => {
     // Call GET /room/{roomId} - no auth required
     try {
@@ -92,19 +122,19 @@ export const getRoomDetails = async (roomId: string): Promise<RoomResponse | nul
 
 // Bot API Types
 export interface AddBotRequest {
-    difficulty?: "easy" | "medium" | "hard" | "ai";
+    difficulty?: "easy" | "medium" | "hard" | "ai" | "expert";
 }
 
 export interface BotResponse {
     uuid: string;
     name: string;
-    difficulty: "easy" | "medium" | "hard" | "ai";
+    difficulty: "easy" | "medium" | "hard" | "ai" | "expert";
 }
 
 // Bot management API
 export const addBotToRoom = async (
     roomId: string,
-    difficulty: "easy" | "medium" | "hard" | "ai" = "easy"
+    difficulty: "easy" | "medium" | "hard" | "ai" | "expert" = "easy"
 ): Promise<BotResponse | null> => {
     try {
         console.log(`Adding ${difficulty} bot to room:`, roomId);

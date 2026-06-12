@@ -55,6 +55,7 @@ export interface ErrorMessage {
 }
 export interface ErrorPayload {
     message: string;
+    error_type?: string;
 }
 /**
  * Model for host change messages.
@@ -115,7 +116,7 @@ export interface PlayersListPayload {
     players: string[];
     mapping: { [uuid: string]: string };
     bot_uuids: string[];
-    bot_difficulties: { [uuid: string]: "easy" | "medium" | "hard" | "ai" };
+    bot_difficulties: { [uuid: string]: "easy" | "medium" | "hard" | "ai" | "expert" };
     ready_players: string[];
     host_uuid?: string | null;
     connected_players: string[];
@@ -171,7 +172,7 @@ export interface BotAddedMessage {
 export interface BotAddedPayload {
     bot_uuid: string;
     bot_name: string;
-    bot_difficulty: "easy" | "medium" | "hard" | "ai";
+    bot_difficulty: "easy" | "medium" | "hard" | "ai" | "expert";
 }
 /**
  * Model for bot removed messages.

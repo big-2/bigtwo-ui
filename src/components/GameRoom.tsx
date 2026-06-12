@@ -31,14 +31,15 @@ interface GameRoomProps {
 }
 
 type MessageHandler = (message: WebSocketMessage) => void;
-type BotDifficulty = "easy" | "ai";
+type BotDifficulty = "easy" | "ai" | "expert";
 
 // Maximum number of chat messages to keep in history
 const MAX_CHAT_MESSAGES = 100;
 
 const normalizeBotDifficulty = (difficulty?: string): BotDifficulty => {
-    if (difficulty?.toLowerCase() === "ai") {
-        return "ai";
+    const normalized = difficulty?.toLowerCase();
+    if (normalized === "ai" || normalized === "expert") {
+        return normalized;
     }
 
     return "easy";
@@ -77,6 +78,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const [unreadCount, setUnreadCount] = useState(0);
     const [mobileChatDraft, setMobileChatDraft] = useState("");
     const [chatScrollTrigger, setChatScrollTrigger] = useState(0);
+    const [connectedElsewhere, setConnectedElsewhere] = useState(false);
 
     useEffect(() => {
         const stored = getStoredSession();
@@ -397,6 +399,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                 const payload = message.payload as { message?: string; error_type?: string };
                 console.error("Error from server:", payload?.message);
 
+                if (payload?.error_type === "connected_elsewhere") {
+                    setConnectedElsewhere(true);
+                    return;
+                }
+
                 // If this is a ready-related error, revert optimistic update
                 if (payload?.error_type === "ready" || payload?.message?.toLowerCase().includes("ready")) {
                     // Request fresh player list to sync ready state
@@ -525,6 +532,9 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             onMessage: processMessage,
             onStateChange: (state) => {
                 setConnectionState(state);
+                if (state === ConnectionState.CONNECTED_ELSEWHERE) {
+                    setConnectedElsewhere(true);
+                }
 
                 // Track state transitions for logging
                 if (lastConnectionStateRef.current === state) {
@@ -539,8 +549,11 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     console.log("Connection lost. Reconnecting...");
                 } else if (state === ConnectionState.FAILED) {
                     console.log("Failed to reconnect. Please refresh the page.");
+                } else if (state === ConnectionState.CONNECTED_ELSEWHERE) {
+                    console.log("Room opened in another tab. This tab is inactive.");
                 }
             },
+            onConnectedElsewhere: () => setConnectedElsewhere(true),
             maxReconnectAttempts: 10,
             baseDelay: 1000,
             maxDelay: 30000,
@@ -839,6 +852,12 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                         text: "Connection Failed",
                         className: "text-red-600 dark:text-red-400"
                     };
+                case ConnectionState.CONNECTED_ELSEWHERE:
+                    return {
+                        icon: WifiOff,
+                        text: "Other tab",
+                        className: "text-amber-600 dark:text-amber-400"
+                    };
             }
         };
 
@@ -853,26 +872,56 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         );
     };
 
+    const duplicateConnectionOverlay = connectedElsewhere ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-lg border border-amber-300 bg-background p-5 shadow-xl dark:border-amber-800">
+                <div className="mb-4 flex items-start gap-3">
+                    <div className="mt-0.5 rounded-full bg-amber-500/15 p-2 text-amber-700 dark:text-amber-300">
+                        <WifiOff className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                        <h2 className="text-lg font-semibold">Room open in another tab</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            This tab is no longer active.
+                        </p>
+                    </div>
+                </div>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button variant="outline" onClick={() => navigate("/")}>
+                        Home
+                    </Button>
+                    <Button onClick={() => window.location.reload()}>
+                        Use this tab
+                    </Button>
+                </div>
+            </div>
+        </div>
+    ) : null;
+
     // If game has started, show the GameScreen (only after we know self uuid for consistent identity)
     if (gameStarted && gameData && (selfUuid || Object.keys(uuidToName).find((uuid) => uuidToName[uuid] === username))) {
         return (
-            <GameScreen
-                username={username}
-                uuid={selfUuid || Object.keys(uuidToName).find((uuid) => uuidToName[uuid] === username) || username}
-                socket={socketRef.current}
-                initialGameData={gameData}
-                mapping={uuidToName}
-                botUuids={botUuids}
-                botDifficultyByUuid={botDifficultyByUuid}
-                onReturnToLobby={handleReturnToLobby}
-                connectionState={connectionState}
-            />
+            <>
+                <GameScreen
+                    username={username}
+                    uuid={selfUuid || Object.keys(uuidToName).find((uuid) => uuidToName[uuid] === username) || username}
+                    socket={socketRef.current}
+                    initialGameData={gameData}
+                    mapping={uuidToName}
+                    botUuids={botUuids}
+                    botDifficultyByUuid={botDifficultyByUuid}
+                    onReturnToLobby={handleReturnToLobby}
+                    connectionState={connectionState}
+                />
+                {duplicateConnectionOverlay}
+            </>
         );
     }
 
     // Otherwise show the home/room interface
     return (
         <div className="flex h-[calc(100vh-60px)] w-full flex-col overflow-hidden px-2 py-3 sm:px-4 sm:py-6">
+            {duplicateConnectionOverlay}
             <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-3 sm:gap-6 overflow-hidden">
                 <header className="flex flex-col gap-2 sm:gap-4 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-2 sm:p-4 md:p-6 shadow-sm dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
                     <div className="flex flex-row items-center justify-between gap-2">

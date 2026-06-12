@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { createRoom, getRooms, RoomResponse } from "../services/api";
-import { BarChart3, RefreshCw } from "lucide-react";
+import { createRoom, getCurrentRoom, getRooms, leaveRoom, RoomResponse } from "../services/api";
+import { BarChart3, LogOut, RefreshCw, RotateCw } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -16,11 +16,40 @@ interface HomeProps {
     userUuid: string;
 }
 
+type RoomListItem = RoomResponse & {
+    isCurrentRoom?: boolean;
+    isDisconnected?: boolean;
+};
+
 const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
-    const [rooms, setRooms] = useState<RoomResponse[]>([]);
+    const [rooms, setRooms] = useState<RoomListItem[]>([]);
+    const [isLeavingRoom, setIsLeavingRoom] = useState(false);
+    const [pendingRoomId, setPendingRoomId] = useState<string | null>(null);
 
     const fetchRooms = async () => {
-        setRooms(await getRooms());
+        const [availableRooms, currentRoom] = await Promise.all([
+            getRooms(),
+            getCurrentRoom(),
+        ]);
+
+        if (!currentRoom) {
+            setRooms(availableRooms);
+            return;
+        }
+
+        const canShowCurrentRoom = currentRoom.has_active_game || currentRoom.room.player_count < 4;
+        if (!canShowCurrentRoom) {
+            setRooms(availableRooms);
+            return;
+        }
+
+        const currentRoomRow: RoomListItem = {
+            ...currentRoom.room,
+            isCurrentRoom: true,
+            isDisconnected: !currentRoom.is_connected,
+        };
+        const otherRooms = availableRooms.filter((room) => room.id !== currentRoom.room.id);
+        setRooms([currentRoomRow, ...otherRooms]);
     };
 
     useEffect(() => {
@@ -35,6 +64,100 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
             onJoinRoom(newRoom.id);
         };
     }
+
+    const handleLeaveCurrentRoom = async (roomId: string) => {
+        setIsLeavingRoom(true);
+        const didLeave = await leaveRoom(roomId);
+        setIsLeavingRoom(false);
+
+        if (didLeave) {
+            await fetchRooms();
+        }
+    };
+
+    const handleJoinClick = (roomId: string) => {
+        if (pendingRoomId) {
+            return;
+        }
+
+        setPendingRoomId(roomId);
+        onJoinRoom(roomId);
+    };
+
+    const getRoomRowClassName = (room: RoomListItem) => cn(
+        room.isCurrentRoom && "border-l-4 border-l-sky-500 bg-sky-500/10 dark:bg-sky-400/10",
+        room.isDisconnected && "border-l-amber-500 bg-amber-500/15 dark:bg-amber-400/15"
+    );
+
+    const getRoomStatusBadge = (room: RoomListItem) => {
+        if (room.isDisconnected) {
+            return (
+                <Badge className="bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-amber-950">
+                    Disconnected
+                </Badge>
+            );
+        }
+
+        if (room.isCurrentRoom) {
+            return (
+                <Badge className="bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:text-sky-950">
+                    Your room
+                </Badge>
+            );
+        }
+
+        return (
+            <Badge
+                variant={room.status === 'waiting' ? 'default' : 'secondary'}
+                className={cn(
+                    room.status === 'waiting' && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                )}
+            >
+                {room.status}
+            </Badge>
+        );
+    };
+
+    const renderRoomActions = (room: RoomListItem) => {
+        if (!room.isCurrentRoom) {
+            return (
+                <Button
+                    onClick={() => handleJoinClick(room.id)}
+                    size="sm"
+                    variant="secondary"
+                    disabled={pendingRoomId === room.id}
+                    className="flex-shrink-0"
+                >
+                    Join
+                </Button>
+            );
+        }
+
+        return (
+            <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                    onClick={() => handleJoinClick(room.id)}
+                    size="sm"
+                    variant="default"
+                    disabled={pendingRoomId === room.id}
+                    className="flex-shrink-0"
+                >
+                    <RotateCw className="h-4 w-4" />
+                    Rejoin
+                </Button>
+                <Button
+                    onClick={() => handleLeaveCurrentRoom(room.id)}
+                    size="sm"
+                    variant="outline"
+                    disabled={isLeavingRoom}
+                    className="flex-shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                    <LogOut className="h-4 w-4" />
+                    Leave
+                </Button>
+            </div>
+        );
+    };
 
     return (
         <>
@@ -99,31 +222,19 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                                             {rooms.map((room) => (
                                                 <div
                                                     key={room.id}
-                                                    className="flex items-center justify-between gap-2 rounded-lg border bg-card p-3"
+                                                    className={cn(
+                                                        "flex items-center justify-between gap-2 rounded-lg border bg-card p-3",
+                                                        getRoomRowClassName(room)
+                                                    )}
                                                 >
                                                     <div className="flex flex-col gap-1 min-w-0 flex-1">
                                                         <span className="font-medium text-sm truncate max-w-[140px]">{room.id}</span>
                                                         <div className="flex items-center gap-2">
-                                                            <Badge
-                                                                variant={room.status === 'waiting' ? 'default' : 'secondary'}
-                                                                className={cn(
-                                                                    "text-xs px-1.5 py-0",
-                                                                    room.status === 'waiting' && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
-                                                                )}
-                                                            >
-                                                                {room.status}
-                                                            </Badge>
+                                                            {getRoomStatusBadge(room)}
                                                             <span className="text-xs text-muted-foreground">{room.player_count}/4</span>
                                                         </div>
                                                     </div>
-                                                    <Button
-                                                        onClick={() => onJoinRoom(room.id)}
-                                                        size="sm"
-                                                        variant="secondary"
-                                                        className="flex-shrink-0"
-                                                    >
-                                                        Join
-                                                    </Button>
+                                                    {renderRoomActions(room)}
                                                 </div>
                                             ))}
                                         </div>
@@ -139,28 +250,11 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                                             </TableHeader>
                                             <TableBody>
                                                 {rooms.map((room) => (
-                                                    <TableRow key={room.id}>
+                                                    <TableRow key={room.id} className={getRoomRowClassName(room)}>
                                                         <TableCell className="font-medium">{room.id}</TableCell>
-                                                        <TableCell>
-                                                            <Badge
-                                                                variant={room.status === 'waiting' ? 'default' : 'secondary'}
-                                                                className={cn(
-                                                                    room.status === 'waiting' && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
-                                                                )}
-                                                            >
-                                                                {room.status}
-                                                            </Badge>
-                                                        </TableCell>
+                                                        <TableCell>{getRoomStatusBadge(room)}</TableCell>
                                                         <TableCell>{room.player_count}/4</TableCell>
-                                                        <TableCell>
-                                                            <Button
-                                                                onClick={() => onJoinRoom(room.id)}
-                                                                size="sm"
-                                                                variant="secondary"
-                                                            >
-                                                                Join
-                                                            </Button>
-                                                        </TableCell>
+                                                        <TableCell>{renderRoomActions(room)}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>

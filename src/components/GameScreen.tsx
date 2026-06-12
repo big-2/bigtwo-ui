@@ -38,7 +38,7 @@ interface GameScreenProps {
     };
     mapping: Record<string, string>; // uuid to display name mapping
     botUuids?: Set<string>; // Set of bot UUIDs
-    botDifficultyByUuid?: Record<string, "easy" | "ai">;
+    botDifficultyByUuid?: Record<string, "easy" | "ai" | "expert">;
     onReturnToLobby?: () => void;
     connectionState?: ConnectionState;
 }
@@ -300,7 +300,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
     const renderPlayerName = (playerUuid: string, mapping: Record<string, string>, size: "xs" | "sm" | "md" | "lg" = "xs") => {
         const displayName = getDisplayName(playerUuid, mapping);
         const isBot = botUuids.has(playerUuid);
-        const isAiBot = isBot && getBotDifficulty(playerUuid) === "ai";
+        const difficulty = getBotDifficulty(playerUuid);
+        const isAiBot = isBot && (difficulty === "ai" || difficulty === "expert");
+        const botLabel = difficulty === "expert" ? "Expert" : isAiBot ? "AI" : "Bot";
 
         return (
             <div className="flex items-center justify-center gap-1.5 text-foreground min-w-0">
@@ -319,7 +321,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                         ) : (
                             <Bot className="h-2.5 w-2.5" />
                         )}
-                        {isAiBot ? "AI" : "Bot"}
+                        {botLabel}
                     </Badge>
                 )}
             </div>
@@ -1213,7 +1215,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
         const isActive = gameState.currentTurn === playerUuid;
         const displayName = getDisplayName(playerUuid, gameState.uuidToName);
         const isBot = botUuids.has(playerUuid);
-        const isAiBot = isBot && getBotDifficulty(playerUuid) === "ai";
+        const difficulty = getBotDifficulty(playerUuid);
+        const isAiBot = isBot && (difficulty === "ai" || difficulty === "expert");
+        const botLabel = difficulty === "expert" ? "Expert" : isAiBot ? "AI" : "Bot";
         const lastPlayed = gameState.lastPlaysByPlayer[playerUuid];
 
         return (
@@ -1249,7 +1253,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                             ) : (
                                 <Bot className="h-2 w-2" />
                             )}
-                            {isAiBot ? "AI" : "Bot"}
+                            {botLabel}
                         </span>
                     )}
                 </div>
