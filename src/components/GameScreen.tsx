@@ -13,7 +13,7 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { getFullCardFlightAnimationDurationMs, rectFromElement, useCardFlightLayer } from "../hooks/useCardFlightLayer";
 import { useGameFeelSettings } from "../hooks/useGameFeelSettings";
 import { isCardFlightAnimationEnabled } from "../utils/config";
-import { Bot, BrainCircuit, HelpCircle, WifiOff } from "lucide-react";
+import { Bot, BrainCircuit, HelpCircle, Layers, WifiOff } from "lucide-react";
 import GameFeelSettingsDialog from "./GameFeelSettingsDialog";
 import {
     Dialog,
@@ -109,6 +109,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
     const desktopCardLaneTargetRef = useRef<HTMLDivElement | null>(null);
     const mobileCardLaneTargetRef = useRef<HTMLDivElement | null>(null);
     const [suppressedTablePlayKey, setSuppressedTablePlayKey] = useState<string | null>(null);
+    const [moveError, setMoveError] = useState<string | null>(null);
+    const [errorShakeKey, setErrorShakeKey] = useState(0);
+    const moveErrorTimeoutRef = useRef<number | null>(null);
     const {
         settings: gameFeelSettings,
         setSettings: setGameFeelSettings,
@@ -160,6 +163,12 @@ const GameScreen: React.FC<GameScreenProps> = ({
     useEffect(() => () => {
         resetGameProgressionQueue();
     }, [resetGameProgressionQueue]);
+
+    useEffect(() => () => {
+        if (moveErrorTimeoutRef.current !== null) {
+            window.clearTimeout(moveErrorTimeoutRef.current);
+        }
+    }, []);
 
     const releaseGameProgressionAfter = useCallback((delayMs: number) => {
         clearActionPacingTimeout();
@@ -630,12 +639,30 @@ const GameScreen: React.FC<GameScreenProps> = ({
             });
         },
 
+        ERROR: (message) => {
+            const payload = message.payload as { message?: string; error_type?: string };
+            const errorMessage = payload?.message;
+            if (!errorMessage) {
+                return;
+            }
+
+            setMoveError(errorMessage);
+            setErrorShakeKey(key => key + 1);
+
+            if (moveErrorTimeoutRef.current !== null) {
+                window.clearTimeout(moveErrorTimeoutRef.current);
+            }
+            moveErrorTimeoutRef.current = window.setTimeout(() => {
+                setMoveError(null);
+                moveErrorTimeoutRef.current = null;
+            }, 3000);
+        },
+
         GAME_WON: (message) => {
             const winner = message.payload.winner as string;
             const winningHand = Array.isArray(message.payload.winning_hand)
                 ? (message.payload.winning_hand as string[])
                 : [];
-            console.log(`Game won by ${winner}!`);
 
             setGameState(prev => {
                 const updatedPlayers = prev.players.map(player =>
@@ -1103,7 +1130,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 <div
                     key={`top-card-${index}`}
                     className={cn(
-                        "h-8 w-5 rounded border border-blue-600/40 bg-blue-500/80 shadow-sm sm:h-9 sm:w-6 md:h-10 md:w-7",
+                        "card-back-pattern h-8 w-5 rounded border border-primary/40 shadow-sm sm:h-9 sm:w-6 md:h-10 md:w-7",
                         index > 0 && "-ml-1.5 sm:-ml-2 md:-ml-2.5"
                     )}
                     style={{ zIndex: 13 - index }}
@@ -1198,7 +1225,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                             <div
                                 key={`side-card-${index}`}
                                 className={cn(
-                                    "h-5 w-3 rounded border border-blue-600/40 bg-blue-500/80 shadow-sm sm:h-6 sm:w-4 md:h-8 md:w-5",
+                                    "card-back-pattern h-5 w-3 rounded border border-primary/40 shadow-sm sm:h-6 sm:w-4 md:h-8 md:w-5",
                                     index > 0 && "-ml-1 sm:-ml-1.5 md:-ml-2"
                                 )}
                                 style={{ zIndex: 13 - index }}
@@ -1348,10 +1375,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
         return (
             <div className="grid h-full w-full grid-rows-[18px_minmax(0,1fr)] items-center gap-2">
-                <span className="hidden text-center text-sm uppercase tracking-wide text-muted-foreground md:block">
+                <span className="hidden text-center text-sm uppercase tracking-wide text-emerald-50/70 md:block">
                     {desktopLabel}
                 </span>
-                <span className="block text-center text-xs uppercase tracking-wide text-muted-foreground md:hidden">
+                <span className="block text-center text-xs uppercase tracking-wide text-emerald-50/70 md:hidden">
                     {mobileLabel}
                 </span>
                 <div
@@ -1400,13 +1427,61 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 onSettingsChange={setGameFeelSettings}
             />
 
+            {/* Hand Rankings Help Button - Fixed position in top-right corner (all sizes) */}
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="fixed right-14 top-2 z-50 flex h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:h-10 md:w-10"
+                        title="Hand rankings"
+                    >
+                        <Layers className="h-4 w-4 md:h-5 md:w-5" />
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Hand Rankings</DialogTitle>
+                        <DialogDescription>
+                            Lowest to highest
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                        <div>
+                            <h4 className="mb-2 font-semibold text-sm">Card Ranks</h4>
+                            <p className="text-sm text-muted-foreground">
+                                3 &lt; 4 &lt; 5 &lt; 6 &lt; 7 &lt; 8 &lt; 9 &lt; 10 &lt; J &lt; Q &lt; K &lt; A &lt; <span className="font-bold text-foreground">2</span>
+                            </p>
+                        </div>
+                        <div>
+                            <h4 className="mb-2 font-semibold text-sm">Suits</h4>
+                            <p className="text-sm text-muted-foreground">
+                                ♦ &lt; ♣ &lt; ♥ &lt; ♠
+                            </p>
+                        </div>
+                        <div>
+                            <h4 className="mb-2 font-semibold text-sm">Five-Card Hands</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Straight &lt; Flush &lt; Full House &lt; Four of a Kind &lt; Straight Flush
+                            </p>
+                        </div>
+                        <div>
+                            <h4 className="mb-2 font-semibold text-sm">Playing</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Singles beat singles, pairs beat pairs, triples beat triples, and five-card hands beat five-card hands of lower rank. Each play must match the type of the previous play and rank higher.
+                            </p>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             {/* Keyboard Shortcuts Help Button - Fixed position in top-right corner (desktop only) */}
             <Dialog>
                 <DialogTrigger asChild>
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="fixed right-14 top-2 z-50 hidden h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:flex md:h-10 md:w-10"
+                        className="fixed right-24 top-2 z-50 hidden h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:flex md:h-10 md:w-10"
                         title="Keyboard shortcuts"
                     >
                         <HelpCircle className="h-4 w-4 md:h-5 md:w-5" />
@@ -1551,10 +1626,11 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                                             <div
                                                                 key={`${card}-${index}`}
                                                                 className={cn(
-                                                                    "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900 flex-shrink-0",
+                                                                    "winner-card-pop flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900 flex-shrink-0",
                                                                     "h-12 w-9 text-xs md:h-14 md:w-10 md:text-sm",
                                                                     getSuitColorClass(suit, theme)
                                                                 )}
+                                                                style={{ animationDelay: `${index * 60}ms` }}
                                                             >
                                                                 <span>{getRankDisplay(rank)}</span>
                                                                 <span className="text-lg md:text-xl">{getSuitSymbol(suit)}</span>
@@ -1578,7 +1654,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                             <div className={cn(
                                                 "flex min-h-[44px] min-w-[210px] items-center justify-center rounded-full border px-4 py-2 text-center text-base font-semibold shadow-sm transition-colors",
                                                 isCurrentTurn
-                                                    ? "border-primary/40 bg-primary/8 text-primary"
+                                                    ? "border-primary/40 bg-primary/8 text-primary turn-glow"
                                                     : "border-border/70 bg-background/70 text-foreground"
                                             )}>
                                                 {isCurrentTurn
@@ -1588,7 +1664,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                         </div>
                                         <div
                                             ref={desktopTableTargetRef}
-                                            className="flex min-h-[132px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/35 px-3 py-3"
+                                            className="felt-surface flex min-h-[132px] items-center justify-center rounded-2xl border border-black/20 shadow-inner px-3 py-3"
                                         >
                                             {gameState.lastPlayedCards.length > 0 ? (
                                                 renderLastPlayedCards()
@@ -1597,10 +1673,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                                     ref={desktopCardLaneTargetRef}
                                                     className="flex min-h-[84px] min-w-[180px] flex-col items-center justify-center gap-2 text-center"
                                                 >
-                                                    <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                                                    <p className="text-xs uppercase tracking-[0.24em] text-emerald-50/60">
                                                         Table
                                                     </p>
-                                                    <p className="text-sm text-muted-foreground">
+                                                    <p className="text-sm text-emerald-50/70">
                                                         Waiting for the opening play.
                                                     </p>
                                                 </div>
@@ -1640,10 +1716,11 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                                 <div
                                                     key={`${card}-${index}`}
                                                     className={cn(
-                                                        "flex flex-col items-center justify-center rounded-lg border-2 border-border bg-white font-bold shadow-lg dark:border-slate-700 dark:bg-slate-900",
+                                                        "winner-card-pop flex flex-col items-center justify-center rounded-lg border-2 border-border bg-white font-bold shadow-lg dark:border-slate-700 dark:bg-slate-900",
                                                         "h-16 w-11 text-sm",
                                                         getSuitColorClass(suit, theme)
                                                     )}
+                                                    style={{ animationDelay: `${index * 60}ms` }}
                                                 >
                                                     <span>{getRankDisplay(rank)}</span>
                                                     <span className="text-2xl">{getSuitSymbol(suit)}</span>
@@ -1667,7 +1744,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                 <div className={cn(
                                     "flex min-h-[42px] min-w-[190px] items-center justify-center rounded-full border px-4 py-2 text-center text-sm font-semibold shadow-sm transition-colors",
                                     isCurrentTurn
-                                        ? "border-primary/40 bg-primary/8 text-primary"
+                                        ? "border-primary/40 bg-primary/8 text-primary turn-glow"
                                         : "border-border/70 bg-background/70 text-foreground"
                                 )}>
                                     {isCurrentTurn
@@ -1678,11 +1755,11 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
                             <div
                                 ref={mobileTableTargetRef}
-                                className="flex min-h-[118px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/35 px-3 py-3"
+                                className="felt-surface flex min-h-[118px] items-center justify-center rounded-2xl border border-black/20 shadow-inner px-3 py-3"
                             >
                                 {gameState.lastPlayedCards.length > 0 ? (
                                     <div className="flex flex-col items-center gap-2 w-full">
-                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                        <p className="text-xs uppercase tracking-wide text-emerald-50/70">
                                             {gameState.lastPlayedBy === uuid ? "You played" : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played`}
                                         </p>
                                         <div
@@ -1716,10 +1793,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                         ref={mobileCardLaneTargetRef}
                                         className="flex min-h-[76px] min-w-[150px] flex-col items-center justify-center gap-2 text-center"
                                     >
-                                        <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                                        <p className="text-xs uppercase tracking-[0.24em] text-emerald-50/60">
                                             Table
                                         </p>
-                                        <p className="text-sm text-muted-foreground">
+                                        <p className="text-sm text-emerald-50/70">
                                             Waiting for the opening play.
                                         </p>
                                     </div>
@@ -1808,7 +1885,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
                         </Badge>
                     </div>
 
-                    <div className="flex min-h-0 justify-center">
+                    <div className={cn(
+                        "flex min-h-0 justify-center rounded-xl transition-shadow",
+                        isCurrentTurn && "ring-2 ring-primary/40 turn-glow"
+                    )}>
                         <PlayerHand
                             cards={currentPlayer?.cards || []}
                             selectedCards={gameState.selectedCards}
@@ -1818,6 +1898,14 @@ const GameScreen: React.FC<GameScreenProps> = ({
                             registerCardRef={registerHandCardRef}
                         />
                     </div>
+
+                    {moveError && (
+                        <div key={errorShakeKey} className="shake-once flex justify-center pt-1">
+                            <span className="rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive">
+                                {moveError}
+                            </span>
+                        </div>
+                    )}
 
                     {/* Desktop: Larger buttons */}
                     <div className="hidden flex-wrap items-center justify-center gap-2 pb-1 md:flex">
@@ -1844,7 +1932,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                         </Button>
                         <Button
                             variant="outline"
-                            className="min-w-[120px] border-orange-400 text-orange-600 hover:bg-orange-50 dark:border-orange-500 dark:text-orange-300 dark:hover:bg-orange-500/10"
+                            className="min-w-[120px]"
                             size="sm"
                             onClick={handlePass}
                             disabled={!isCurrentTurn || isActionPacing || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
@@ -1885,7 +1973,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                         </Button>
                         <Button
                             variant="outline"
-                            className="flex-1 max-w-[90px] h-9 text-sm border-orange-400 text-orange-600 hover:bg-orange-50 dark:border-orange-500 dark:text-orange-300 dark:hover:bg-orange-500/10"
+                            className="flex-1 max-w-[90px] h-9 text-sm"
                             size="sm"
                             onClick={handlePass}
                             disabled={!isCurrentTurn || isActionPacing || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
