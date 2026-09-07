@@ -15,6 +15,9 @@ import { useGameFeelSettings } from "../hooks/useGameFeelSettings";
 import { isCardFlightAnimationEnabled } from "../utils/config";
 import { Bot, BrainCircuit, HelpCircle, Layers, WifiOff } from "lucide-react";
 import GameFeelSettingsDialog from "./GameFeelSettingsDialog";
+import PostGameFeedback from "./PostGameFeedback";
+import { usePostGameFeedback } from "../hooks/usePostGameFeedback";
+import { FeedbackBotDifficulty } from "../types.feedback";
 import {
     Dialog,
     DialogContent,
@@ -27,6 +30,7 @@ import {
 interface GameScreenProps {
     username: string; // display name for current client
     uuid: string; // uuid for current client
+    roomId?: string; // room the game is played in, used as feedback context
     socket: ReconnectingWebSocket | null;
     initialGameData?: {
         cards: string[];
@@ -89,6 +93,7 @@ const getVisibleElementRect = (elements: Array<HTMLElement | null>) => {
 const GameScreen: React.FC<GameScreenProps> = ({
     username,
     uuid,
+    roomId,
     socket,
     initialGameData,
     mapping,
@@ -305,6 +310,13 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
     const getBotDifficulty = (playerUuid: string) => botDifficultyByUuid[playerUuid] ?? "easy";
 
+    // Difficulty recorded alongside feedback. Rooms are configured with a single
+    // difficulty in practice, so the first bot's setting represents the game.
+    const feedbackBotDifficulty = useMemo<FeedbackBotDifficulty | undefined>(() => {
+        const firstBotUuid = Array.from(botUuids).find((botUuid) => botDifficultyByUuid[botUuid]);
+        return firstBotUuid ? botDifficultyByUuid[firstBotUuid] : undefined;
+    }, [botUuids, botDifficultyByUuid]);
+
     // Helper function to render player name with bot badge if applicable
     const renderPlayerName = (playerUuid: string, mapping: Record<string, string>, size: "xs" | "sm" | "md" | "lg" = "xs") => {
         const displayName = getDisplayName(playerUuid, mapping);
@@ -436,6 +448,16 @@ const GameScreen: React.FC<GameScreenProps> = ({
             uuidToName: mapping,
             focusedCardIndex: null,
         };
+    });
+
+    // Owned here, not in PostGameFeedback: the game-over panel is rendered in
+    // both the desktop and mobile branches below, and both mount at once.
+    const postGameFeedback = usePostGameFeedback({
+        active: gameState.gameWon,
+        roomId,
+        won: gameState.winner === uuid,
+        botDifficulty: feedbackBotDifficulty,
+        hadBots: botUuids.size > 0,
     });
 
     // Keep UUID to name mapping in sync with parent component updates
@@ -1647,6 +1669,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                                         >
                                             Return to Lobby
                                         </Button>
+                                        <PostGameFeedback feedback={postGameFeedback} />
                                     </div>
                                 ) : (
                                     <div className="grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-3">
@@ -1737,6 +1760,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                             >
                                 Back to Lobby
                             </Button>
+                            <PostGameFeedback compact feedback={postGameFeedback} />
                         </div>
                     ) : (
                         <div className="grid min-h-[196px] w-full grid-rows-[auto_minmax(0,1fr)] gap-3 rounded-2xl border border-primary/10 bg-card/90 px-3 py-4 shadow-lg">
