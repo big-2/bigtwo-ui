@@ -15,12 +15,24 @@ export const normalizeUrl = (value: string | undefined, fallback: string): strin
     return removeTrailingSlash(source);
 };
 
+const getDevHost = (): string => (
+    typeof window !== 'undefined' && window.location.hostname
+        ? window.location.hostname
+        : 'localhost'
+);
+
 export const getNormalizedApiUrl = (): string => {
-    return normalizeUrl(import.meta.env.VITE_API_URL, 'http://localhost:3000');
+    return normalizeUrl(
+        import.meta.env.VITE_API_URL,
+        import.meta.env.DEV ? `http://${getDevHost()}:3000` : 'http://localhost:3000'
+    );
 };
 
 export const getNormalizedWsUrl = (): string => {
-    return normalizeUrl(import.meta.env.VITE_WS_URL, 'ws://127.0.0.1:3000');
+    return normalizeUrl(
+        import.meta.env.VITE_WS_URL,
+        import.meta.env.DEV ? `ws://${getDevHost()}:3000` : 'ws://127.0.0.1:3000'
+    );
 };
 
 const parseBooleanSetting = (value: string | undefined | null): boolean | null => {
