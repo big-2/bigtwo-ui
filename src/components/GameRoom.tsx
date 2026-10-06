@@ -904,6 +904,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             <>
                 <GameScreen
                     username={username}
+                    roomId={roomId}
                     uuid={selfUuid || Object.keys(uuidToName).find((uuid) => uuidToName[uuid] === username) || username}
                     socket={socketRef.current}
                     initialGameData={gameData}
