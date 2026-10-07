@@ -25,31 +25,37 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
     const [rooms, setRooms] = useState<RoomListItem[]>([]);
     const [isLeavingRoom, setIsLeavingRoom] = useState(false);
     const [pendingRoomId, setPendingRoomId] = useState<string | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const fetchRooms = async () => {
-        const [availableRooms, currentRoom] = await Promise.all([
-            getRooms(),
-            getCurrentRoom(),
-        ]);
+        setIsRefreshing(true);
+        try {
+            const [availableRooms, currentRoom] = await Promise.all([
+                getRooms(),
+                getCurrentRoom(),
+            ]);
 
-        if (!currentRoom) {
-            setRooms(availableRooms);
-            return;
+            if (!currentRoom) {
+                setRooms(availableRooms);
+                return;
+            }
+
+            const canShowCurrentRoom = currentRoom.has_active_game || currentRoom.room.player_count < 4;
+            if (!canShowCurrentRoom) {
+                setRooms(availableRooms);
+                return;
+            }
+
+            const currentRoomRow: RoomListItem = {
+                ...currentRoom.room,
+                isCurrentRoom: true,
+                isDisconnected: !currentRoom.is_connected,
+            };
+            const otherRooms = availableRooms.filter((room) => room.id !== currentRoom.room.id);
+            setRooms([currentRoomRow, ...otherRooms]);
+        } finally {
+            setIsRefreshing(false);
         }
-
-        const canShowCurrentRoom = currentRoom.has_active_game || currentRoom.room.player_count < 4;
-        if (!canShowCurrentRoom) {
-            setRooms(availableRooms);
-            return;
-        }
-
-        const currentRoomRow: RoomListItem = {
-            ...currentRoom.room,
-            isCurrentRoom: true,
-            isDisconnected: !currentRoom.is_connected,
-        };
-        const otherRooms = availableRooms.filter((room) => room.id !== currentRoom.room.id);
-        setRooms([currentRoomRow, ...otherRooms]);
     };
 
     useEffect(() => {
@@ -60,10 +66,9 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
         const newRoom = await createRoom(userUuid);
         if (newRoom) {
             setRooms([...rooms, newRoom]);
-            console.log("Rooms:", rooms);
             onJoinRoom(newRoom.id);
-        };
-    }
+        }
+    };
 
     const handleLeaveCurrentRoom = async (roomId: string) => {
         setIsLeavingRoom(true);
@@ -170,8 +175,10 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                 <div className="flex w-full max-w-7xl flex-col gap-3 sm:gap-4">
                 {/* Hero Section - SEO optimized with H1, visible on all devices */}
                 <section className="text-center px-2" aria-label="Welcome">
-                    <h1 className="text-xl font-bold mb-1 sm:text-2xl lg:text-3xl">Big Two Online With Friends, Bots, Stats And Match History</h1>
-                    <p className="text-xs text-muted-foreground sm:text-sm">Play Big 2 in a clean browser app. Start private games with friends, practice against bots, and track your recent results.</p>
+                    <h1 className="text-xl font-bold mb-1 sm:text-2xl lg:text-3xl">Big Two Online</h1>
+                    <p className="text-xs text-muted-foreground sm:text-sm">
+                        Play with friends, practice against bots, and track your stats and match history.
+                    </p>
                     <div className="mt-3 flex justify-center">
                         <Button asChild variant="outline" size="sm">
                             <Link to="/me/stats">
@@ -203,18 +210,28 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                                         variant="outline"
                                         size="icon"
                                         title="Refresh rooms"
+                                        disabled={isRefreshing}
                                         className="transition-transform hover:rotate-180 h-8 w-8 sm:h-9 sm:w-9"
                                     >
-                                        <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
+                                        <RefreshCw className={cn("h-4 w-4 sm:h-5 sm:w-5", isRefreshing && "animate-spin")} />
                                     </Button>
                                 </div>
                             </header>
 
                             <ScrollArea className="h-80 sm:h-96 rounded-md border">
                                 {rooms.length === 0 ? (
-                                    <p className="py-12 text-center italic text-muted-foreground">
-                                        No available rooms. Create one!
-                                    </p>
+                                    <div className="flex flex-col items-center gap-3 py-12 text-center">
+                                        <p className="italic text-muted-foreground">
+                                            No available rooms.
+                                        </p>
+                                        <Button
+                                            onClick={handleCreateRoom}
+                                            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                                            size="sm"
+                                        >
+                                            Create Room
+                                        </Button>
+                                    </div>
                                 ) : (
                                     <>
                                         {/* Mobile: Card layout */}

@@ -343,7 +343,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
             },
 
             // Game message handlers
-            MOVE: () => console.log("MOVE message received"),
+            MOVE: () => undefined,
             MOVE_PLAYED: (message) => {
                 const payload = message.payload as {
                     player?: string;
@@ -368,7 +368,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
                     } : prev);
                 }
             },
-            TURN_CHANGE: () => console.log("TURN_CHANGE message received"),
+            TURN_CHANGE: () => undefined,
 
             GAME_WON: (message) => {
                 const payload = message.payload as { winner?: string };
@@ -666,7 +666,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     };
 
     const handleStartGame = () => {
-        console.log("Start game button clicked");
 
         if (!socketRef.current?.isConnected()) {
             console.warn("Cannot start game: not connected");
@@ -732,8 +731,7 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
         }
     }, [roomId, addChatMessage]);
 
-    const handleKickPlayer = useCallback((playerUuid: string) => {
-        console.log("Kick player clicked", playerUuid);
+    const handleKickPlayer = useCallback(() => {
         addChatMessage({
             senderUuid: "SYSTEM",
             content: "Player removal is coming soon."
@@ -770,7 +768,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     const canAddBot = !gameStarted && playerUuids.length < 4;
 
     const handleReturnToLobby = () => {
-        console.log("Returning to lobby view");
 
         // Simply update local UI state - no backend coordination needed
         // The player is still in the room, just viewing the lobby instead of game
@@ -798,7 +795,6 @@ const GameRoom: React.FC<GameRoomProps> = ({ roomId, username, roomDetails }) =>
     };
 
     const handleLeaveRoom = () => {
-        console.log("Leave room button clicked");
 
         // Send LEAVE message if connected (fire-and-forget pattern)
         // Backend will handle cleanup on either LEAVE message or WebSocket close

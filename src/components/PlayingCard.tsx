@@ -31,7 +31,7 @@ const PlayingCard = forwardRef<HTMLDivElement, PlayingCardProps>(({
         <div
             ref={ref}
             className={cn(
-                "flex select-none flex-col items-center justify-center rounded-lg border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
+                "relative flex select-none flex-col items-center justify-center rounded-lg border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
                 getSuitColorClass(suit, theme),
                 className
             )}

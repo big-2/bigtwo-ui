@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { Check } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useScreenSize } from "../hooks/useMediaQuery";
 import PlayingCard from "./PlayingCard";
@@ -122,6 +123,11 @@ const Card: React.FC<CardProps> = ({
             suitClassName={suitFontSize}
         >
             {isDropTarget && <div className="absolute inset-x-0 bottom-0 h-1 rounded-b bg-primary" />}
+            {isSelected && !isDragging && (
+                <div className="absolute -right-1.5 -top-1.5 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow ring-2 ring-white dark:ring-slate-900">
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                </div>
+            )}
             {isSelected && isDragging && selectedCards.length > 1 && (
                 <div className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground shadow">
                     {selectedCards.length}

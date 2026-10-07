@@ -84,3 +84,69 @@
     color: hsl(var(--foreground));
   }
 }
+
+@layer utilities {
+  .felt-surface {
+    background-color: hsl(152 45% 20%);
+    background-image:
+      radial-gradient(ellipse at center, rgba(255, 255, 255, 0.07), transparent 65%),
+      linear-gradient(160deg, rgba(16, 90, 64, 0.9), rgba(8, 56, 40, 0.95));
+  }
+  .dark .felt-surface {
+    background-color: hsl(152 38% 10%);
+    background-image:
+      radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05), transparent 65%),
+      linear-gradient(160deg, rgba(10, 56, 41, 0.95), rgba(4, 26, 19, 0.98));
+  }
+
+  .card-back-pattern {
+    background-color: hsl(var(--primary));
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.22) 0px,
+      rgba(255, 255, 255, 0.22) 2px,
+      transparent 2px,
+      transparent 6px
+    );
+  }
+
+  .turn-glow {
+    animation: turn-glow 1.8s ease-in-out infinite;
+  }
+
+  @keyframes turn-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.45);
+    }
+    50% {
+      box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
+    }
+  }
+
+  .shake-once {
+    animation: shake-once 0.4s ease-in-out;
+  }
+
+  @keyframes shake-once {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .winner-card-pop {
+    animation: winner-card-pop 0.5s ease-out backwards;
+  }
+
+  @keyframes winner-card-pop {
+    0% {
+      opacity: 0;
+      transform: translateY(18px) scale(0.8) rotate(-10deg);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1) rotate(0deg);
+    }
+  }
+}
