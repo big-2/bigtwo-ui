@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { BarChart3, Gamepad2, Users } from "lucide-react";
 import { Badge } from "./ui/badge";
 import ThemeToggle from "./ThemeToggle";
+import { ARCADE_ENABLED } from "../utils/config";
 import { getOnlinePlayers } from "../services/api";
 import { Button } from "./ui/button";
 
@@ -60,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({ username }) => {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3">
-                    <Button
+                    {ARCADE_ENABLED && <Button
                         type="button"
                         variant={location.pathname === "/arcade" ? "secondary" : "ghost"}
                         size="sm"
@@ -70,7 +71,7 @@ const Header: React.FC<HeaderProps> = ({ username }) => {
                     >
                         <Gamepad2 className="h-4 w-4" />
                         <span className="hidden sm:inline">Arcade</span>
-                    </Button>
+                    </Button>}
                     <Button
                         type="button"
                         variant={location.pathname === "/me/stats" ? "secondary" : "ghost"}

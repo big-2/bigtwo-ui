@@ -73,6 +73,9 @@ export const isCardFlightAnimationEnabled = (): boolean => {
     return parseBooleanSetting(import.meta.env.VITE_CARD_FLIGHT_ANIMATIONS) ?? true;
 };
 
+// Arcade is an unreleased prototype. It stays off unless a build sets VITE_ENABLE_ARCADE=true.
+export const ARCADE_ENABLED = import.meta.env.VITE_ENABLE_ARCADE === 'true';
+
 export const validateEnvironment = (): void => {
     if (import.meta.env.DEV) {
         return;

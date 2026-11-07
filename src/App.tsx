@@ -17,9 +17,10 @@ import {
     StrategyPage,
 } from "./components/SeoPages";
 import MyStatsPage from "./components/MyStatsPage";
+import { ARCADE_ENABLED } from "./utils/config";
 import "./index.css"; // Ensure global styles are included
 
-const ArcadePage = React.lazy(() => import("./components/ArcadePage"));
+const ArcadePage = ARCADE_ENABLED ? React.lazy(() => import("./components/ArcadePage")) : null;
 
 const RoomPage: React.FC<{ username: string }> = ({ username }) => {
     const { roomId } = useParams<{ roomId: string }>();
@@ -65,7 +66,7 @@ const App: React.FC = () => {
     };
 
     // Solo arcade does not require a multiplayer session or backend connection.
-    if (isLoading && location.pathname !== "/arcade") {
+    if (isLoading && !(ArcadePage && location.pathname === "/arcade")) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
                 <p className="text-xl font-semibold">Loading...</p>
@@ -87,7 +88,7 @@ const App: React.FC = () => {
                     )}
                     <Routes>
                         <Route path="/" element={<Home onJoinRoom={handleJoinRoom} userUuid={userUuid} />} />
-                        <Route path="/arcade" element={<>
+                        {ArcadePage && <Route path="/arcade" element={<>
                             <SeoHead
                                 title="Big Two Arcade | Powers, Streaks and Boss Tables"
                                 description="Play a solo Big Two arcade run with powers, upgrades and a final boss."
@@ -97,7 +98,7 @@ const App: React.FC = () => {
                             <React.Suspense fallback={<p className="p-8 text-center">Loading Arcade...</p>}>
                                 <ArcadePage />
                             </React.Suspense>
-                        </>} />
+                        </>} />}
                         <Route path="/how-to-play" element={<HowToPlayPage />} />
                         <Route path="/rules" element={<RulesPage />} />
                         <Route path="/strategy" element={<StrategyPage />} />

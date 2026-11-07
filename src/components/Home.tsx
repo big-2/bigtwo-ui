@@ -4,6 +4,7 @@ import { createRoom, getCurrentRoom, getRooms, leaveRoom, RoomResponse } from ".
 import { BarChart3, Gamepad2, LogOut, RefreshCw, RotateCw } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
+import { ARCADE_ENABLED } from "../utils/config";
 import { ScrollArea } from "./ui/scroll-area";
 import { Badge } from "./ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
@@ -180,12 +181,12 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, userUuid }) => {
                         Play with friends, practice against bots, and track your stats and match history.
                     </p>
                     <div className="mt-3 flex flex-wrap justify-center gap-2">
-                        <Button asChild size="sm" className="bg-cyan-700 text-white hover:bg-cyan-800 dark:bg-cyan-600 dark:hover:bg-cyan-700">
+                        {ARCADE_ENABLED && <Button asChild size="sm" className="bg-cyan-700 text-white hover:bg-cyan-800 dark:bg-cyan-600 dark:hover:bg-cyan-700">
                             <Link to="/arcade">
                                 <Gamepad2 className="h-4 w-4" />
                                 Play Arcade
                             </Link>
-                        </Button>
+                        </Button>}
                         <Button asChild variant="outline" size="sm">
                             <Link to="/me/stats">
                                 <BarChart3 className="h-4 w-4" />
