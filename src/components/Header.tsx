@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Users } from "lucide-react";
+import { BarChart3, Gamepad2, Users } from "lucide-react";
 import { Badge } from "./ui/badge";
 import ThemeToggle from "./ThemeToggle";
 import { getOnlinePlayers } from "../services/api";
@@ -62,6 +62,17 @@ const Header: React.FC<HeaderProps> = ({ username }) => {
                 <div className="flex items-center gap-2 sm:gap-3">
                     <Button
                         type="button"
+                        variant={location.pathname === "/arcade" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => navigate("/arcade")}
+                        className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
+                        aria-label="Play Arcade"
+                    >
+                        <Gamepad2 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Arcade</span>
+                    </Button>
+                    <Button
+                        type="button"
                         variant={location.pathname === "/me/stats" ? "secondary" : "ghost"}
                         size="sm"
                         onClick={() => navigate("/me/stats")}
@@ -71,7 +82,7 @@ const Header: React.FC<HeaderProps> = ({ username }) => {
                         <span className="hidden sm:inline">My Stats</span>
                     </Button>
                     <Badge variant="secondary" className="px-2 py-0.5 text-xs sm:px-3 sm:py-1 sm:text-sm max-w-[100px] sm:max-w-none truncate">
-                        {username}
+                        {username || "Guest"}
                     </Badge>
                     <ThemeToggle />
                 </div>

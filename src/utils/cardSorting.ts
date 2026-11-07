@@ -138,9 +138,11 @@ export function sortSelectedCards(
 
 // Find all cards in hand that match a given rank, sorted by suit (lowest to highest)
 export function findCardsByRank(cards: string[], rank: string): string[] {
+    const normalizedRank = rank.toUpperCase() === 'T' ? '10' : rank.toUpperCase();
     const matchingCards = cards.filter(card => {
         const parsed = parseCard(card);
-        return parsed.rank === rank;
+        const cardRank = parsed.rank === 'T' ? '10' : parsed.rank;
+        return cardRank === normalizedRank;
     });
 
     // Sort by suit: D < C < H < S
@@ -149,4 +151,4 @@ export function findCardsByRank(cards: string[], rank: string): string[] {
         const cardB = parseCard(b);
         return getSuitValue(cardA.suit) - getSuitValue(cardB.suit);
     });
-} 
+}

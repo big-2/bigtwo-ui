@@ -2,18 +2,16 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { WebSocketMessage } from "../types.websocket";
 import { ReconnectingWebSocket, ConnectionState } from "../services/websocket-reconnect";
 import PlayerHand from "./PlayerHand";
+import { GameActions, GameBoard, GameOpponent, GameTable } from "./GameBoard";
 import { sortSelectedCards, SortType, findCardsByRank } from "../utils/cardSorting";
-import { getSuitColorClass, getSuitSymbol, getRankDisplay } from "../utils/cardDisplay";
-import { Badge } from "./ui/badge";
+import { getMoveError } from "../utils/moveValidation";
+import PlayingCard from "./PlayingCard";
 import { Button } from "./ui/button";
-import { Card, CardContent } from "./ui/card";
-import { cn } from "../lib/utils";
-import { useThemeContext } from "../contexts/ThemeContext";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { getFullCardFlightAnimationDurationMs, rectFromElement, useCardFlightLayer } from "../hooks/useCardFlightLayer";
 import { useGameFeelSettings } from "../hooks/useGameFeelSettings";
 import { isCardFlightAnimationEnabled } from "../utils/config";
-import { Bot, BrainCircuit, HelpCircle, Layers, WifiOff } from "lucide-react";
+import { HelpCircle, Layers } from "lucide-react";
 import GameFeelSettingsDialog from "./GameFeelSettingsDialog";
 import PostGameFeedback from "./PostGameFeedback";
 import { usePostGameFeedback } from "../hooks/usePostGameFeedback";
@@ -74,6 +72,19 @@ interface GameState {
 
 const getTablePlayKey = (playerUuid: string, cards: string[]) => `${playerUuid}:${cards.join("|")}`;
 const PACED_GAME_MESSAGE_TYPES = new Set(["TURN_CHANGE", "MOVE_PLAYED", "GAME_WON"]);
+const MOVE_ERROR_DISPLAY_MS = 3000;
+const MOVE_RESPONSE_TIMEOUT_MS = 5000;
+const STARTING_HAND_SIZE = 13;
+
+// A game already under way gets its last play replayed after GAME_STARTED on reconnect.
+const isGameUnderWay = (cardCounts?: Record<string, number>) => (
+    Object.values(cardCounts ?? {}).some(count => count < STARTING_HAND_SIZE)
+);
+
+const getNextPlayer = (playerList: string[], player: string) => {
+    const index = playerList.indexOf(player);
+    return index === -1 ? null : playerList[(index + 1) % playerList.length];
+};
 
 const getVisibleElementRect = (elements: Array<HTMLElement | null>) => {
     for (const element of elements) {
@@ -102,17 +113,14 @@ const GameScreen: React.FC<GameScreenProps> = ({
     onReturnToLobby,
     connectionState = ConnectionState.CONNECTED,
 }) => {
-    const { theme } = useThemeContext();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
     // Track cycling state for cards with same rank
     const rankCycleIndexRef = useRef<Record<string, number>>({});
     const handCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const opponentSourceRefs = useRef<Record<string, Record<string, HTMLElement>>>({});
-    const desktopTableTargetRef = useRef<HTMLDivElement | null>(null);
-    const mobileTableTargetRef = useRef<HTMLDivElement | null>(null);
-    const desktopCardLaneTargetRef = useRef<HTMLDivElement | null>(null);
-    const mobileCardLaneTargetRef = useRef<HTMLDivElement | null>(null);
+    const tableTargetRef = useRef<HTMLDivElement | null>(null);
+    const cardLaneTargetRef = useRef<HTMLDivElement | null>(null);
     const [suppressedTablePlayKey, setSuppressedTablePlayKey] = useState<string | null>(null);
     const [moveError, setMoveError] = useState<string | null>(null);
     const [errorShakeKey, setErrorShakeKey] = useState(0);
@@ -123,7 +131,11 @@ const GameScreen: React.FC<GameScreenProps> = ({
         cardFlightSpeedMultiplier,
         actionPaceDelayMs,
     } = useGameFeelSettings();
-    const [isActionPacing, setIsActionPacing] = useState(false);
+    const [isMovePending, setIsMovePending] = useState(false);
+    const movePendingRef = useRef(false);
+    const movePendingTimeoutRef = useRef<number | null>(null);
+    // A replayed play must not advance the turn: passes may have followed it.
+    const nextMoveMayBeReplayRef = useRef(isGameUnderWay(initialGameData?.cardCounts));
     const actionPacingTimeoutRef = useRef<number | null>(null);
     const gameProgressionBlockedRef = useRef(false);
     const gameProgressionResetTokenRef = useRef(0);
@@ -152,7 +164,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
     const blockGameProgression = useCallback(() => {
         clearActionPacingTimeout();
         gameProgressionBlockedRef.current = true;
-        setIsActionPacing(true);
     }, [clearActionPacingTimeout]);
 
     const resetGameProgressionQueue = useCallback(() => {
@@ -161,7 +172,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
         queuedGameProgressionMessagesRef.current = [];
         gameProgressionBlockedRef.current = false;
         isDrainingGameProgressionQueueRef.current = false;
-        setIsActionPacing(false);
         setSuppressedTablePlayKey(null);
     }, [clearActionPacingTimeout]);
 
@@ -169,11 +179,51 @@ const GameScreen: React.FC<GameScreenProps> = ({
         resetGameProgressionQueue();
     }, [resetGameProgressionQueue]);
 
+    const showMoveError = useCallback((errorMessage: string) => {
+        setMoveError(errorMessage);
+        setErrorShakeKey(key => key + 1);
+
+        if (moveErrorTimeoutRef.current !== null) {
+            window.clearTimeout(moveErrorTimeoutRef.current);
+        }
+        moveErrorTimeoutRef.current = window.setTimeout(() => {
+            setMoveError(null);
+            moveErrorTimeoutRef.current = null;
+        }, MOVE_ERROR_DISPLAY_MS);
+    }, []);
+
+    const clearMovePending = useCallback(() => {
+        if (movePendingTimeoutRef.current !== null) {
+            window.clearTimeout(movePendingTimeoutRef.current);
+            movePendingTimeoutRef.current = null;
+        }
+        movePendingRef.current = false;
+        setIsMovePending(false);
+    }, []);
+
+    const markMovePending = useCallback(() => {
+        movePendingRef.current = true;
+        setIsMovePending(true);
+        movePendingTimeoutRef.current = window.setTimeout(() => {
+            clearMovePending();
+            showMoveError("No response from the server. Please try again.");
+        }, MOVE_RESPONSE_TIMEOUT_MS);
+    }, [clearMovePending, showMoveError]);
+
     useEffect(() => () => {
         if (moveErrorTimeoutRef.current !== null) {
             window.clearTimeout(moveErrorTimeoutRef.current);
         }
+        if (movePendingTimeoutRef.current !== null) {
+            window.clearTimeout(movePendingTimeoutRef.current);
+        }
     }, []);
+
+    useEffect(() => {
+        if (!isConnected) {
+            clearMovePending();
+        }
+    }, [clearMovePending, isConnected]);
 
     const releaseGameProgressionAfter = useCallback((delayMs: number) => {
         clearActionPacingTimeout();
@@ -181,7 +231,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
         const release = () => {
             actionPacingTimeoutRef.current = null;
             gameProgressionBlockedRef.current = false;
-            setIsActionPacing(false);
             drainGameProgressionQueueRef.current();
         };
 
@@ -190,7 +239,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
             return;
         }
 
-        setIsActionPacing(true);
         actionPacingTimeoutRef.current = window.setTimeout(release, delayMs);
     }, [clearActionPacingTimeout]);
 
@@ -253,12 +301,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
             return;
         }
 
-        const targetRect = getVisibleElementRect([
-            desktopCardLaneTargetRef.current,
-            mobileCardLaneTargetRef.current,
-            desktopTableTargetRef.current,
-            mobileTableTargetRef.current,
-        ]);
+        const targetRect = getVisibleElementRect([cardLaneTargetRef.current, tableTargetRef.current]);
         if (!targetRect) {
             releaseGameProgressionAfterRef.current(paceDelayMs);
             return;
@@ -316,38 +359,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
         const firstBotUuid = Array.from(botUuids).find((botUuid) => botDifficultyByUuid[botUuid]);
         return firstBotUuid ? botDifficultyByUuid[firstBotUuid] : undefined;
     }, [botUuids, botDifficultyByUuid]);
-
-    // Helper function to render player name with bot badge if applicable
-    const renderPlayerName = (playerUuid: string, mapping: Record<string, string>, size: "xs" | "sm" | "md" | "lg" = "xs") => {
-        const displayName = getDisplayName(playerUuid, mapping);
-        const isBot = botUuids.has(playerUuid);
-        const difficulty = getBotDifficulty(playerUuid);
-        const isAiBot = isBot && (difficulty === "ai" || difficulty === "expert");
-        const botLabel = difficulty === "expert" ? "Expert" : isAiBot ? "AI" : "Bot";
-
-        return (
-            <div className="flex items-center justify-center gap-1.5 text-foreground min-w-0">
-                <span className={cn("font-semibold truncate", {
-                    "text-xs": size === "xs",
-                    "text-sm": size === "sm",
-                    "text-base": size === "md",
-                    "text-lg": size === "lg"
-                })}>
-                    {displayName || "Opponent"}
-                </span>
-                {isBot && (
-                    <Badge variant="secondary" className="px-1 py-0 text-[10px] uppercase tracking-wide flex-shrink-0 inline-flex items-center gap-1">
-                        {isAiBot ? (
-                            <BrainCircuit className="h-2.5 w-2.5" />
-                        ) : (
-                            <Bot className="h-2.5 w-2.5" />
-                        )}
-                        {botLabel}
-                    </Badge>
-                )}
-            </div>
-        );
-    };
 
     // Helper function to get player position based on player list
     const getPlayerPositions = (playerList: string[], currentPlayerUuid: string) => {
@@ -450,8 +461,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
         };
     });
 
-    // Owned here, not in PostGameFeedback: the game-over panel is rendered in
-    // both the desktop and mobile branches below, and both mount at once.
+    // Keep feedback state here so the shared board mounts one feedback form.
     const postGameFeedback = usePostGameFeedback({
         active: gameState.gameWon,
         roomId,
@@ -474,6 +484,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
         GAME_STARTED: (message) => {
             resetGameProgressionQueue();
+            clearMovePending();
 
             const payload = message.payload as {
                 current_turn?: string;
@@ -484,6 +495,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 last_played_by?: string;
                 last_plays_by_player?: Record<string, string[]>;
             };
+            nextMoveMayBeReplayRef.current = isGameUnderWay(payload?.card_counts);
 
             if (!payload?.current_turn || !Array.isArray(payload.cards) || !Array.isArray(payload.player_list)) {
                 return;
@@ -527,19 +539,26 @@ const GameScreen: React.FC<GameScreenProps> = ({
             if (!player) {
                 return;
             }
-            setGameState(prev => ({
-                ...prev,
-                currentTurn: player,
-                players: prev.players.map(p => ({
-                    ...p,
-                    isCurrentTurn: p.name === player,
-                    // Clear hasPassed when it becomes this player's turn
-                    hasPassed: p.name === player ? false : p.hasPassed,
-                })),
-            }));
+            setGameState(prev => {
+                // The turn coming back to the last player to play means everyone else passed.
+                const tableCleared = prev.lastPlayedCards.length > 0 && prev.lastPlayedBy === player;
+                return {
+                    ...prev,
+                    currentTurn: player,
+                    lastPlayedCards: tableCleared ? [] : prev.lastPlayedCards,
+                    lastPlaysByPlayer: tableCleared ? {} : prev.lastPlaysByPlayer,
+                    players: prev.players.map(p => ({
+                        ...p,
+                        isCurrentTurn: p.name === player,
+                        // Clear hasPassed when it becomes this player's turn
+                        hasPassed: p.name === player ? false : p.hasPassed,
+                    })),
+                };
+            });
 
+            // Nothing can follow until this client acts, so don't hold up its own turn.
             const paceDelayMs = actionPaceDelayMsRef.current;
-            if (paceDelayMs > 0) {
+            if (paceDelayMs > 0 && player !== uuid) {
                 blockGameProgressionRef.current();
                 releaseGameProgressionAfterRef.current(paceDelayMs);
             }
@@ -562,11 +581,30 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
             playCardFlightRef.current(player, cards);
 
+            // A move this client is waiting on was just played, so it can't be a replay.
+            const isAwaitedOwnMove = player === uuid && movePendingRef.current;
+            const mayBeReplay = nextMoveMayBeReplayRef.current && !isAwaitedOwnMove;
+            nextMoveMayBeReplayRef.current = false;
+
+            if (player === uuid) {
+                clearMovePending();
+                rankCycleIndexRef.current = {};
+            }
+
             setGameState(prev => {
                 const isCurrentPlayerMove = player === uuid && cards.length > 0;
+                const nextPlayer = getNextPlayer(prev.playerList, player);
+                // The table clears as soon as the last player passes, so the next
+                // player can act without waiting for the paced TURN_CHANGE.
+                const tableCleared = cards.length === 0
+                    && prev.lastPlayedCards.length > 0
+                    && prev.lastPlayedBy === nextPlayer;
+                // A new round starts when someone plays onto a clear table.
+                const isNewRound = prev.lastPlayedCards.length === 0 && cards.length > 0;
                 const updatedPlayers = prev.players.map(p => {
                     if (p.name !== player) {
-                        return p;
+                        const clearPass = isNewRound || (!mayBeReplay && p.name === nextPlayer);
+                        return clearPass ? { ...p, hasPassed: false } : p;
                     }
 
                     if (cards.length === 0) {
@@ -604,25 +642,34 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 const shouldResetFocus = isCurrentPlayerMove ||
                     (prev.focusedCardIndex !== null && prev.focusedCardIndex >= newCardCount);
 
-                // Detect if this is a new round: when someone plays cards after the table was cleared
-                // (i.e., lastPlayedCards was empty and now someone is playing cards)
-                const isNewRound = prev.lastPlayedCards.length === 0 && cards.length > 0;
+                // Update lastPlaysByPlayer to track this player's last play.
+                // A replayed play joins the restored snapshot instead of starting a round.
+                const updatedLastPlaysByPlayer = tableCleared
+                    ? {}
+                    : isNewRound && !mayBeReplay
+                        ? { [player]: cards } // Start fresh for new round
+                        : {
+                            ...prev.lastPlaysByPlayer,
+                            [player]: cards, // Empty array if pass, cards if played
+                        };
 
-                // Update lastPlaysByPlayer to track this player's last play
-                // Clear all last plays if this is a new round (table was cleared by 3 consecutive passes)
-                const updatedLastPlaysByPlayer = isNewRound
-                    ? { [player]: cards } // Start fresh for new round
-                    : {
-                        ...prev.lastPlaysByPlayer,
-                        [player]: cards, // Empty array if pass, cards if played
-                    };
+                let lastPlayedCards = prev.lastPlayedCards;
+                if (tableCleared) {
+                    lastPlayedCards = [];
+                } else if (cards.length > 0) {
+                    lastPlayedCards = cards;
+                }
 
                 return {
                     ...prev,
-                    lastPlayedCards: cards.length > 0 ? cards : prev.lastPlayedCards,
+                    currentTurn: !mayBeReplay && nextPlayer ? nextPlayer : prev.currentTurn,
+                    lastPlayedCards,
                     lastPlayedBy: cards.length > 0 ? player : prev.lastPlayedBy,
                     lastPlaysByPlayer: updatedLastPlaysByPlayer,
                     players: updatedPlayers,
+                    selectedCards: isCurrentPlayerMove
+                        ? prev.selectedCards.filter(card => !cards.includes(card))
+                        : prev.selectedCards,
                     focusedCardIndex: shouldResetFocus ? null : prev.focusedCardIndex,
                 };
             });
@@ -668,19 +715,12 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 return;
             }
 
-            setMoveError(errorMessage);
-            setErrorShakeKey(key => key + 1);
-
-            if (moveErrorTimeoutRef.current !== null) {
-                window.clearTimeout(moveErrorTimeoutRef.current);
-            }
-            moveErrorTimeoutRef.current = window.setTimeout(() => {
-                setMoveError(null);
-                moveErrorTimeoutRef.current = null;
-            }, 3000);
+            clearMovePending();
+            showMoveError(errorMessage);
         },
 
         GAME_WON: (message) => {
+            clearMovePending();
             const winner = message.payload.winner as string;
             const winningHand = Array.isArray(message.payload.winning_hand)
                 ? (message.payload.winning_hand as string[])
@@ -749,6 +789,13 @@ const GameScreen: React.FC<GameScreenProps> = ({
         try {
             const message = JSON.parse(msg) as WebSocketMessage;
 
+            // The server answered, even if pacing holds this message back for a while.
+            const isOwnMove = message.type === "MOVE_PLAYED" && message.payload?.player === uuid;
+            if (isOwnMove && movePendingTimeoutRef.current !== null) {
+                window.clearTimeout(movePendingTimeoutRef.current);
+                movePendingTimeoutRef.current = null;
+            }
+
             if (
                 gameProgressionBlockedRef.current &&
                 !isDrainingGameProgressionQueueRef.current &&
@@ -762,7 +809,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
         } catch (error) {
             console.error("Error processing WebSocket message:", error);
         }
-    }, [handleParsedMessageSafely]);
+    }, [handleParsedMessageSafely, uuid]);
 
     // Set up WebSocket message listener for game-specific messages
     useEffect(() => {
@@ -780,16 +827,19 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
     const currentPlayer = gameState.players.find(p => p.name === uuid);
     const isCurrentTurn = gameState.currentTurn === uuid && !gameState.gameWon;
+    const hasTablePlay = gameState.lastPlayedCards.length > 0;
+    const canAct = isCurrentTurn && !isMovePending;
+    // Once this client has sent a move, show the turn as already handed on.
+    const displayedTurn = isMovePending
+        ? getNextPlayer(gameState.playerList, uuid) ?? gameState.currentTurn
+        : gameState.currentTurn;
+    const isOpeningPlay = !gameState.lastPlayedBy && Boolean(currentPlayer?.cards.includes("3D"));
 
     // Get player positions based on player list (memoized to prevent unnecessary recalculations)
     const playerPositions = useMemo(
         () => getPlayerPositions(gameState.playerList, uuid),
         [gameState.playerList, uuid]
     );
-    const topPlayer = playerPositions.top ? gameState.players.find(p => p.name === playerPositions.top) : undefined;
-    const leftPlayer = playerPositions.left ? gameState.players.find(p => p.name === playerPositions.left) : undefined;
-    const rightPlayer = playerPositions.right ? gameState.players.find(p => p.name === playerPositions.right) : undefined;
-
     const handleCardClick = (card: string) => {
         const newSelectedCards = gameState.selectedCards.includes(card)
             ? gameState.selectedCards.filter(c => c !== card)
@@ -848,38 +898,38 @@ const GameScreen: React.FC<GameScreenProps> = ({
     };
 
     const handlePlayCards = () => {
-        if (gameState.selectedCards.length === 0) return;
-        if (isActionPacing) return;
+        if (gameState.selectedCards.length === 0 || !isCurrentTurn || movePendingRef.current) return;
 
         if (!isConnected || !socket?.isConnected()) {
-            console.warn("Cannot send move: not connected");
+            showMoveError("Not connected. Your cards are still selected.");
             return;
         }
 
+        const moveError = getMoveError(gameState.selectedCards, gameState.lastPlayedCards, isOpeningPlay);
+        if (moveError) {
+            showMoveError(moveError);
+            return;
+        }
+
+        // Keep the selection until the server accepts the move, so a rejected play can be adjusted.
+        markMovePending();
         socket.send(JSON.stringify({
             type: "MOVE",
             payload: {
                 cards: gameState.selectedCards,
             },
         }));
-
-        setGameState(prev => ({
-            ...prev,
-            selectedCards: [],
-            focusedCardIndex: 0, // Reset focus to first card after playing
-        }));
-        // Reset rank cycle tracking when playing cards
-        rankCycleIndexRef.current = {};
     };
 
     const handlePass = () => {
-        if (isActionPacing) return;
+        if (!isCurrentTurn || !hasTablePlay || movePendingRef.current) return;
 
         if (!isConnected || !socket?.isConnected()) {
-            console.warn("Cannot pass: not connected");
+            showMoveError("Not connected. Your pass was not sent.");
             return;
         }
 
+        markMovePending();
         socket.send(JSON.stringify({
             type: "MOVE",
             payload: {
@@ -1099,26 +1149,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
         });
     }, [currentPlayer?.cards]);
 
-    // Detect if desktop (md breakpoint = 768px)
-    const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
-
-    useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
-
-        const handleResize = () => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                setIsDesktop(window.innerWidth >= 768);
-            }, 100);
-        };
-
-        window.addEventListener("resize", handleResize);
-        return () => {
-            window.removeEventListener("resize", handleResize);
-            clearTimeout(timeoutId);
-        };
-    }, []);
-
     // Integrate keyboard shortcuts hook
     useKeyboardShortcuts({
         onRankKey: handleRankKeyPress,
@@ -1130,789 +1160,180 @@ const GameScreen: React.FC<GameScreenProps> = ({
         onBackspace: handleDeselectAll,
         onPass: handlePass,
         onEscape: handleEscape,
-        isEnabled: isDesktop,
-        isCurrentTurn: isCurrentTurn && !isActionPacing,
+        // A compact layout can still have a physical keyboard (for example a
+        // laptop window or party game in a side panel).
+        isEnabled: true,
+        isCurrentTurn: canAct,
         gameWon: gameState.gameWon,
-        canPass: gameState.lastPlayedCards.length > 0 && !isActionPacing,
+        canPass: hasTablePlay,
     });
 
-    const getCardCountLabel = (player?: Player) => {
-        if (!player) {
-            return "0 cards";
-        }
-        if (player.cardCount === 0 && gameState.gameWon) {
-            return "WIN";
-        }
-        return `${player.cardCount} cards`;
-    };
-
-    const renderTopCardBacks = (count?: number) => (
-        <div className="flex items-center justify-center">
-            {Array.from({ length: Math.min(count ?? 0, 13) }).map((_, index) => (
-                <div
-                    key={`top-card-${index}`}
-                    className={cn(
-                        "card-back-pattern h-8 w-5 rounded border border-primary/40 shadow-sm sm:h-9 sm:w-6 md:h-10 md:w-7",
-                        index > 0 && "-ml-1.5 sm:-ml-2 md:-ml-2.5"
-                    )}
-                    style={{ zIndex: 13 - index }}
-                />
-            ))}
-        </div>
-    );
-
-    const renderConnectionBanner = (compact = false) => {
-        const isBannerVisible = connectionState === ConnectionState.RECONNECTING || connectionState === ConnectionState.FAILED;
-
-        return (
-            <div className={cn("flex min-h-[40px] items-center justify-center", compact && "min-h-[32px]")}>
-                <div
-                    className={cn(
-                        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-opacity duration-200",
-                        compact ? "px-3 py-1.5 text-xs" : "text-sm",
-                        isBannerVisible
-                            ? "opacity-100"
-                            : "pointer-events-none opacity-0"
-                    )}
-                >
-                    <WifiOff className={cn("h-4 w-4 flex-shrink-0", compact && "h-3 w-3")} />
-                    <span>
-                        {connectionState === ConnectionState.RECONNECTING
-                            ? "Connection lost. Reconnecting..."
-                            : "Connection failed. Please refresh the page."}
-                    </span>
-                </div>
-            </div>
-        );
-    };
-
-    const renderPlayerPassTag = (hasPassed?: boolean, compact = false, placement: "above" | "below" = "above") => {
-        const isVisible = Boolean(hasPassed) && !gameState.gameWon;
-
-        return (
-            <div
-                className={cn(
-                    "pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 justify-center transition-opacity duration-200",
-                    placement === "above"
-                        ? "top-0 -translate-y-[calc(100%+0.25rem)]"
-                        : "top-full translate-y-1",
-                    !isVisible && "opacity-0"
-                )}
-                aria-hidden={!isVisible}
-            >
-                <Badge
-                    variant="secondary"
-                    className={cn(
-                        "justify-center border-amber-500/40 bg-amber-500/20 uppercase tracking-wide text-amber-700 shadow-sm dark:text-amber-300",
-                        compact ? "min-w-[72px] px-2.5 py-1 text-[10px]" : "min-w-[88px] px-3 py-1.5 text-xs"
-                    )}
-                >
-                    Pass
-                </Badge>
-            </div>
-        );
-    };
-
-    // Render side player with cards (for left/right players) - Desktop only
-    const renderSidePlayer = (playerUuid: string, player: Player | undefined, rotation: "left" | "right") => {
-        const rotationClass = rotation === "left" ? "rotate-90" : "-rotate-90";
-
-        return (
-            <div
-                ref={(element) => registerOpponentSourceRef(playerUuid, `desktop-${rotation}`, element)}
-                className={cn("flex flex-col gap-1.5 sm:gap-2", rotationClass, "origin-center")}
-            >
-                {/* Top Region: Last played cards */}
-                <div className="flex items-center justify-center min-h-[50px] sm:min-h-[60px] md:min-h-[70px] min-w-[70px] sm:min-w-[80px] md:min-w-[100px]">
-                    {renderLastPlayedForPlayer(playerUuid)}
-                </div>
-
-                {/* Bottom Region: Player info and card backs */}
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <Badge
-                            variant={gameState.currentTurn === playerUuid ? "secondary" : "outline"}
-                            className={cn(
-                                "relative flex items-center gap-1.5 overflow-visible rounded-full px-2 py-1 text-[10px] shadow-sm transition-colors whitespace-nowrap sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs md:py-2 md:text-sm",
-                                gameState.currentTurn === playerUuid && "border-primary/50 bg-primary/10 ring-1 ring-primary/30"
-                            )}
-                        >
-                        {renderPlayerPassTag(player?.hasPassed, true)}
-                        {renderPlayerName(playerUuid, gameState.uuidToName, "xs")}
-                        <Badge variant="outline" className="h-4 px-1 text-[10px] flex-shrink-0 sm:h-5 sm:px-1.5 sm:text-xs md:h-6 md:px-2 md:text-sm">
-                            {player?.cardCount || 0}
-                        </Badge>
-                    </Badge>
-                    <div className="flex items-center justify-center">
-                        {Array.from({ length: Math.min(player?.cardCount ?? 0, 13) }).map((_, index) => (
-                            <div
-                                key={`side-card-${index}`}
-                                className={cn(
-                                    "card-back-pattern h-5 w-3 rounded border border-primary/40 shadow-sm sm:h-6 sm:w-4 md:h-8 md:w-5",
-                                    index > 0 && "-ml-1 sm:-ml-1.5 md:-ml-2"
-                                )}
-                                style={{ zIndex: 13 - index }}
-                            />
+    const opponentUuids = [playerPositions.right, playerPositions.top, playerPositions.left]
+        .filter((playerUuid): playerUuid is string => Boolean(playerUuid))
+        .filter((playerUuid, index, players) => players.indexOf(playerUuid) === index);
+    const connectionStatus = !isConnected
+        ? <span role="status">{connectionState === ConnectionState.RECONNECTING ? "Reconnecting…" : "Connection failed"}</span>
+        : undefined;
+    const tablePlayHidden = hasTablePlay
+        && suppressedTablePlayKey === getTablePlayKey(gameState.lastPlayedBy, gameState.lastPlayedCards);
+    const displayedTurnName = getDisplayName(displayedTurn, gameState.uuidToName);
+    const winnerName = getDisplayName(gameState.winner, gameState.uuidToName);
+    const winnerContent = gameState.gameWon ? (
+        <div className="grid h-full w-full content-center justify-items-center gap-3 text-center">
+            <p className="text-xl font-extrabold text-emerald-300">🎉 {gameState.winner === uuid ? "You won!" : `${winnerName} won!`}</p>
+            {gameState.lastPlayedBy === gameState.winner && gameState.lastPlayedCards.length > 0 && (
+                <div className="grid justify-items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-300">{gameState.winner === uuid ? "Winning hand" : `${winnerName}'s hand`}</p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                        {gameState.lastPlayedCards.map(card => (
+                            <PlayingCard key={card} card={card} className="winner-card-pop" width={44} height={62} />
                         ))}
                     </div>
                 </div>
-            </div>
-        );
-    };
-
-    // Render compact opponent card for mobile - minimal design
-    const renderMobileOpponent = (playerUuid: string, player: Player | undefined) => {
-        const isActive = gameState.currentTurn === playerUuid;
-        const displayName = getDisplayName(playerUuid, gameState.uuidToName);
-        const isBot = botUuids.has(playerUuid);
-        const difficulty = getBotDifficulty(playerUuid);
-        const isAiBot = isBot && (difficulty === "ai" || difficulty === "expert");
-        const botLabel = difficulty === "expert" ? "Expert" : isAiBot ? "AI" : "Bot";
-        const lastPlayed = gameState.lastPlaysByPlayer[playerUuid];
-
-        return (
-            <div
-                ref={(element) => registerOpponentSourceRef(playerUuid, "mobile", element)}
-                key={playerUuid}
-                className={cn(
-                    "relative flex min-h-[78px] flex-col items-center gap-0.5 overflow-visible rounded-lg px-2 py-1.5 transition-colors",
-                    isActive && "bg-primary/10 ring-1 ring-primary/30"
-                )}
-            >
-                {renderPlayerPassTag(player?.hasPassed, true)}
-
-                {/* Player circle indicator */}
-                <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
-                    isActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground"
-                )}>
-                    {player?.cardCount || 0}
-                </div>
-
-                {/* Player name - truncated */}
-                <div className="flex items-center gap-0.5 max-w-[80px]">
-                    <span className="text-[10px] font-medium truncate">
-                        {displayName}
-                    </span>
-                    {isBot && (
-                        <span className="inline-flex items-center gap-0.5 text-[8px] px-1 rounded bg-secondary text-secondary-foreground">
-                            {isAiBot ? (
-                                <BrainCircuit className="h-2 w-2" />
-                            ) : (
-                                <Bot className="h-2 w-2" />
-                            )}
-                            {botLabel}
-                        </span>
-                    )}
-                </div>
-
-                {/* Last played indicator - compact */}
-                {lastPlayed !== undefined && lastPlayed.length > 0 && (
-                    <div className="flex items-center justify-center min-h-[20px] mt-0.5">
-                        <div className="flex items-center gap-0.5">
-                            {lastPlayed.slice(0, 5).map((card, index) => {
-                                const suit = card.slice(-1);
-                                const rank = card.slice(0, -1);
-                                return (
-                                    <div
-                                        key={`mini-${playerUuid}-${card}-${index}`}
-                                        className={cn(
-                                            "flex flex-col items-center justify-center rounded border border-border bg-white dark:bg-slate-900 shadow-sm",
-                                            "h-5 w-3.5 text-[6px] font-bold",
-                                            getSuitColorClass(suit, theme)
-                                        )}
-                                    >
-                                        <span className="leading-none">{getRankDisplay(rank)}</span>
-                                        <span className="text-[8px] leading-none">{getSuitSymbol(suit)}</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    // Helper function to render last played cards for a specific player
-    const renderLastPlayedForPlayer = (playerUuid: string) => {
-        const cards = gameState.lastPlaysByPlayer[playerUuid];
-
-        const containerClassName = "flex h-[54px] w-[132px] items-center justify-center overflow-hidden sm:h-[64px] sm:w-[168px] md:h-[76px] md:w-[220px]";
-
-        if (!cards) {
-            return <div className={containerClassName} aria-hidden />;
-        }
-
-        if (cards.length === 0) {
-            return <div className={containerClassName} aria-hidden />;
-        }
-
-        const isSuppressed = suppressedTablePlayKey === getTablePlayKey(playerUuid, cards);
-
-        return (
-            <div className={containerClassName}>
-                <div className={cn("flex items-center justify-center transition-opacity duration-150", isSuppressed && "opacity-0")}>
-                    {cards.map((card, index) => {
-                        const suit = card.slice(-1);
-                        const rank = card.slice(0, -1);
-
-                        return (
-                            <div
-                                key={`${playerUuid}-${card}-${index}`}
-                                className={cn(
-                                    "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
-                                    "w-8 aspect-[5/7] text-[10px] sm:w-10 sm:text-xs md:w-12 md:text-sm",
-                                    getSuitColorClass(suit, theme),
-                                    index > 0 && "-ml-2 sm:-ml-3 md:-ml-4"
-                                )}
-                                style={{ zIndex: cards.length - index }}
-                            >
-                                <span className="leading-tight">{getRankDisplay(rank)}</span>
-                                <span className="text-sm leading-tight sm:text-lg md:text-2xl">{getSuitSymbol(suit)}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    const renderLastPlayedCards = (options: {
-        labelOverride?: string;
-        mobileLabelOverride?: string;
-    } = {}) => {
-        if (gameState.lastPlayedCards.length === 0) {
-            return null;
-        }
-
-        const { labelOverride, mobileLabelOverride } = options;
-
-        const displayName = getDisplayName(gameState.lastPlayedBy, gameState.uuidToName);
-        const isSelfPlay = gameState.lastPlayedBy === uuid;
-        const isSuppressed = suppressedTablePlayKey === getTablePlayKey(gameState.lastPlayedBy, gameState.lastPlayedCards);
-        const desktopLabel = labelOverride ?? (isSelfPlay ? "You played:" : `${displayName} played:`);
-        const mobileLabel = mobileLabelOverride ?? (isSelfPlay ? "You" : displayName.slice(0, 8));
-
-        return (
-            <div className="grid h-full w-full grid-rows-[18px_minmax(0,1fr)] items-center gap-2">
-                <span className="hidden text-center text-sm uppercase tracking-wide text-emerald-50/70 md:block">
-                    {desktopLabel}
-                </span>
-                <span className="block text-center text-xs uppercase tracking-wide text-emerald-50/70 md:hidden">
-                    {mobileLabel}
-                </span>
-                <div
-                    ref={desktopCardLaneTargetRef}
-                    className={cn("flex h-full items-center justify-center overflow-hidden transition-opacity duration-100", isSuppressed && "opacity-0")}
-                >
-                    {gameState.lastPlayedCards.map((card, index) => {
-                        const suit = card.slice(-1);
-                        const rank = card.slice(0, -1);
-
-                        return (
-                            <div
-                                key={`${card}-${index}`}
-                                className={cn(
-                                    "flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900",
-                                    "h-14 w-10 text-xs sm:h-16 sm:w-12 sm:text-sm md:h-[72px] md:w-[52px] md:text-base",
-                                    getSuitColorClass(suit, theme),
-                                    index > 0 && "-ml-2 sm:-ml-3 md:-ml-4"
-                                )}
-                                style={{ zIndex: gameState.lastPlayedCards.length - index }}
-                            >
-                                <span>{getRankDisplay(rank)}</span>
-                                <span className="text-xl sm:text-2xl md:text-[28px]">{getSuitSymbol(suit)}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    // Theme-responsive background styling
-    const containerClassName = cn(
-        "flex h-[calc(100dvh-60px)] min-h-0 w-full justify-center overflow-hidden bg-gradient-to-br",
-        theme === "light"
-            ? "from-slate-50 via-blue-50/60 to-blue-100/70"
-            : "from-slate-950 via-slate-900 to-slate-800",
-        "transition-colors duration-300"
-    );
+            )}
+            <Button onClick={onReturnToLobby} className="mt-2">Return to Lobby</Button>
+        </div>
+    ) : undefined;
 
     return (
-        <div className={containerClassName}>
-            {cardFlightOverlay}
-            <GameFeelSettingsDialog
-                settings={gameFeelSettings}
-                onSettingsChange={setGameFeelSettings}
-            />
-
-            {/* Hand Rankings Help Button - Fixed position in top-right corner (all sizes) */}
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="fixed right-14 top-2 z-50 flex h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:h-10 md:w-10"
-                        title="Hand rankings"
-                    >
-                        <Layers className="h-4 w-4 md:h-5 md:w-5" />
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Hand Rankings</DialogTitle>
-                        <DialogDescription>
-                            Lowest to highest
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-2">
-                        <div>
-                            <h4 className="mb-2 font-semibold text-sm">Card Ranks</h4>
-                            <p className="text-sm text-muted-foreground">
-                                3 &lt; 4 &lt; 5 &lt; 6 &lt; 7 &lt; 8 &lt; 9 &lt; 10 &lt; J &lt; Q &lt; K &lt; A &lt; <span className="font-bold text-foreground">2</span>
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className="mb-2 font-semibold text-sm">Suits</h4>
-                            <p className="text-sm text-muted-foreground">
-                                ♦ &lt; ♣ &lt; ♥ &lt; ♠
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className="mb-2 font-semibold text-sm">Five-Card Hands</h4>
-                            <p className="text-sm text-muted-foreground">
-                                Straight &lt; Flush &lt; Full House &lt; Four of a Kind &lt; Straight Flush
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className="mb-2 font-semibold text-sm">Playing</h4>
-                            <p className="text-sm text-muted-foreground">
-                                Singles beat singles, pairs beat pairs, triples beat triples, and five-card hands beat five-card hands of lower rank. Each play must match the type of the previous play and rank higher.
-                            </p>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Keyboard Shortcuts Help Button - Fixed position in top-right corner (desktop only) */}
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="fixed right-24 top-2 z-50 hidden h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:flex md:h-10 md:w-10"
-                        title="Keyboard shortcuts"
-                    >
-                        <HelpCircle className="h-4 w-4 md:h-5 md:w-5" />
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Keyboard Shortcuts</DialogTitle>
-                        <DialogDescription>
-                            Use these shortcuts to play more efficiently (desktop only)
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-2">
-                        {/* Card Selection */}
-                        <div>
-                            <h4 className="mb-2 font-semibold text-sm">Card Selection</h4>
-                            <div className="space-y-1.5 text-sm">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Move cursor left/right</span>
-                                    <div className="flex gap-1">
-                                        <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">←</kbd>
-                                        <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">→</kbd>
+        <>
+            <GameBoard
+                mode="classic"
+                title="CLASSIC"
+                subtitle="Classic table · 13 cards"
+                status={connectionStatus}
+                headerActions={(
+                    <div className="game-board-header-actions">
+                        <GameFeelSettingsDialog
+                            settings={gameFeelSettings}
+                            onSettingsChange={setGameFeelSettings}
+                            triggerClassName="game-board-tool"
+                        />
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="game-board-tool" title="Hand rankings" aria-label="Hand rankings">
+                                    <Layers className="h-4 w-4" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Hand Rankings</DialogTitle>
+                                    <DialogDescription>Lowest to highest</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 pt-2">
+                                    <div>
+                                        <h4 className="mb-2 font-semibold text-sm">Card Ranks</h4>
+                                        <p className="text-sm text-muted-foreground">3 &lt; 4 &lt; 5 &lt; 6 &lt; 7 &lt; 8 &lt; 9 &lt; 10 &lt; J &lt; Q &lt; K &lt; A &lt; <span className="font-bold text-foreground">2</span></p>
+                                    </div>
+                                    <div>
+                                        <h4 className="mb-2 font-semibold text-sm">Suits</h4>
+                                        <p className="text-sm text-muted-foreground">♦ &lt; ♣ &lt; ♥ &lt; ♠</p>
+                                    </div>
+                                    <div>
+                                        <h4 className="mb-2 font-semibold text-sm">Five-Card Hands</h4>
+                                        <p className="text-sm text-muted-foreground">Straight &lt; Flush &lt; Full House &lt; Four of a Kind &lt; Straight Flush</p>
+                                    </div>
+                                    <div>
+                                        <h4 className="mb-2 font-semibold text-sm">Playing</h4>
+                                        <p className="text-sm text-muted-foreground">Singles beat singles, pairs beat pairs, triples beat triples, and five-card hands beat five-card hands of lower rank. Each play must match the type of the previous play and rank higher.</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Select focused card</span>
-                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">↑</kbd>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Deselect focused card</span>
-                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">↓</kbd>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Toggle selection</span>
-                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Space</kbd>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Clear focus</span>
-                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Esc</kbd>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Clear selection</span>
-                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Backspace</kbd>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Select card by rank</span>
-                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">2-9, T (10), J, Q, K, A</kbd>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Cycle through same rank</span>
-                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Press again</kbd>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div>
-                            <h4 className="mb-2 font-semibold text-sm">Actions</h4>
-                            <div className="space-y-1.5 text-sm">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Play selected cards</span>
-                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Enter</kbd>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Pass turn</span>
-                                    <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">P</kbd>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <div className="flex h-full min-h-0 w-full flex-col overflow-hidden px-2 py-1">
-                {/* Top Player - Desktop layout */}
-                <section className="hidden flex-shrink-0 flex-col items-center justify-start gap-1 py-0.5 md:flex">
-                    {/* Bottom Region: Player info and card backs */}
-                    <div
-                        ref={(element) => registerOpponentSourceRef(playerPositions.top, "desktop-top", element)}
-                        className="flex items-center gap-3"
-                    >
-                        <Badge
-                            variant={gameState.currentTurn === playerPositions.top ? "secondary" : "outline"}
-                            className={cn(
-                                "relative flex min-h-[32px] min-w-[100px] flex-col items-center justify-center overflow-visible rounded px-2.5 py-1 text-center text-xs uppercase tracking-wide shadow-sm transition-colors",
-                                gameState.currentTurn === playerPositions.top && "border-primary/50 bg-primary/10 ring-1 ring-primary/30"
-                            )}
-                        >
-                            {renderPlayerPassTag(topPlayer?.hasPassed, true, "below")}
-                            <div className="flex flex-col items-center gap-0">
-                                {renderPlayerName(playerPositions.top, gameState.uuidToName, "xs")}
-                                <span className="text-[10px] font-medium text-muted-foreground">
-                                    {getCardCountLabel(topPlayer)}
-                                </span>
-                            </div>
-                        </Badge>
-                        {renderTopCardBacks(topPlayer?.cardCount)}
-                    </div>
-
-                    {/* Top Region: Last played cards */}
-                    <div className="flex items-center justify-center min-h-[44px] md:min-h-[56px] min-w-[100px] md:min-w-[120px]">
-                        {renderLastPlayedForPlayer(playerPositions.top)}
-                    </div>
-                </section>
-
-                {/* Mobile: Compact Opponents Bar - All 3 opponents in one row (turn order: left to right) */}
-                <section className="flex flex-shrink-0 items-center justify-around gap-1 rounded-lg bg-muted/20 px-1 py-1.5 md:hidden">
-                    {renderMobileOpponent(playerPositions.right, rightPlayer)}
-                    {renderMobileOpponent(playerPositions.top, topPlayer)}
-                    {renderMobileOpponent(playerPositions.left, leftPlayer)}
-                </section>
-
-                {/* Middle Row - Desktop layout */}
-                <section className="hidden min-h-0 grid flex-1 grid-cols-[92px_1fr_92px] lg:grid-cols-[132px_1fr_132px] items-center gap-1.5 lg:gap-3 overflow-hidden py-0.5 md:grid">
-                    {/* Left Player - Rotated 90deg clockwise */}
-                    <div className="flex items-center justify-center px-2 lg:px-4">
-                        {renderSidePlayer(playerPositions.left, leftPlayer, "left")}
-                    </div>
-
-                    {/* Center Game Area */}
-                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5">
-                        {renderConnectionBanner()}
-                        <Card className="w-full max-w-3xl overflow-hidden border border-primary/10 bg-card/90 text-center shadow-xl backdrop-blur">
-                            <CardContent className="grid min-h-[220px] grid-rows-[auto_minmax(0,1fr)] gap-3 p-3 md:min-h-[250px] md:p-4">
-                                {gameState.gameWon ? (
-                                    <div className="flex h-full flex-col items-center justify-center gap-3 w-full">
-                                        <p className="text-xl md:text-2xl font-bold text-emerald-500 flex-shrink-0">
-                                            🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
-                                        </p>
-                                        {gameState.lastPlayedBy === gameState.winner && (
-                                            <div className="py-1 w-full max-w-full overflow-hidden">
-                                                <p className="text-xs md:text-sm uppercase tracking-wide text-muted-foreground mb-1.5 flex-shrink-0">
-                                                    {gameState.winner === uuid
-                                                        ? "Winning hand:"
-                                                        : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand:`}
-                                                </p>
-                                                <div className="flex flex-wrap justify-center gap-1 md:gap-1.5 max-w-full">
-                                                    {gameState.lastPlayedCards.map((card, index) => {
-                                                        const suit = card.slice(-1);
-                                                        const rank = card.slice(0, -1);
-                                                        return (
-                                                            <div
-                                                                key={`${card}-${index}`}
-                                                                className={cn(
-                                                                    "winner-card-pop flex flex-col items-center justify-center rounded border-2 border-border bg-white font-bold shadow-md dark:border-slate-700 dark:bg-slate-900 flex-shrink-0",
-                                                                    "h-12 w-9 text-xs md:h-14 md:w-10 md:text-sm",
-                                                                    getSuitColorClass(suit, theme)
-                                                                )}
-                                                                style={{ animationDelay: `${index * 60}ms` }}
-                                                            >
-                                                                <span>{getRankDisplay(rank)}</span>
-                                                                <span className="text-lg md:text-xl">{getSuitSymbol(suit)}</span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        )}
-                                        <Button
-                                            onClick={onReturnToLobby}
-                                            size="default"
-                                            className="mt-1 min-w-[160px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg flex-shrink-0"
-                                        >
-                                            Return to Lobby
-                                        </Button>
-                                        <PostGameFeedback feedback={postGameFeedback} />
-                                    </div>
-                                ) : (
-                                    <div className="grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-3">
-                                        <div className="flex min-h-[48px] items-center justify-center">
-                                            <div className={cn(
-                                                "flex min-h-[44px] min-w-[210px] items-center justify-center rounded-full border px-4 py-2 text-center text-base font-semibold shadow-sm transition-colors",
-                                                isCurrentTurn
-                                                    ? "border-primary/40 bg-primary/8 text-primary turn-glow"
-                                                    : "border-border/70 bg-background/70 text-foreground"
-                                            )}>
-                                                {isCurrentTurn
-                                                    ? "Your turn"
-                                                    : `${getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn`}
-                                            </div>
-                                        </div>
-                                        <div
-                                            ref={desktopTableTargetRef}
-                                            className="felt-surface flex min-h-[132px] items-center justify-center rounded-2xl border border-black/20 shadow-inner px-3 py-3"
-                                        >
-                                            {gameState.lastPlayedCards.length > 0 ? (
-                                                renderLastPlayedCards()
-                                            ) : (
-                                                <div
-                                                    ref={desktopCardLaneTargetRef}
-                                                    className="flex min-h-[84px] min-w-[180px] flex-col items-center justify-center gap-2 text-center"
-                                                >
-                                                    <p className="text-xs uppercase tracking-[0.24em] text-emerald-50/60">
-                                                        Table
-                                                    </p>
-                                                    <p className="text-sm text-emerald-50/70">
-                                                        Waiting for the opening play.
-                                                    </p>
-                                                </div>
-                                            )}
+                            </DialogContent>
+                        </Dialog>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="game-board-tool" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+                                    <HelpCircle className="h-4 w-4" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Keyboard Shortcuts</DialogTitle>
+                                    <DialogDescription>Use a keyboard to play at any window size.</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 pt-2">
+                                    <div>
+                                        <h4 className="mb-2 font-semibold text-sm">Card Selection</h4>
+                                        <div className="space-y-1.5 text-sm">
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Move cursor left/right</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">← →</kbd></div>
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Select focused card</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">↑</kbd></div>
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Deselect focused card</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">↓</kbd></div>
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Toggle selection</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Space</kbd></div>
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Clear focus</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Esc</kbd></div>
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Clear selection</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Backspace</kbd></div>
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Select card by rank</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">2–9, T, J, Q, K, A</kbd></div>
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Cycle through same rank</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Press again</kbd></div>
                                         </div>
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Right Player - Rotated 270deg clockwise (-90deg) */}
-                    <div className="flex items-center justify-center px-2 lg:px-4">
-                        {renderSidePlayer(playerPositions.right, rightPlayer, "right")}
-                    </div>
-                </section>
-
-                {/* Mobile: Center Game Area - Large focus on gameplay */}
-                <section className="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-hidden py-2 px-2 md:hidden">
-                    {renderConnectionBanner(true)}
-
-                    {gameState.gameWon ? (
-                        <div className="flex min-h-[210px] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-primary/10 bg-card/90 px-4 py-4 text-center shadow-lg">
-                            <p className="text-xl font-bold text-emerald-500">
-                                🎉 {gameState.winner === uuid ? "You won!" : `${getDisplayName(gameState.winner, gameState.uuidToName)} won!`}
-                            </p>
-                            {gameState.lastPlayedBy === gameState.winner && (
-                                <div className="w-full">
-                                    <p className="text-sm uppercase tracking-wide text-muted-foreground mb-2">
-                                        {gameState.winner === uuid ? "Winning hand" : `${getDisplayName(gameState.winner, gameState.uuidToName)}'s hand`}
-                                    </p>
-                                    <div className="flex flex-wrap justify-center gap-1.5">
-                                        {gameState.lastPlayedCards.map((card, index) => {
-                                            const suit = card.slice(-1);
-                                            const rank = card.slice(0, -1);
-                                            return (
-                                                <div
-                                                    key={`${card}-${index}`}
-                                                    className={cn(
-                                                        "winner-card-pop flex flex-col items-center justify-center rounded-lg border-2 border-border bg-white font-bold shadow-lg dark:border-slate-700 dark:bg-slate-900",
-                                                        "h-16 w-11 text-sm",
-                                                        getSuitColorClass(suit, theme)
-                                                    )}
-                                                    style={{ animationDelay: `${index * 60}ms` }}
-                                                >
-                                                    <span>{getRankDisplay(rank)}</span>
-                                                    <span className="text-2xl">{getSuitSymbol(suit)}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                            <Button
-                                onClick={onReturnToLobby}
-                                size="default"
-                                className="mt-2 min-w-[150px] bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
-                            >
-                                Back to Lobby
-                            </Button>
-                            <PostGameFeedback compact feedback={postGameFeedback} />
-                        </div>
-                    ) : (
-                        <div className="grid min-h-[196px] w-full grid-rows-[auto_minmax(0,1fr)] gap-3 rounded-2xl border border-primary/10 bg-card/90 px-3 py-4 shadow-lg">
-                            <div className="flex items-center justify-center">
-                                <div className={cn(
-                                    "flex min-h-[42px] min-w-[190px] items-center justify-center rounded-full border px-4 py-2 text-center text-sm font-semibold shadow-sm transition-colors",
-                                    isCurrentTurn
-                                        ? "border-primary/40 bg-primary/8 text-primary turn-glow"
-                                        : "border-border/70 bg-background/70 text-foreground"
-                                )}>
-                                    {isCurrentTurn
-                                        ? "Your turn"
-                                        : `${getDisplayName(gameState.currentTurn, gameState.uuidToName)}'s turn`}
-                                </div>
-                            </div>
-
-                            <div
-                                ref={mobileTableTargetRef}
-                                className="felt-surface flex min-h-[118px] items-center justify-center rounded-2xl border border-black/20 shadow-inner px-3 py-3"
-                            >
-                                {gameState.lastPlayedCards.length > 0 ? (
-                                    <div className="flex flex-col items-center gap-2 w-full">
-                                        <p className="text-xs uppercase tracking-wide text-emerald-50/70">
-                                            {gameState.lastPlayedBy === uuid ? "You played" : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played`}
-                                        </p>
-                                        <div
-                                            ref={mobileCardLaneTargetRef}
-                                            className={cn(
-                                                "flex flex-wrap justify-center gap-1.5 transition-opacity duration-100",
-                                                suppressedTablePlayKey === getTablePlayKey(gameState.lastPlayedBy, gameState.lastPlayedCards) && "opacity-0"
-                                            )}
-                                        >
-                                            {gameState.lastPlayedCards.map((card, index) => {
-                                                const suit = card.slice(-1);
-                                                const rank = card.slice(0, -1);
-                                                return (
-                                                    <div
-                                                        key={`${card}-${index}`}
-                                                        className={cn(
-                                                            "flex flex-col items-center justify-center rounded-lg border-2 border-border bg-white font-bold shadow-lg dark:border-slate-700 dark:bg-slate-900",
-                                                            "h-16 w-11 text-sm",
-                                                            getSuitColorClass(suit, theme)
-                                                        )}
-                                                    >
-                                                        <span>{getRankDisplay(rank)}</span>
-                                                        <span className="text-2xl">{getSuitSymbol(suit)}</span>
-                                                    </div>
-                                                );
-                                            })}
+                                    <div>
+                                        <h4 className="mb-2 font-semibold text-sm">Actions</h4>
+                                        <div className="space-y-1.5 text-sm">
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Play selected cards</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">Enter</kbd></div>
+                                            <div className="flex items-center justify-between"><span className="text-muted-foreground">Pass turn</span><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">P</kbd></div>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div
-                                        ref={mobileCardLaneTargetRef}
-                                        className="flex min-h-[76px] min-w-[150px] flex-col items-center justify-center gap-2 text-center"
-                                    >
-                                        <p className="text-xs uppercase tracking-[0.24em] text-emerald-50/60">
-                                            Table
-                                        </p>
-                                        <p className="text-sm text-emerald-50/70">
-                                            Waiting for the opening play.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </section>
-
-                {/* Bottom Player */}
-                <section className="mt-auto flex flex-shrink-0 flex-col gap-1 pt-1">
-                    {/* Desktop: Full layout with sort buttons and badge */}
-                    <div className="hidden items-center justify-between md:flex">
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleSortCards("numerical")}
-                                title="Sort by rank (3 smallest, 2 biggest)"
-                                className="h-7 px-3 text-xs"
-                            >
-                                Rank
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleSortCards("suit")}
-                                title="Sort by suit (♦♣♥♠)"
-                                className="h-7 px-3 text-xs"
-                            >
-                                Suit
-                            </Button>
-                        </div>
-                        <Badge
-                            variant={gameState.currentTurn === uuid ? "secondary" : "outline"}
-                            className={cn(
-                                "relative flex min-h-[32px] min-w-[120px] flex-col items-center justify-center overflow-visible rounded-lg px-3 py-1.5 text-center text-xs uppercase tracking-wide",
-                                gameState.currentTurn === uuid && !gameState.gameWon && "border-primary/50 bg-primary/10 ring-1 ring-primary/30"
-                            )}
-                        >
-                            {renderPlayerPassTag(currentPlayer?.hasPassed)}
-                            <span className="text-xs font-semibold">
-                                {gameState.uuidToName[uuid] || username}
-                            </span>
-                            <span className="text-xs font-medium text-muted-foreground">
-                                {getCardCountLabel(currentPlayer)}
-                            </span>
-                        </Badge>
-                        <div className="w-32" aria-hidden />
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </div>
-
-                    {/* Mobile: Compact layout with sort and user info combined */}
-                    <div className="flex items-center justify-between gap-1 md:hidden">
-                        <div className="flex gap-1.5">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleSortCards("numerical")}
-                                title="Sort by rank"
-                                className="h-7 px-2 text-xs"
-                            >
-                                Rank
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleSortCards("suit")}
-                                title="Sort by suit"
-                                className="h-7 px-2 text-xs"
-                            >
-                                Suit
-                            </Button>
-                        </div>
-                        <Badge
-                            variant={gameState.currentTurn === uuid ? "secondary" : "outline"}
-                            className={cn(
-                                "relative flex h-7 items-center gap-1.5 overflow-visible rounded-full px-2 py-1 text-xs font-semibold",
-                                gameState.currentTurn === uuid && !gameState.gameWon && "border-primary/50 bg-primary/10 ring-1 ring-primary/30"
-                            )}
-                        >
-                            {renderPlayerPassTag(currentPlayer?.hasPassed, true)}
-                            <span className="max-w-[6rem] truncate">{gameState.uuidToName[uuid] || username}</span>
-                            <Badge variant="outline" className="h-5 px-1.5 text-xs">
-                                {currentPlayer?.cardCount || 0}
-                            </Badge>
-                        </Badge>
-                    </div>
-
-                    <div className={cn(
-                        "flex min-h-0 justify-center rounded-xl transition-shadow",
-                        isCurrentTurn && "ring-2 ring-primary/40 turn-glow"
-                    )}>
+                )}
+                opponents={opponentUuids.map(playerUuid => {
+                    const player = gameState.players.find(candidate => candidate.name === playerUuid);
+                    const difficulty = getBotDifficulty(playerUuid);
+                    const botKind = difficulty === "expert" ? "EXPERT BOT" : difficulty === "ai" ? "AI BOT" : "BOT";
+                    const lastCards = gameState.lastPlaysByPlayer[playerUuid] ?? [];
+                    const isLastCardsHidden = suppressedTablePlayKey === getTablePlayKey(playerUuid, lastCards);
+                    return (
+                        <GameOpponent
+                            key={playerUuid}
+                            ref={element => registerOpponentSourceRef(playerUuid, "board", element)}
+                            name={getDisplayName(playerUuid, gameState.uuidToName)}
+                            cardCount={player?.cardCount ?? 13}
+                            isActive={displayedTurn === playerUuid}
+                            kind={botUuids.has(playerUuid) ? botKind : undefined}
+                            hasPassed={player?.hasPassed}
+                            lastCards={lastCards}
+                            lastCardsHidden={isLastCardsHidden}
+                        />
+                    );
+                })}
+                table={(
+                    <GameTable
+                        turnLabel={gameState.gameWon
+                            ? "Round complete"
+                            : !displayedTurn
+                                ? "Waiting for players"
+                            : canAct
+                                ? hasTablePlay ? "Your turn" : "Your lead"
+                                : `${displayedTurnName}'s turn`}
+                        isCurrentTurn={canAct}
+                        cards={gameState.lastPlayedCards}
+                        playedBy={gameState.lastPlayedBy === uuid ? "You played" : `${getDisplayName(gameState.lastPlayedBy, gameState.uuidToName)} played`}
+                        handLabel={gameState.lastPlayedCards.length ? `${gameState.lastPlayedCards.length} card${gameState.lastPlayedCards.length === 1 ? "" : "s"}` : undefined}
+                        emptyTitle={canAct
+                            ? isOpeningPlay ? "You open" : "You lead"
+                            : displayedTurn ? `${displayedTurnName} leads` : "Table"}
+                        emptyHint={canAct
+                            ? isOpeningPlay ? "Play any hand with the 3♦." : "Everyone passed. Play any hand."
+                            : gameState.lastPlayedBy ? "Everyone passed. New round." : "Waiting for the opening play."}
+                        cardsHidden={tablePlayHidden}
+                        tableRef={tableTargetRef}
+                        cardLaneRef={cardLaneTargetRef}
+                    >
+                        {winnerContent}
+                    </GameTable>
+                )}
+                handName={gameState.uuidToName[uuid] || username}
+                handCount={currentPlayer?.cards.length ?? 0}
+                handStatus={canAct ? "YOUR TURN" : gameState.gameWon ? "GAME OVER" : "WAITING"}
+                handTools={(
+                    <>
+                        <Button variant="outline" size="sm" className="game-board-tool" onClick={() => handleSortCards("numerical")} title="Sort by rank (3 smallest, 2 biggest)">Rank</Button>
+                        <Button variant="outline" size="sm" className="game-board-tool" onClick={() => handleSortCards("suit")} title="Sort by suit (♦♣♥♠)">Suit</Button>
+                    </>
+                )}
+                hand={(
+                    <div className="relative">
                         <PlayerHand
                             cards={currentPlayer?.cards || []}
                             selectedCards={gameState.selectedCards}
@@ -1920,95 +1341,32 @@ const GameScreen: React.FC<GameScreenProps> = ({
                             onCardClick={handleCardClick}
                             onCardsReorder={handleCardsReorder}
                             registerCardRef={registerHandCardRef}
+                            onCardFocus={index => setGameState(prev => ({ ...prev, focusedCardIndex: index }))}
+                            keyboardScope
                         />
+                        {moveError && (
+                            <div key={errorShakeKey} role="alert" className="shake-once pointer-events-none absolute inset-x-0 bottom-full z-[130] mb-1 flex justify-center">
+                                <span className="game-move-error">{moveError}</span>
+                            </div>
+                        )}
                     </div>
-
-                    {moveError && (
-                        <div key={errorShakeKey} className="shake-once flex justify-center pt-1">
-                            <span className="rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive">
-                                {moveError}
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Desktop: Larger buttons */}
-                    <div className="hidden flex-wrap items-center justify-center gap-2 pb-1 md:flex">
-                        <Button
-                            className="min-w-[120px]"
-                            size="sm"
-                            onClick={handlePlayCards}
-                            disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || isActionPacing || gameState.gameWon}
-                        >
-                            Play
-                            {gameState.selectedCards.length > 0 && (
-                                <span className="ml-2 text-sm font-medium">({gameState.selectedCards.length})</span>
-                            )}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="min-w-[120px]"
-                            size="sm"
-                            onClick={handleDeselectAll}
-                            disabled={gameState.selectedCards.length === 0}
-                            title={gameState.selectedCards.length === 0 ? "No cards selected" : "Deselect all selected cards"}
-                        >
-                            Clear
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="min-w-[120px]"
-                            size="sm"
-                            onClick={handlePass}
-                            disabled={!isCurrentTurn || isActionPacing || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
-                            title={gameState.gameWon
-                                ? "Game is over"
-                                : !isCurrentTurn
-                                    ? "Not your turn"
-                                    : gameState.lastPlayedCards.length === 0
-                                        ? "Cannot pass on first move"
-                                        : "Pass your turn (or press P key)"}
-                        >
-                            Pass
-                        </Button>
-                    </div>
-
-                    {/* Mobile: Compact buttons */}
-                    <div className="flex items-center justify-center gap-2 pb-1 md:hidden">
-                        <Button
-                            className="flex-1 max-w-[110px] h-9 text-sm"
-                            size="sm"
-                            onClick={handlePlayCards}
-                            disabled={gameState.selectedCards.length === 0 || !isCurrentTurn || isActionPacing || gameState.gameWon}
-                        >
-                            Play
-                            {gameState.selectedCards.length > 0 && (
-                                <span className="ml-1 text-xs">({gameState.selectedCards.length})</span>
-                            )}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="flex-1 max-w-[90px] h-9 text-sm"
-                            size="sm"
-                            onClick={handleDeselectAll}
-                            disabled={gameState.selectedCards.length === 0}
-                            title="Clear selection"
-                        >
-                            Clear
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="flex-1 max-w-[90px] h-9 text-sm"
-                            size="sm"
-                            onClick={handlePass}
-                            disabled={!isCurrentTurn || isActionPacing || gameState.lastPlayedCards.length === 0 || gameState.gameWon}
-                            title="Pass turn"
-                        >
-                            Pass
-                        </Button>
-                    </div>
-                </section>
-            </div>
-        </div>
+                )}
+                actions={(
+                    <GameActions
+                        selectedCount={gameState.selectedCards.length}
+                        onPlay={handlePlayCards}
+                        onClear={handleDeselectAll}
+                        onPass={handlePass}
+                        isPlayDisabled={gameState.selectedCards.length === 0 || !canAct}
+                        isClearDisabled={gameState.selectedCards.length === 0}
+                        isPassDisabled={!canAct || !hasTablePlay}
+                        passTitle={gameState.gameWon ? "Game is over" : !canAct ? "Not your turn" : !hasTablePlay ? "You lead, so you must play" : "Pass your turn (or press P key)"}
+                    />
+                )}
+                feedback={gameState.gameWon ? <PostGameFeedback feedback={postGameFeedback} /> : undefined}
+            />
+            {cardFlightOverlay}
+        </>
     );
 };
 

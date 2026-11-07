@@ -1,8 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Check } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useScreenSize } from "../hooks/useMediaQuery";
 import PlayingCard from "./PlayingCard";
+import { getRankDisplay } from "../utils/cardDisplay";
 
 // Card dimension constants for responsive sizing
 // All dimensions use exact 5:7 aspect ratio to match aspect-[5/7] used elsewhere
@@ -11,12 +12,12 @@ const CARD_DIMENSIONS = {
   mobile: {
     width: 50,
     height: 70,
-    gap: -28, // Reduced overlap for better card visibility
+    gap: 0,
   },
   tablet: {
     width: 60,
     height: 84,
-    gap: -20, // Less overlap on tablet
+    gap: 0,
   },
   desktop: {
     width: 76,
@@ -41,6 +42,8 @@ interface CardProps {
     width: number;
     height: number;
     registerCardRef?: (card: string, element: HTMLDivElement | null) => void;
+    onFocus?: (index: number) => void;
+    keyboardScope?: boolean;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -58,7 +61,9 @@ const Card: React.FC<CardProps> = ({
     selectedCards,
     width,
     height,
-    registerCardRef
+    registerCardRef,
+    onFocus,
+    keyboardScope,
 }) => {
     const handleDragStart = (e: React.DragEvent) => {
         e.dataTransfer.effectAllowed = 'move';
@@ -99,9 +104,9 @@ const Card: React.FC<CardProps> = ({
             ref={(element) => registerCardRef?.(card, element)}
             card={card}
             className={cn(
-                "relative cursor-pointer transition-all duration-200 snap-start",
+                "classic-hand-card relative cursor-pointer transition-all duration-200 snap-start",
                 isSelected ? "-translate-y-4 border-primary shadow-lg" : "border-slate-200 dark:border-slate-700",
-                isFocused && "ring-[3px] ring-amber-500 ring-offset-2 dark:ring-amber-400",
+                isFocused && "ring-[3px] ring-amber-400 ring-offset-2 dark:ring-amber-300",
                 isDragging && "opacity-80",
                 isDropTarget && "ring-2 ring-offset-2 ring-primary/60"
             )}
@@ -119,6 +124,12 @@ const Card: React.FC<CardProps> = ({
             draggable
             data-batch-count={isSelected && isDragging ? selectedCards.length : undefined}
             title={card}
+            role="button"
+            tabIndex={0}
+            aria-pressed={isSelected}
+            aria-label={`${getRankDisplay(card.slice(0, -1))} ${({ D: 'diamonds', C: 'clubs', H: 'hearts', S: 'spades' } as Record<string, string>)[card.slice(-1)]}`}
+            data-game-card={keyboardScope ? true : undefined}
+            onFocus={() => onFocus?.(index)}
             rankClassName={cn(rankFontSize, "font-bold")}
             suitClassName={suitFontSize}
         >
@@ -144,6 +155,9 @@ interface PlayerHandProps {
     onCardClick: (card: string) => void;
     onCardsReorder: (newOrder: string[]) => void;
     registerCardRef?: (card: string, element: HTMLDivElement | null) => void;
+    onCardFocus?: (index: number) => void;
+    keyboardScope?: boolean;
+    containerRef?: React.Ref<HTMLDivElement>;
 }
 
 const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -152,13 +166,16 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     focusedCardIndex = null,
     onCardClick,
     onCardsReorder,
-    registerCardRef
+    registerCardRef,
+    onCardFocus,
+    keyboardScope,
+    containerRef,
 }) => {
     const [draggedCards, setDraggedCards] = useState<string[]>([]);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
     const [isDragBatch, setIsDragBatch] = useState<boolean>(false);
-    const handRef = useRef<HTMLDivElement>(null);
+    const handRef = useRef<HTMLDivElement | null>(null);
 
     // Use screen size hook for responsive card sizing
     const screenSize = useScreenSize();
@@ -168,26 +185,23 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
 
     // Responsive card dimensions based on screen size
     const cardDimensions = CARD_DIMENSIONS[screenSize];
+    const cardGap = Math.max(0, cardDimensions.gap);
     const isMobileOrTablet = screenSize !== 'desktop';
+
+    useEffect(() => {
+        if (focusedCardIndex === null) return;
+        handRef.current?.querySelectorAll<HTMLElement>(".classic-hand-card")[focusedCardIndex]
+            ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }, [focusedCardIndex, cards, screenSize]);
 
     const getDropIndicatorLeft = (targetIndex: number) => {
         const handElement = handRef.current;
-        const cardSpan = cardDimensions.width + cardDimensions.gap;
+        const cardSpan = cardDimensions.width + cardGap;
         const fallbackPadding = isMobileOrTablet ? 12 : 16;
         const computedStyles = handElement ? window.getComputedStyle(handElement) : null;
         const paddingLeft = computedStyles ? Number.parseFloat(computedStyles.paddingLeft) || fallbackPadding : fallbackPadding;
-        const paddingRight = computedStyles ? Number.parseFloat(computedStyles.paddingRight) || fallbackPadding : fallbackPadding;
-        const availableWidth = handElement
-            ? Math.max(0, handElement.clientWidth - paddingLeft - paddingRight)
-            : 0;
-        const contentWidth = cards.length > 0
-            ? cards.length * cardDimensions.width + Math.max(cards.length - 1, 0) * cardDimensions.gap
-            : 0;
-        const centeredOffset = !isMobileOrTablet && availableWidth > contentWidth
-            ? (availableWidth - contentWidth) / 2
-            : 0;
-        const startOffset = paddingLeft + centeredOffset;
-        const baseOffset = startOffset - cardDimensions.gap / 2;
+        const startOffset = paddingLeft;
+        const baseOffset = startOffset - cardGap / 2;
         const maxOffset = startOffset + Math.max(cards.length - 1, 0) * cardSpan + cardDimensions.width;
         const desiredOffset = baseOffset + targetIndex * cardSpan;
 
@@ -335,16 +349,25 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
 
     return (
         <div
-            ref={handRef}
+            ref={(element) => {
+                handRef.current = element;
+                if (typeof containerRef === 'function') containerRef(element);
+                else if (containerRef) (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = element;
+            }}
             className={cn(
-                "relative flex w-full flex-nowrap overflow-x-auto rounded-xl border border-slate-200/60 bg-white/50 p-2 sm:p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40",
-                isMobileOrTablet ? "justify-start snap-x snap-proximity" : "justify-center"
+                "classic-player-hand relative flex w-full flex-nowrap overflow-x-auto rounded-xl border border-slate-200/60 bg-white/50 p-2 sm:p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/40",
+                "justify-start",
+                isMobileOrTablet && "snap-x snap-proximity"
             )}
             style={{
-                gap: `${cardDimensions.gap}px`,
-                // On mobile/tablet with overlapping, need padding to prevent cut-off
-                paddingLeft: isMobileOrTablet ? '12px' : undefined,
-                paddingRight: isMobileOrTablet ? '12px' : undefined,
+                gap: `${cardGap}px`,
+                // Leave room for raised selected cards and their keyboard focus ring.
+                paddingTop: '20px',
+                paddingBottom: '8px',
+                paddingLeft: isMobileOrTablet ? '16px' : undefined,
+                paddingRight: isMobileOrTablet ? '16px' : undefined,
+                scrollPaddingInline: '8px',
+                scrollSnapType: focusedCardIndex !== null ? 'none' : undefined,
                 // Maintain minimum height to prevent layout shift when cards are removed
                 minHeight: `${cardDimensions.height + 20}px` // card height + padding
             }}
@@ -384,6 +407,8 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
                         width={cardDimensions.width}
                         height={cardDimensions.height}
                         registerCardRef={registerCardRef}
+                        onFocus={onCardFocus}
+                        keyboardScope={keyboardScope}
                     />
                 );
             })}

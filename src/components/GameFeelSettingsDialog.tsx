@@ -20,6 +20,7 @@ import {
 interface GameFeelSettingsDialogProps {
     settings: GameFeelSettings;
     onSettingsChange: (settings: GameFeelSettings) => void;
+    triggerClassName?: string;
 }
 
 interface SegmentedSettingProps<T extends string> {
@@ -61,13 +62,14 @@ const SegmentedSetting = <T extends string,>({
 const GameFeelSettingsDialog = ({
     settings,
     onSettingsChange,
+    triggerClassName,
 }: GameFeelSettingsDialogProps) => (
     <Dialog>
         <DialogTrigger asChild>
             <Button
                 variant="ghost"
                 size="icon"
-                className="fixed right-2 top-2 z-50 flex h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:h-10 md:w-10"
+                className={triggerClassName ?? "fixed right-2 top-2 z-50 flex h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm hover:bg-background/90 md:h-10 md:w-10"}
                 title="Game feel settings"
             >
                 <Settings2 className="h-4 w-4 md:h-5 md:w-5" />

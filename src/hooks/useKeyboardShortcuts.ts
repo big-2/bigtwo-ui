@@ -15,7 +15,7 @@ interface UseKeyboardShortcutsOptions {
     onBackspace: () => void;
     onPass: () => void;
     onEscape: () => void;
-    isEnabled: boolean; // Only enable on desktop
+    isEnabled: boolean; // The caller enables shortcuts for its active game screen
     isCurrentTurn: boolean; // Only allow actions during player's turn
     gameWon: boolean; // Disable when game is won
     canPass: boolean; // Can pass (requires lastPlayedCards.length > 0)
@@ -57,6 +57,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
     const heldArrowKeyRef = useRef<"left" | "right" | null>(null);
     const heldRankKeyRef = useRef<string | null>(null);
     const optionsRef = useRef(options);
+    const focusedByPointerRef = useRef(false);
 
     // Keep refs in sync with latest options
     useEffect(() => {
@@ -83,12 +84,25 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                 canPass: latestCanPass,
             } = optionsRef.current;
 
-            // Ignore if typing in an input field
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+            // Let forms, dialogs, and modified browser shortcuts keep their native behavior.
+            const target = e.target instanceof HTMLElement ? e.target : null;
+            if (e.altKey || e.ctrlKey || e.metaKey || target?.isContentEditable ||
+                target?.closest('input, textarea, select, [role="dialog"], [data-shortcuts-disabled]')) {
                 return;
             }
 
             const key = e.key.toLowerCase();
+            if (key === "tab") {
+                focusedByPointerRef.current = false;
+            }
+            if ((key === "enter" || key === " ") && target?.closest('button, a') &&
+                !target.closest('.arcade-card-button, [data-game-card]')) {
+                // A keyboard user tabbed here and means to press this control.
+                if (!focusedByPointerRef.current) return;
+                // A mouse click only left focus behind; don't let Enter or Space press it again.
+                e.preventDefault();
+                target.blur();
+            }
 
             // Handle rank keys (card selection)
             if (KEY_TO_RANK[key]) {
@@ -138,7 +152,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         if (heldArrowKeyRef.current === direction) {
                             arrowRepeatIntervalRef.current = setInterval(() => {
                                 if (heldArrowKeyRef.current === direction) {
-                                    latestOnArrowKey(direction, heldRankKeyRef.current);
+                                    optionsRef.current.onArrowKey(direction, heldRankKeyRef.current);
                                 }
                             }, ARROW_KEY_REPEAT_INTERVAL);
                         }
@@ -218,19 +232,31 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
             }
         };
 
+        const handlePointerDown = () => {
+            focusedByPointerRef.current = true;
+        };
+
+        const resetHeldKeys = () => {
+            keyboardStateRef.current = { currentKey: null, isHolding: false };
+            heldArrowKeyRef.current = null;
+            heldRankKeyRef.current = null;
+            if (arrowRepeatIntervalRef.current) clearInterval(arrowRepeatIntervalRef.current);
+            if (arrowRepeatTimeoutRef.current) clearTimeout(arrowRepeatTimeoutRef.current);
+            arrowRepeatIntervalRef.current = null;
+            arrowRepeatTimeoutRef.current = null;
+        };
+
         window.addEventListener("keydown", handleKeyDown);
         window.addEventListener("keyup", handleKeyUp);
+        window.addEventListener("blur", resetHeldKeys);
+        window.addEventListener("pointerdown", handlePointerDown, true);
 
         return () => {
+            window.removeEventListener("pointerdown", handlePointerDown, true);
             window.removeEventListener("keydown", handleKeyDown);
             window.removeEventListener("keyup", handleKeyUp);
-            // Cleanup arrow repeat timers
-            if (arrowRepeatIntervalRef.current) {
-                clearInterval(arrowRepeatIntervalRef.current);
-            }
-            if (arrowRepeatTimeoutRef.current) {
-                clearTimeout(arrowRepeatTimeoutRef.current);
-            }
+            window.removeEventListener("blur", resetHeldKeys);
+            resetHeldKeys();
         };
     }, [isEnabled, gameWon]);
 }
